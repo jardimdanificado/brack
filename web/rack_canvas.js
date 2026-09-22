@@ -126,14 +126,18 @@ export class RackCanvas {
         this.adsrCanvases.clear();
 
         for (const mod of this.engine.modules) {
+            const isAdsr = mod.type === 'adsr' || (mod.params.some(p => p.name.toLowerCase() === 'attack') && mod.params.some(p => p.name.toLowerCase() === 'release'));
+            const cardWidth = isAdsr ? Math.max(mod.width || 190, 215) : (mod.width || 190);
+
             const card = document.createElement('div');
             card.className = 'rack-module';
             card.dataset.moduleId = mod.id;
             card.style.position = 'absolute';
             card.style.left = `${mod.x}px`;
             card.style.top = `${mod.y}px`;
-            card.style.width = `${mod.width}px`;
+            card.style.width = `${cardWidth}px`;
             card.style.minHeight = `${mod.height}px`;
+            card.style.boxSizing = 'border-box';
             card.style.background = 'linear-gradient(180deg, #18221e 0%, #121916 100%)';
             card.style.border = '2px solid #283731';
             card.style.borderRadius = '8px';
@@ -233,38 +237,63 @@ export class RackCanvas {
             body.style.flex = '1';
             body.style.padding = '10px 8px';
             body.style.display = 'flex';
-            body.style.gap = '8px';
+            body.style.gap = '6px';
             body.style.justifyContent = 'space-between';
+            body.style.boxSizing = 'border-box';
 
             // Left Column: Inputs
             const inputsCol = document.createElement('div');
             inputsCol.style.display = 'flex';
             inputsCol.style.flexDirection = 'column';
             inputsCol.style.gap = '10px';
-            inputsCol.style.minWidth = '45px';
+            inputsCol.style.minWidth = '40px';
+            inputsCol.style.flexShrink = '0';
 
             for (const inp of mod.inputs) {
                 inputsCol.appendChild(this.createJackElement(mod.id, inp.name, inp.type, false));
             }
             body.appendChild(inputsCol);
 
-            // Center Column: Knobs
-            const knobsCol = document.createElement('div');
-            knobsCol.style.flex = '1';
-            knobsCol.style.display = 'flex';
-            knobsCol.style.flexDirection = 'column';
-            knobsCol.style.alignItems = 'center';
-            knobsCol.style.gap = '10px';
+            // Center Column: Decorations, Visors and Controls
+            const centerCol = document.createElement('div');
+            centerCol.style.flex = '1';
+            centerCol.style.display = 'flex';
+            centerCol.style.flexDirection = 'column';
+            centerCol.style.alignItems = 'center';
+            centerCol.style.gap = '8px';
+            centerCol.style.minWidth = '80px';
 
-            const isAdsr = mod.type === 'adsr' || (mod.params.some(p => p.name.toLowerCase() === 'attack') && mod.params.some(p => p.name.toLowerCase() === 'release'));
-            if (isAdsr) {
-                knobsCol.appendChild(this.createAdsrCurveElement(mod.id, mod));
+            // 1. Decorations (labels, separators)
+            if (mod.decorations) {
+                for (const dec of mod.decorations) {
+                    if (dec.type === 'label') centerCol.appendChild(this.createLabelElement(dec.text));
+                    else if (dec.type === 'separator') centerCol.appendChild(this.createSeparatorElement());
+                }
             }
 
+            // 2. Visors (ADSR curve, Scope, VU meter, Display, LED)
+            if (mod.visors && mod.visors.length > 0) {
+                for (const visor of mod.visors) {
+                    if (visor.type === 'adsr') centerCol.appendChild(this.createAdsrCurveElement(mod.id, mod, visor));
+                    else if (visor.type === 'scope') centerCol.appendChild(this.createScopeElement(mod.id, mod, visor));
+                    else if (visor.type === 'vu') centerCol.appendChild(this.createVuMeterElement(mod.id, mod, visor));
+                    else if (visor.type === 'display') centerCol.appendChild(this.createDisplayElement(mod.id, mod, visor));
+                    else if (visor.type === 'led') centerCol.appendChild(this.createLedElement(mod.id, mod, visor));
+                }
+            } else if (isAdsr) {
+                centerCol.appendChild(this.createAdsrCurveElement(mod.id, mod));
+            }
+
+            // 3. Controls (Knobs, Sliders, Switches, Buttons, XY Pads, Wavedraws)
             for (const param of mod.params) {
-                knobsCol.appendChild(this.createKnobElement(mod.id, param));
+                if (param.type === 'SLIDER') centerCol.appendChild(this.createSliderElement(mod.id, param));
+                else if (param.type === 'SWITCH') centerCol.appendChild(this.createSwitchElement(mod.id, param));
+                else if (param.type === 'BUTTON') centerCol.appendChild(this.createButtonElement(mod.id, param));
+                else if (param.type === 'XY_PAD') centerCol.appendChild(this.createXyPadElement(mod.id, param));
+                else if (param.type === 'WAVE_DRAW') centerCol.appendChild(this.createWaveDrawElement(mod.id, param));
+                else centerCol.appendChild(this.createKnobElement(mod.id, param));
             }
-            body.appendChild(knobsCol);
+            body.appendChild(centerCol);
 
             // Right Column: Outputs
             const outputsCol = document.createElement('div');
@@ -272,7 +301,8 @@ export class RackCanvas {
             outputsCol.style.flexDirection = 'column';
             outputsCol.style.alignItems = 'flex-end';
             outputsCol.style.gap = '10px';
-            outputsCol.style.minWidth = '45px';
+            outputsCol.style.minWidth = '40px';
+            outputsCol.style.flexShrink = '0';
 
             for (const out of mod.outputs) {
                 outputsCol.appendChild(this.createJackElement(mod.id, out.name, out.type, true));
@@ -411,10 +441,10 @@ export class RackCanvas {
         wrap.style.marginBottom = '4px';
 
         const canvas = document.createElement('canvas');
-        canvas.width = 100;
-        canvas.height = 44;
-        canvas.style.width = '100px';
-        canvas.style.height = '44px';
+        canvas.width = 88;
+        canvas.height = 40;
+        canvas.style.width = '88px';
+        canvas.style.height = '40px';
         canvas.style.background = '#09110d';
         canvas.style.border = '1px solid #283731';
         canvas.style.borderRadius = '4px';
@@ -422,7 +452,7 @@ export class RackCanvas {
         const drawCurve = () => {
             const ctx = canvas.getContext('2d');
             ctx.fillStyle = '#09110d';
-            ctx.fillRect(0, 0, 100, 44);
+            ctx.fillRect(0, 0, 88, 40);
 
             const getVal = (name, def) => {
                 const p = mod.params.find(x => x.name.toLowerCase() === name.toLowerCase());
@@ -435,26 +465,26 @@ export class RackCanvas {
             const r = Math.max(0.01, getVal('Release', 0.2));
 
             const total = a + d + 0.3 + r;
-            const xA = (a / total) * 88 + 6;
-            const xD = xA + (d / total) * 88;
-            const xS = xD + (0.3 / total) * 88;
-            const xR = 94;
+            const xA = (a / total) * 78 + 5;
+            const xD = xA + (d / total) * 78;
+            const xS = xD + (0.3 / total) * 78;
+            const xR = 83;
 
-            const yTop = 6;
-            const ySus = 38 - s * 30;
-            const yBot = 38;
+            const yTop = 5;
+            const ySus = 35 - s * 28;
+            const yBot = 35;
 
             // Zero axis
             ctx.strokeStyle = 'rgba(85, 239, 196, 0.2)';
             ctx.lineWidth = 1;
             ctx.beginPath();
-            ctx.moveTo(6, yBot); ctx.lineTo(94, yBot);
+            ctx.moveTo(5, yBot); ctx.lineTo(83, yBot);
             ctx.stroke();
 
             // Fill
             ctx.fillStyle = 'rgba(85, 239, 196, 0.15)';
             ctx.beginPath();
-            ctx.moveTo(6, yBot);
+            ctx.moveTo(5, yBot);
             ctx.lineTo(xA, yTop);
             ctx.lineTo(xD, ySus);
             ctx.lineTo(xS, ySus);
@@ -466,7 +496,7 @@ export class RackCanvas {
             ctx.strokeStyle = '#55efc4';
             ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.moveTo(6, yBot);
+            ctx.moveTo(5, yBot);
             ctx.lineTo(xA, yTop);
             ctx.lineTo(xD, ySus);
             ctx.lineTo(xS, ySus);
@@ -565,6 +595,380 @@ export class RackCanvas {
         wrap.appendChild(label);
         wrap.appendChild(knob);
         wrap.appendChild(valDisplay);
+        return wrap;
+    }
+
+    createLabelElement(text) {
+        const lbl = document.createElement('div');
+        lbl.className = 'rack-label';
+        lbl.textContent = text;
+        lbl.style.fontSize = '9px';
+        lbl.style.fontWeight = '800';
+        lbl.style.letterSpacing = '1px';
+        lbl.style.color = '#7d9289';
+        lbl.style.textAlign = 'center';
+        lbl.style.textTransform = 'uppercase';
+        lbl.style.padding = '2px 0';
+        return lbl;
+    }
+
+    createSeparatorElement() {
+        const sep = document.createElement('div');
+        sep.className = 'rack-sep';
+        sep.style.width = '80%';
+        sep.style.height = '1px';
+        sep.style.background = '#283731';
+        sep.style.margin = '3px 0';
+        return sep;
+    }
+
+    createSliderElement(moduleId, param) {
+        const wrap = document.createElement('div');
+        wrap.className = 'rack-slider-wrap';
+        wrap.style.display = 'flex';
+        wrap.style.flexDirection = 'column';
+        wrap.style.alignItems = 'center';
+        wrap.style.gap = '3px';
+
+        const label = document.createElement('span');
+        label.textContent = param.name;
+        label.style.fontSize = '9px';
+        label.style.fontWeight = '700';
+        label.style.color = '#c8d6e5';
+
+        const slider = document.createElement('input');
+        slider.type = 'range';
+        slider.min = param.min !== undefined ? param.min : 0;
+        slider.max = param.max !== undefined ? param.max : 1;
+        slider.step = (slider.max - slider.min) / 100 || 0.01;
+        slider.value = param.value !== undefined ? param.value : param.default;
+        slider.style.width = '70px';
+        slider.style.accentColor = '#55efc4';
+        slider.style.cursor = 'pointer';
+
+        const valDisplay = document.createElement('span');
+        valDisplay.textContent = this.formatKnobValue(Number(slider.value));
+        valDisplay.style.fontSize = '10px';
+        valDisplay.style.fontWeight = '700';
+        valDisplay.style.color = '#55efc4';
+        valDisplay.style.fontFamily = 'monospace';
+
+        slider.addEventListener('input', (e) => {
+            const v = Number(e.target.value);
+            param.value = v;
+            this.engine.setModuleKnob(moduleId, param.name, v);
+            valDisplay.textContent = this.formatKnobValue(v);
+            this.onModuleChange();
+        });
+
+        wrap.appendChild(label);
+        wrap.appendChild(slider);
+        wrap.appendChild(valDisplay);
+        return wrap;
+    }
+
+    createSwitchElement(moduleId, param) {
+        const wrap = document.createElement('div');
+        wrap.className = 'rack-switch-wrap';
+        wrap.style.display = 'flex';
+        wrap.style.flexDirection = 'column';
+        wrap.style.alignItems = 'center';
+        wrap.style.gap = '3px';
+
+        const label = document.createElement('span');
+        label.textContent = param.name;
+        label.style.fontSize = '9px';
+        label.style.fontWeight = '700';
+        label.style.color = '#c8d6e5';
+
+        const btn = document.createElement('button');
+        const curVal = Number(param.value !== undefined ? param.value : param.default) > 0.5 ? 1 : 0;
+        btn.textContent = curVal === 1 ? 'ON' : 'OFF';
+        btn.style.padding = '3px 10px';
+        btn.style.fontSize = '10px';
+        btn.style.fontWeight = '900';
+        btn.style.borderRadius = '4px';
+        btn.style.border = curVal === 1 ? '1px solid #55efc4' : '1px solid #4a5d55';
+        btn.style.background = curVal === 1 ? 'rgba(85,239,196,0.25)' : '#141c18';
+        btn.style.color = curVal === 1 ? '#55efc4' : '#83968e';
+        btn.style.cursor = 'pointer';
+
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const newVal = param.value > 0.5 ? 0 : 1;
+            param.value = newVal;
+            this.engine.setModuleKnob(moduleId, param.name, newVal);
+            btn.textContent = newVal === 1 ? 'ON' : 'OFF';
+            btn.style.border = newVal === 1 ? '1px solid #55efc4' : '1px solid #4a5d55';
+            btn.style.background = newVal === 1 ? 'rgba(85,239,196,0.25)' : '#141c18';
+            btn.style.color = newVal === 1 ? '#55efc4' : '#83968e';
+            this.onModuleChange();
+        });
+
+        wrap.appendChild(label);
+        wrap.appendChild(btn);
+        return wrap;
+    }
+
+    createButtonElement(moduleId, param) {
+        const wrap = document.createElement('div');
+        wrap.className = 'rack-btn-wrap';
+        wrap.style.display = 'flex';
+        wrap.style.flexDirection = 'column';
+        wrap.style.alignItems = 'center';
+        wrap.style.gap = '3px';
+
+        const btn = document.createElement('button');
+        btn.textContent = param.name || 'TRIG';
+        btn.style.padding = '4px 12px';
+        btn.style.fontSize = '10px';
+        btn.style.fontWeight = '900';
+        btn.style.borderRadius = '4px';
+        btn.style.border = '1px solid #f59e0b';
+        btn.style.background = 'rgba(245,158,11,0.2)';
+        btn.style.color = '#f59e0b';
+        btn.style.cursor = 'pointer';
+
+        const setVal = (v) => {
+            param.value = v;
+            this.engine.setModuleKnob(moduleId, param.name, v);
+            btn.style.background = v > 0 ? '#f59e0b' : 'rgba(245,158,11,0.2)';
+            btn.style.color = v > 0 ? '#000000' : '#f59e0b';
+            this.onModuleChange();
+        };
+
+        btn.addEventListener('mousedown', (e) => { e.stopPropagation(); setVal(1); });
+        btn.addEventListener('mouseup', (e) => { e.stopPropagation(); setVal(0); });
+        btn.addEventListener('mouseleave', () => setVal(0));
+
+        wrap.appendChild(btn);
+        return wrap;
+    }
+
+    createXyPadElement(moduleId, param) {
+        const wrap = document.createElement('div');
+        wrap.className = 'rack-xy-wrap';
+        wrap.style.display = 'flex';
+        wrap.style.flexDirection = 'column';
+        wrap.style.alignItems = 'center';
+        wrap.style.gap = '2px';
+
+        const label = document.createElement('span');
+        label.textContent = param.name || 'XY Pad';
+        label.style.fontSize = '9px';
+        label.style.fontWeight = '700';
+        label.style.color = '#c8d6e5';
+
+        const pad = document.createElement('div');
+        pad.style.width = '70px';
+        pad.style.height = '70px';
+        pad.style.background = '#09110d';
+        pad.style.border = '1px solid #283731';
+        pad.style.borderRadius = '4px';
+        pad.style.position = 'relative';
+        pad.style.cursor = 'crosshair';
+
+        const dot = document.createElement('div');
+        dot.style.width = '8px';
+        dot.style.height = '8px';
+        dot.style.borderRadius = '50%';
+        dot.style.background = '#55efc4';
+        dot.style.position = 'absolute';
+        dot.style.top = `${(param.valY || 0.5) * 62}px`;
+        dot.style.left = `${(param.valX || 0.5) * 62}px`;
+        dot.style.pointerEvents = 'none';
+        pad.appendChild(dot);
+
+        const updatePos = (e) => {
+            const rect = pad.getBoundingClientRect();
+            const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+            const y = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+            param.valX = x;
+            param.valY = y;
+            dot.style.left = `${x * 62}px`;
+            dot.style.top = `${y * 62}px`;
+            this.engine.setModuleKnob(moduleId, `${param.name}_X`, x);
+            this.engine.setModuleKnob(moduleId, `${param.name}_Y`, y);
+            this.onModuleChange();
+        };
+
+        pad.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+            updatePos(e);
+            const onMove = (ev) => updatePos(ev);
+            const onUp = () => {
+                window.removeEventListener('mousemove', onMove);
+                window.removeEventListener('mouseup', onUp);
+            };
+            window.addEventListener('mousemove', onMove);
+            window.addEventListener('mouseup', onUp);
+        });
+
+        wrap.appendChild(label);
+        wrap.appendChild(pad);
+        return wrap;
+    }
+
+    createWaveDrawElement(moduleId, param) {
+        const wrap = document.createElement('div');
+        wrap.className = 'rack-wavedraw-wrap';
+        wrap.style.display = 'flex';
+        wrap.style.flexDirection = 'column';
+        wrap.style.alignItems = 'center';
+        wrap.style.gap = '2px';
+
+        const label = document.createElement('span');
+        label.textContent = param.name || 'Wave Draw';
+        label.style.fontSize = '9px';
+        label.style.fontWeight = '700';
+        label.style.color = '#c8d6e5';
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 80;
+        canvas.height = 36;
+        canvas.style.width = '80px';
+        canvas.style.height = '36px';
+        canvas.style.background = '#09110d';
+        canvas.style.border = '1px solid #283731';
+        canvas.style.borderRadius = '4px';
+        canvas.style.cursor = 'crosshair';
+
+        if (!param.waveTable) {
+            param.waveTable = new Float32Array(128);
+            for (let i = 0; i < 128; i++) param.waveTable[i] = Math.sin((i / 128) * 2 * Math.PI);
+        }
+
+        const draw = () => {
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#09110d';
+            ctx.fillRect(0, 0, 80, 36);
+
+            ctx.strokeStyle = '#55efc4';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            for (let i = 0; i < 128; i++) {
+                const x = (i / 127) * 76 + 2;
+                const y = 18 - (param.waveTable[i] || 0) * 14;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+        };
+        draw();
+
+        canvas.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+            const setSample = (ev) => {
+                const rect = canvas.getBoundingClientRect();
+                const normX = Math.max(0, Math.min(1, (ev.clientX - rect.left) / rect.width));
+                const normY = Math.max(0, Math.min(1, (ev.clientY - rect.top) / rect.height));
+                const idx = Math.floor(normX * 127);
+                param.waveTable[idx] = (0.5 - normY) * 2;
+                this.engine.setModuleKnob(moduleId, param.name, param.waveTable);
+                draw();
+                this.onModuleChange();
+            };
+            setSample(e);
+            const onMove = (ev) => setSample(ev);
+            const onUp = () => {
+                window.removeEventListener('mousemove', onMove);
+                window.removeEventListener('mouseup', onUp);
+            };
+            window.addEventListener('mousemove', onMove);
+            window.addEventListener('mouseup', onUp);
+        });
+
+        wrap.appendChild(label);
+        wrap.appendChild(canvas);
+        return wrap;
+    }
+
+    createScopeElement(moduleId, mod, visor) {
+        const wrap = document.createElement('div');
+        wrap.className = 'rack-scope-wrap';
+        wrap.style.display = 'flex';
+        wrap.style.flexDirection = 'column';
+        wrap.style.alignItems = 'center';
+        wrap.style.gap = '2px';
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 88;
+        canvas.height = 36;
+        canvas.style.width = '88px';
+        canvas.style.height = '36px';
+        canvas.style.background = '#09110d';
+        canvas.style.border = '1px solid #283731';
+        canvas.style.borderRadius = '4px';
+
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#09110d';
+        ctx.fillRect(0, 0, 88, 36);
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for (let x = 0; x < 88; x++) {
+            const y = 18 + Math.sin(x * 0.15) * 12;
+            if (x === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+
+        wrap.appendChild(canvas);
+        return wrap;
+    }
+
+    createVuMeterElement(moduleId, mod, visor) {
+        const wrap = document.createElement('div');
+        wrap.className = 'rack-vu-wrap';
+        wrap.style.width = '80px';
+        wrap.style.height = '10px';
+        wrap.style.background = '#09110d';
+        wrap.style.border = '1px solid #283731';
+        wrap.style.borderRadius = '3px';
+        wrap.style.padding = '1px';
+        wrap.style.display = 'flex';
+        wrap.style.gap = '2px';
+
+        for (let i = 0; i < 8; i++) {
+            const seg = document.createElement('div');
+            seg.style.flex = '1';
+            seg.style.borderRadius = '1px';
+            seg.style.background = i < 5 ? '#22c55e' : (i < 7 ? '#f59e0b' : '#ef4444');
+            seg.style.opacity = '0.35';
+            wrap.appendChild(seg);
+        }
+        return wrap;
+    }
+
+    createDisplayElement(moduleId, mod, visor) {
+        const wrap = document.createElement('div');
+        wrap.className = 'rack-display-wrap';
+        wrap.style.background = '#07100c';
+        wrap.style.border = '1px solid #1c2c24';
+        wrap.style.borderRadius = '3px';
+        wrap.style.padding = '2px 8px';
+        wrap.style.fontFamily = 'monospace';
+        wrap.style.fontSize = '11px';
+        wrap.style.fontWeight = '900';
+        wrap.style.color = '#55efc4';
+        wrap.textContent = visor.label ? `${visor.label}: 440Hz` : '440Hz';
+        return wrap;
+    }
+
+    createLedElement(moduleId, mod, visor) {
+        const wrap = document.createElement('div');
+        wrap.className = 'rack-led-wrap';
+        wrap.style.display = 'flex';
+        wrap.style.alignItems = 'center';
+        wrap.style.gap = '4px';
+
+        const led = document.createElement('div');
+        led.style.width = '10px';
+        led.style.height = '10px';
+        led.style.borderRadius = '50%';
+        led.style.background = visor.color || '#22c55e';
+        led.style.boxShadow = `0 0 6px ${visor.color || '#22c55e'}`;
+        wrap.appendChild(led);
         return wrap;
     }
 

@@ -1,7 +1,7 @@
 /**
  * =========================================================================
  * BRACK Module Catalog (web/modules_catalog.js)
- * Pre-built Eurorack-style modules with editable internal Scratch code
+ * 100% Declarative Eurorack Modules defined via Visual Scratch DSL
  * =========================================================================
  */
 
@@ -21,12 +21,19 @@ export const MODULE_CATALOG = [
             { id: 'Out', name: 'Out', type: 'AUDIO' }
         ],
         params: [
-            { id: 'Freq', name: 'Freq', min: 20, max: 2000, default: 130.81, value: 130.81, unit: 'Hz' },
-            { id: 'PW', name: 'PW', min: 0.05, max: 0.95, default: 0.5, value: 0.5 }
+            { id: 'Freq', name: 'Freq', type: 'KNOB', min: 20, max: 2000, default: 130.81, value: 130.81, unit: 'Hz' },
+            { id: 'PW', name: 'PW', type: 'KNOB', min: 0.05, max: 0.95, default: 0.5, value: 0.5 }
         ],
         getXml() {
             return `<xml xmlns="https://developers.google.com/blockly/xml">
-  <block type="module_io_process" x="40" y="40">
+  <block type="module_def" x="30" y="30">
+    <field name="NAME">VCO Oscilador</field>
+    <field name="WIDTH">190</field>
+    <field name="HEIGHT">250</field>
+    <field name="COLOR">#5F3DC4</field>
+    <field name="CATEGORY">Geradores</field>
+  </block>
+  <block type="module_io_process" x="30" y="160">
     <next>
       <block type="module_io_output">
         <field name="TYPE">AUDIO</field>
@@ -40,6 +47,7 @@ export const MODULE_CATALOG = [
                 <field name="MIN">20</field>
                 <field name="MAX">2000</field>
                 <field name="DEFAULT">130.81</field>
+                <field name="UNIT">Hz</field>
               </block>
             </value>
             <value name="FM">
@@ -79,12 +87,19 @@ export const MODULE_CATALOG = [
             { id: 'Out', name: 'Out', type: 'AUDIO' }
         ],
         params: [
-            { id: 'Cutoff', name: 'Cutoff', min: 20, max: 18000, default: 800, value: 800, unit: 'Hz' },
-            { id: 'Res', name: 'Res', min: 0, max: 0.95, default: 0.55, value: 0.55 }
+            { id: 'Cutoff', name: 'Cutoff', type: 'KNOB', min: 20, max: 18000, default: 800, value: 800, unit: 'Hz' },
+            { id: 'Res', name: 'Res', type: 'KNOB', min: 0, max: 0.95, default: 0.55, value: 0.55 }
         ],
         getXml() {
             return `<xml xmlns="https://developers.google.com/blockly/xml">
-  <block type="module_io_process" x="40" y="40">
+  <block type="module_def" x="30" y="30">
+    <field name="NAME">Moog VCF 24dB</field>
+    <field name="WIDTH">190</field>
+    <field name="HEIGHT">250</field>
+    <field name="COLOR">#E8590C</field>
+    <field name="CATEGORY">Filtros</field>
+  </block>
+  <block type="module_io_process" x="30" y="160">
     <next>
       <block type="module_io_output">
         <field name="TYPE">AUDIO</field>
@@ -106,6 +121,7 @@ export const MODULE_CATALOG = [
                     <field name="MIN">20</field>
                     <field name="MAX">18000</field>
                     <field name="DEFAULT">800</field>
+                    <field name="UNIT">Hz</field>
                   </block>
                 </value>
                 <value name="B">
@@ -147,8 +163,8 @@ export const MODULE_CATALOG = [
         name: 'Envelope ADSR',
         category: 'Moduladores',
         color: '#2B8A3E',
-        width: 190,
-        height: 270,
+        width: 215,
+        height: 340,
         inputs: [
             { id: 'Gate', name: 'Gate', type: 'GATE' }
         ],
@@ -156,60 +172,81 @@ export const MODULE_CATALOG = [
             { id: 'Env', name: 'Env', type: 'VAL' }
         ],
         params: [
-            { id: 'Attack', name: 'Attack', min: 0.001, max: 2.0, default: 0.01, value: 0.01, unit: 's' },
-            { id: 'Decay', name: 'Decay', min: 0.01, max: 3.0, default: 0.20, value: 0.20, unit: 's' },
-            { id: 'Sustain', name: 'Sustain', min: 0, max: 1.0, default: 0.40, value: 0.40 },
-            { id: 'Release', name: 'Release', min: 0.01, max: 4.0, default: 0.25, value: 0.25, unit: 's' }
+            { id: 'Attack', name: 'Attack', type: 'KNOB', min: 0.001, max: 2.0, default: 0.01, value: 0.01, unit: 's' },
+            { id: 'Decay', name: 'Decay', type: 'KNOB', min: 0.01, max: 3.0, default: 0.20, value: 0.20, unit: 's' },
+            { id: 'Sustain', name: 'Sustain', type: 'KNOB', min: 0, max: 1.0, default: 0.40, value: 0.40 },
+            { id: 'Release', name: 'Release', type: 'KNOB', min: 0.01, max: 4.0, default: 0.25, value: 0.25, unit: 's' }
+        ],
+        visors: [
+            { type: 'adsr', attackName: 'Attack', decayName: 'Decay', sustainName: 'Sustain', releaseName: 'Release' }
         ],
         getXml() {
             return `<xml xmlns="https://developers.google.com/blockly/xml">
-  <block type="module_io_process" x="40" y="40">
+  <block type="module_def" x="30" y="30">
+    <field name="NAME">Envelope ADSR</field>
+    <field name="WIDTH">215</field>
+    <field name="HEIGHT">340</field>
+    <field name="COLOR">#2B8A3E</field>
+    <field name="CATEGORY">Moduladores</field>
+  </block>
+  <block type="module_io_process" x="30" y="160">
     <next>
-      <block type="module_io_output">
-        <field name="TYPE">VAL</field>
-        <field name="PORT">Env</field>
-        <value name="SIGNAL">
-          <block type="synth_adsr">
-            <value name="GATE">
-              <block type="module_io_input">
-                <field name="TYPE">GATE</field>
-                <field name="PORT">Gate</field>
-              </block>
-            </value>
-            <value name="A">
-              <block type="module_io_knob">
-                <field name="NAME">Attack</field>
-                <field name="MIN">0.001</field>
-                <field name="MAX">2</field>
-                <field name="DEFAULT">0.01</field>
-              </block>
-            </value>
-            <value name="D">
-              <block type="module_io_knob">
-                <field name="NAME">Decay</field>
-                <field name="MIN">0.01</field>
-                <field name="MAX">3</field>
-                <field name="DEFAULT">0.2</field>
-              </block>
-            </value>
-            <value name="S">
-              <block type="module_io_knob">
-                <field name="NAME">Sustain</field>
-                <field name="MIN">0</field>
-                <field name="MAX">1</field>
-                <field name="DEFAULT">0.4</field>
-              </block>
-            </value>
-            <value name="R">
-              <block type="module_io_knob">
-                <field name="NAME">Release</field>
-                <field name="MIN">0.01</field>
-                <field name="MAX">4</field>
-                <field name="DEFAULT">0.25</field>
+      <block type="module_visor_adsr">
+        <field name="A_NAME">Attack</field>
+        <field name="D_NAME">Decay</field>
+        <field name="S_NAME">Sustain</field>
+        <field name="R_NAME">Release</field>
+        <next>
+          <block type="module_io_output">
+            <field name="TYPE">VAL</field>
+            <field name="PORT">Env</field>
+            <value name="SIGNAL">
+              <block type="synth_adsr">
+                <value name="GATE">
+                  <block type="module_io_input">
+                    <field name="TYPE">GATE</field>
+                    <field name="PORT">Gate</field>
+                  </block>
+                </value>
+                <value name="A">
+                  <block type="module_io_knob">
+                    <field name="NAME">Attack</field>
+                    <field name="MIN">0.001</field>
+                    <field name="MAX">2</field>
+                    <field name="DEFAULT">0.01</field>
+                    <field name="UNIT">s</field>
+                  </block>
+                </value>
+                <value name="D">
+                  <block type="module_io_knob">
+                    <field name="NAME">Decay</field>
+                    <field name="MIN">0.01</field>
+                    <field name="MAX">3</field>
+                    <field name="DEFAULT">0.2</field>
+                    <field name="UNIT">s</field>
+                  </block>
+                </value>
+                <value name="S">
+                  <block type="module_io_knob">
+                    <field name="NAME">Sustain</field>
+                    <field name="MIN">0</field>
+                    <field name="MAX">1</field>
+                    <field name="DEFAULT">0.4</field>
+                  </block>
+                </value>
+                <value name="R">
+                  <block type="module_io_knob">
+                    <field name="NAME">Release</field>
+                    <field name="MIN">0.01</field>
+                    <field name="MAX">4</field>
+                    <field name="DEFAULT">0.25</field>
+                    <field name="UNIT">s</field>
+                  </block>
+                </value>
               </block>
             </value>
           </block>
-        </value>
+        </next>
       </block>
     </next>
   </block>
@@ -229,12 +266,19 @@ export const MODULE_CATALOG = [
             { id: 'Sine', name: 'Sine', type: 'VAL' }
         ],
         params: [
-            { id: 'Rate', name: 'Rate', min: 0.05, max: 25, default: 2.5, value: 2.5, unit: 'Hz' },
-            { id: 'Depth', name: 'Depth', min: 0, max: 2, default: 1.0, value: 1.0 }
+            { id: 'Rate', name: 'Rate', type: 'KNOB', min: 0.05, max: 25, default: 2.5, value: 2.5, unit: 'Hz' },
+            { id: 'Depth', name: 'Depth', type: 'KNOB', min: 0, max: 2, default: 1.0, value: 1.0 }
         ],
         getXml() {
             return `<xml xmlns="https://developers.google.com/blockly/xml">
-  <block type="module_io_process" x="40" y="40">
+  <block type="module_def" x="30" y="30">
+    <field name="NAME">LFO Modulador</field>
+    <field name="WIDTH">180</field>
+    <field name="HEIGHT">230</field>
+    <field name="COLOR">#2B8A3E</field>
+    <field name="CATEGORY">Moduladores</field>
+  </block>
+  <block type="module_io_process" x="30" y="160">
     <next>
       <block type="module_io_output">
         <field name="TYPE">VAL</field>
@@ -248,6 +292,7 @@ export const MODULE_CATALOG = [
                 <field name="MIN">0.05</field>
                 <field name="MAX">25</field>
                 <field name="DEFAULT">2.5</field>
+                <field name="UNIT">Hz</field>
               </block>
             </value>
             <value name="DEPTH">
@@ -273,6 +318,7 @@ export const MODULE_CATALOG = [
                     <field name="MIN">0.05</field>
                     <field name="MAX">25</field>
                     <field name="DEFAULT">2.5</field>
+                    <field name="UNIT">Hz</field>
                   </block>
                 </value>
                 <value name="DEPTH">
@@ -306,11 +352,18 @@ export const MODULE_CATALOG = [
             { id: 'Div2', name: 'Div2', type: 'GATE' }
         ],
         params: [
-            { id: 'BPM', name: 'BPM', min: 40, max: 240, default: 120, value: 120, unit: 'bpm' }
+            { id: 'BPM', name: 'BPM', type: 'KNOB', min: 40, max: 240, default: 120, value: 120, unit: 'BPM' }
         ],
         getXml() {
             return `<xml xmlns="https://developers.google.com/blockly/xml">
-  <block type="module_io_process" x="40" y="40">
+  <block type="module_def" x="30" y="30">
+    <field name="NAME">Master Clock</field>
+    <field name="WIDTH">180</field>
+    <field name="HEIGHT">230</field>
+    <field name="COLOR">#B45309</field>
+    <field name="CATEGORY">Eventos</field>
+  </block>
+  <block type="module_io_process" x="30" y="160">
     <next>
       <block type="module_io_output">
         <field name="TYPE">GATE</field>
@@ -323,6 +376,7 @@ export const MODULE_CATALOG = [
                 <field name="MIN">40</field>
                 <field name="MAX">240</field>
                 <field name="DEFAULT">120</field>
+                <field name="UNIT">BPM</field>
               </block>
             </value>
           </block>
@@ -342,6 +396,7 @@ export const MODULE_CATALOG = [
                         <field name="MIN">40</field>
                         <field name="MAX">240</field>
                         <field name="DEFAULT">120</field>
+                        <field name="UNIT">BPM</field>
                       </block>
                     </value>
                   </block>
@@ -370,11 +425,18 @@ export const MODULE_CATALOG = [
             { id: 'Pitch CV', name: 'Pitch CV', type: 'VAL' }
         ],
         params: [
-            { id: 'Glide', name: 'Glide', min: 0.001, max: 0.5, default: 0.02, value: 0.02, unit: 's' }
+            { id: 'Glide', name: 'Glide', type: 'KNOB', min: 0.001, max: 0.5, default: 0.02, value: 0.02, unit: 's' }
         ],
         getXml() {
             return `<xml xmlns="https://developers.google.com/blockly/xml">
-  <block type="module_io_process" x="40" y="40">
+  <block type="module_def" x="30" y="30">
+    <field name="NAME">Step Sequencer</field>
+    <field name="WIDTH">190</field>
+    <field name="HEIGHT">250</field>
+    <field name="COLOR">#2B8A3E</field>
+    <field name="CATEGORY">Moduladores</field>
+  </block>
+  <block type="module_io_process" x="30" y="160">
     <next>
       <block type="synth_list_set">
         <field name="LIST">seq_notes</field>
@@ -402,6 +464,7 @@ export const MODULE_CATALOG = [
                     <field name="MIN">0.001</field>
                     <field name="MAX">0.5</field>
                     <field name="DEFAULT">0.02</field>
+                    <field name="UNIT">s</field>
                   </block>
                 </value>
               </block>
@@ -417,7 +480,7 @@ export const MODULE_CATALOG = [
     {
         type: 'delay',
         name: 'Tape Delay',
-        category: 'Efeitos & Saída',
+        category: 'Efeitos',
         color: '#1971C2',
         width: 190,
         height: 250,
@@ -428,13 +491,20 @@ export const MODULE_CATALOG = [
             { id: 'Out', name: 'Out', type: 'AUDIO' }
         ],
         params: [
-            { id: 'Time', name: 'Time', min: 0.05, max: 1.5, default: 0.35, value: 0.35, unit: 's' },
-            { id: 'Feedback', name: 'Feedback', min: 0, max: 0.92, default: 0.45, value: 0.45 },
-            { id: 'Mix', name: 'Mix', min: 0, max: 1.0, default: 0.40, value: 0.40 }
+            { id: 'Time', name: 'Time', type: 'KNOB', min: 0.05, max: 1.5, default: 0.35, value: 0.35, unit: 's' },
+            { id: 'Feedback', name: 'Feedback', type: 'KNOB', min: 0, max: 0.92, default: 0.45, value: 0.45 },
+            { id: 'Mix', name: 'Mix', type: 'KNOB', min: 0, max: 1.0, default: 0.40, value: 0.40 }
         ],
         getXml() {
             return `<xml xmlns="https://developers.google.com/blockly/xml">
-  <block type="module_io_process" x="40" y="40">
+  <block type="module_def" x="30" y="30">
+    <field name="NAME">Tape Delay</field>
+    <field name="WIDTH">190</field>
+    <field name="HEIGHT">250</field>
+    <field name="COLOR">#1971C2</field>
+    <field name="CATEGORY">Efeitos</field>
+  </block>
+  <block type="module_io_process" x="30" y="160">
     <next>
       <block type="module_io_output">
         <field name="TYPE">AUDIO</field>
@@ -453,6 +523,7 @@ export const MODULE_CATALOG = [
                 <field name="MIN">0.05</field>
                 <field name="MAX">1.5</field>
                 <field name="DEFAULT">0.35</field>
+                <field name="UNIT">s</field>
               </block>
             </value>
             <value name="FEEDBACK">
@@ -482,7 +553,7 @@ export const MODULE_CATALOG = [
     {
         type: 'reverb',
         name: 'Reverb Espacial',
-        category: 'Efeitos & Saída',
+        category: 'Efeitos',
         color: '#1971C2',
         width: 190,
         height: 250,
@@ -493,13 +564,20 @@ export const MODULE_CATALOG = [
             { id: 'Out', name: 'Out', type: 'AUDIO' }
         ],
         params: [
-            { id: 'Size', name: 'Size', min: 0.1, max: 0.95, default: 0.75, value: 0.75 },
-            { id: 'Damp', name: 'Damp', min: 0.05, max: 0.95, default: 0.35, value: 0.35 },
-            { id: 'Mix', name: 'Mix', min: 0, max: 1.0, default: 0.35, value: 0.35 }
+            { id: 'Size', name: 'Size', type: 'KNOB', min: 0.1, max: 0.95, default: 0.75, value: 0.75 },
+            { id: 'Damp', name: 'Damp', type: 'KNOB', min: 0.05, max: 0.95, default: 0.35, value: 0.35 },
+            { id: 'Mix', name: 'Mix', type: 'KNOB', min: 0, max: 1.0, default: 0.35, value: 0.35 }
         ],
         getXml() {
             return `<xml xmlns="https://developers.google.com/blockly/xml">
-  <block type="module_io_process" x="40" y="40">
+  <block type="module_def" x="30" y="30">
+    <field name="NAME">Reverb Espacial</field>
+    <field name="WIDTH">190</field>
+    <field name="HEIGHT">250</field>
+    <field name="COLOR">#1971C2</field>
+    <field name="CATEGORY">Efeitos</field>
+  </block>
+  <block type="module_io_process" x="30" y="160">
     <next>
       <block type="module_io_output">
         <field name="TYPE">AUDIO</field>
@@ -547,7 +625,7 @@ export const MODULE_CATALOG = [
     {
         type: 'vca',
         name: 'Amplificador VCA',
-        category: 'Filtros & Dinâmica',
+        category: 'Filtros',
         color: '#E8590C',
         width: 190,
         height: 250,
@@ -559,11 +637,18 @@ export const MODULE_CATALOG = [
             { id: 'Out', name: 'Out', type: 'AUDIO' }
         ],
         params: [
-            { id: 'Gain', name: 'Gain', min: 0, max: 1.5, default: 0.9, value: 0.9 }
+            { id: 'Gain', name: 'Gain', type: 'KNOB', min: 0, max: 1.5, default: 0.9, value: 0.9 }
         ],
         getXml() {
             return `<xml xmlns="https://developers.google.com/blockly/xml">
-  <block type="module_io_process" x="40" y="40">
+  <block type="module_def" x="30" y="30">
+    <field name="NAME">Amplificador VCA</field>
+    <field name="WIDTH">190</field>
+    <field name="HEIGHT">250</field>
+    <field name="COLOR">#E8590C</field>
+    <field name="CATEGORY">Filtros</field>
+  </block>
+  <block type="module_io_process" x="30" y="160">
     <next>
       <block type="module_io_output">
         <field name="TYPE">AUDIO</field>
@@ -607,7 +692,7 @@ export const MODULE_CATALOG = [
     {
         type: 'distortion',
         name: 'Wavefolder & Drive',
-        category: 'Filtros & Dinâmica',
+        category: 'Filtros',
         color: '#E8590C',
         width: 180,
         height: 230,
@@ -618,11 +703,18 @@ export const MODULE_CATALOG = [
             { id: 'Out', name: 'Out', type: 'AUDIO' }
         ],
         params: [
-            { id: 'Drive', name: 'Drive', min: 1, max: 15, default: 3.5, value: 3.5 }
+            { id: 'Drive', name: 'Drive', type: 'KNOB', min: 1, max: 15, default: 3.5, value: 3.5 }
         ],
         getXml() {
             return `<xml xmlns="https://developers.google.com/blockly/xml">
-  <block type="module_io_process" x="40" y="40">
+  <block type="module_def" x="30" y="30">
+    <field name="NAME">Wavefolder &amp; Drive</field>
+    <field name="WIDTH">180</field>
+    <field name="HEIGHT">230</field>
+    <field name="COLOR">#E8590C</field>
+    <field name="CATEGORY">Filtros</field>
+  </block>
+  <block type="module_io_process" x="30" y="160">
     <next>
       <block type="module_io_output">
         <field name="TYPE">AUDIO</field>
@@ -655,7 +747,7 @@ export const MODULE_CATALOG = [
     {
         type: 'mixer4',
         name: 'Mixer 4 Canais',
-        category: 'Filtros & Dinâmica',
+        category: 'Filtros',
         color: '#E8590C',
         width: 210,
         height: 270,
@@ -669,14 +761,21 @@ export const MODULE_CATALOG = [
             { id: 'Out', name: 'Out', type: 'AUDIO' }
         ],
         params: [
-            { id: 'Vol 1', name: 'Vol 1', min: 0, max: 2, default: 1.0, value: 1.0 },
-            { id: 'Vol 2', name: 'Vol 2', min: 0, max: 2, default: 1.0, value: 1.0 },
-            { id: 'Vol 3', name: 'Vol 3', min: 0, max: 2, default: 0.8, value: 0.8 },
-            { id: 'Vol 4', name: 'Vol 4', min: 0, max: 2, default: 0.8, value: 0.8 }
+            { id: 'Vol 1', name: 'Vol 1', type: 'KNOB', min: 0, max: 2, default: 1.0, value: 1.0 },
+            { id: 'Vol 2', name: 'Vol 2', type: 'KNOB', min: 0, max: 2, default: 1.0, value: 1.0 },
+            { id: 'Vol 3', name: 'Vol 3', type: 'KNOB', min: 0, max: 2, default: 0.8, value: 0.8 },
+            { id: 'Vol 4', name: 'Vol 4', type: 'KNOB', min: 0, max: 2, default: 0.8, value: 0.8 }
         ],
         getXml() {
             return `<xml xmlns="https://developers.google.com/blockly/xml">
-  <block type="module_io_process" x="40" y="40">
+  <block type="module_def" x="30" y="30">
+    <field name="NAME">Mixer 4 Canais</field>
+    <field name="WIDTH">210</field>
+    <field name="HEIGHT">270</field>
+    <field name="COLOR">#E8590C</field>
+    <field name="CATEGORY">Filtros</field>
+  </block>
+  <block type="module_io_process" x="30" y="160">
     <next>
       <block type="module_io_output">
         <field name="TYPE">AUDIO</field>
@@ -750,7 +849,7 @@ export const MODULE_CATALOG = [
     {
         type: 'master_out',
         name: 'Master Output',
-        category: 'Efeitos & Saída',
+        category: 'Saídas',
         color: '#10B981',
         width: 190,
         height: 250,
@@ -761,11 +860,18 @@ export const MODULE_CATALOG = [
         ],
         outputs: [],
         params: [
-            { id: 'Master Vol', name: 'Master Vol', min: 0, max: 1.5, default: 0.85, value: 0.85 }
+            { id: 'Master Vol', name: 'Master Vol', type: 'KNOB', min: 0, max: 1.5, default: 0.85, value: 0.85 }
         ],
         getXml() {
             return `<xml xmlns="https://developers.google.com/blockly/xml">
-  <block type="module_io_process" x="40" y="40">
+  <block type="module_def" x="30" y="30">
+    <field name="NAME">Master Output</field>
+    <field name="WIDTH">190</field>
+    <field name="HEIGHT">250</field>
+    <field name="COLOR">#059669</field>
+    <field name="CATEGORY">Saídas</field>
+  </block>
+  <block type="module_io_process" x="30" y="160">
     <next>
       <block type="synth_out">
         <value name="LEFT">
@@ -808,11 +914,18 @@ export const MODULE_CATALOG = [
             { id: 'Out', name: 'Out', type: 'AUDIO' }
         ],
         params: [
-            { id: 'Gain', name: 'Gain', min: 0, max: 2, default: 1.0, value: 1.0 }
+            { id: 'Gain', name: 'Gain', type: 'KNOB', min: 0, max: 2, default: 1.0, value: 1.0 }
         ],
         getXml() {
             return `<xml xmlns="https://developers.google.com/blockly/xml">
-  <block type="module_io_process" x="40" y="40">
+  <block type="module_def" x="30" y="30">
+    <field name="NAME">Módulo Scratch</field>
+    <field name="WIDTH">190</field>
+    <field name="HEIGHT">250</field>
+    <field name="COLOR">#059669</field>
+    <field name="CATEGORY">Utilidades</field>
+  </block>
+  <block type="module_io_process" x="30" y="160">
     <next>
       <block type="module_io_output">
         <field name="TYPE">AUDIO</field>
@@ -835,6 +948,7 @@ export const MODULE_CATALOG = [
               </block>
             </value>
           </block>
+        </value>
       </block>
     </next>
   </block>
@@ -863,7 +977,14 @@ export const MODULE_CATALOG = [
         ],
         getXml() {
             return `<xml xmlns="https://developers.google.com/blockly/xml">
-  <block type="module_io_process" x="40" y="40">
+  <block type="module_def" x="30" y="30">
+    <field name="NAME">Equalizador 5-Bandas</field>
+    <field name="WIDTH">250</field>
+    <field name="HEIGHT">250</field>
+    <field name="COLOR">#E8590C</field>
+    <field name="CATEGORY">Filtros</field>
+  </block>
+  <block type="module_io_process" x="30" y="160">
     <next>
       <block type="module_io_output">
         <field name="TYPE">AUDIO</field>
@@ -899,7 +1020,14 @@ export const MODULE_CATALOG = [
         ],
         getXml() {
             return `<xml xmlns="https://developers.google.com/blockly/xml">
-  <block type="module_io_process" x="40" y="40">
+  <block type="module_def" x="30" y="30">
+    <field name="NAME">Wavetable Draw</field>
+    <field name="WIDTH">230</field>
+    <field name="HEIGHT">270</field>
+    <field name="COLOR">#5F3DC4</field>
+    <field name="CATEGORY">Geradores</field>
+  </block>
+  <block type="module_io_process" x="30" y="160">
     <next>
       <block type="module_io_output">
         <field name="TYPE">AUDIO</field>
@@ -913,6 +1041,7 @@ export const MODULE_CATALOG = [
                 <field name="MIN">20</field>
                 <field name="MAX">2000</field>
                 <field name="DEFAULT">220</field>
+                <field name="UNIT">Hz</field>
               </block>
             </value>
             <value name="FM">
@@ -933,7 +1062,7 @@ export const MODULE_CATALOG = [
         type: 'xy_filter',
         name: 'Vector XY Pad',
         category: 'Moduladores',
-        color: '#00f2fe',
+        color: '#087F5B',
         width: 220,
         height: 260,
         inputs: [
@@ -949,7 +1078,14 @@ export const MODULE_CATALOG = [
         ],
         getXml() {
             return `<xml xmlns="https://developers.google.com/blockly/xml">
-  <block type="module_io_process" x="40" y="40">
+  <block type="module_def" x="30" y="30">
+    <field name="NAME">Vector XY Pad</field>
+    <field name="WIDTH">220</field>
+    <field name="HEIGHT">260</field>
+    <field name="COLOR">#087F5B</field>
+    <field name="CATEGORY">Moduladores</field>
+  </block>
+  <block type="module_io_process" x="30" y="160">
     <next>
       <block type="module_io_output">
         <field name="TYPE">VAL</field>
@@ -999,7 +1135,14 @@ export const MODULE_CATALOG = [
         ],
         getXml() {
             return `<xml xmlns="https://developers.google.com/blockly/xml">
-  <block type="module_io_process" x="40" y="40">
+  <block type="module_def" x="30" y="30">
+    <field name="NAME">Toggle Switcher</field>
+    <field name="WIDTH">200</field>
+    <field name="HEIGHT">250</field>
+    <field name="COLOR">#B45309</field>
+    <field name="CATEGORY">Controle</field>
+  </block>
+  <block type="module_io_process" x="30" y="160">
     <next>
       <block type="module_io_output">
         <field name="TYPE">AUDIO</field>
@@ -1051,3 +1194,4 @@ export const MODULE_CATALOG = [
         }
     }
 ];
+

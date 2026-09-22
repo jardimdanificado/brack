@@ -9,8 +9,76 @@ import { registerAllBlocksToBlockly, CATEGORIES, GREEN_FLAG_ICON } from './synth
 
 export function registerSynthBlocks(Blockly) {
     // -------------------------------------------------------------------------
-    // 0. PORTAS & CONTROLES (INTERFACE DA CAIXA EXTERNA)
+    // 0. DEFINIÇÃO DA CAIXA & CONTROLES DO MÓDULO (FACEPLATE)
     // -------------------------------------------------------------------------
+    Blockly.Blocks['module_def'] = {
+        init: function() {
+            this.appendDummyInput()
+                .appendField("📦 definir módulo [")
+                .appendField(new Blockly.FieldTextInput("Meu Módulo"), "NAME")
+                .appendField("]");
+            this.appendDummyInput()
+                .appendField("largura:")
+                .appendField(new Blockly.FieldNumber(190, 100, 600), "WIDTH")
+                .appendField("px | altura:")
+                .appendField(new Blockly.FieldNumber(270, 150, 800), "HEIGHT")
+                .appendField("px");
+            this.appendDummyInput()
+                .appendField("cor:")
+                .appendField(new Blockly.FieldDropdown([
+                    ["Verde Esmeralda", "#059669"],
+                    ["Verde Floresta", "#2B8A3E"],
+                    ["Roxo Eurorack", "#5F3DC4"],
+                    ["Azul Cobalto", "#1971C2"],
+                    ["Rosa Magenta", "#C2255C"],
+                    ["Laranja Solar", "#E8590C"],
+                    ["Âmbar Dourado", "#B45309"],
+                    ["Ciano Ártico", "#087F5B"],
+                    ["Grafite Alumínio", "#495057"],
+                    ["Preto Anodizado", "#212529"]
+                ]), "COLOR")
+                .appendField("categoria:")
+                .appendField(new Blockly.FieldDropdown([
+                    ["Geradores", "Geradores"],
+                    ["Filtros", "Filtros"],
+                    ["Moduladores", "Moduladores"],
+                    ["Eventos", "Eventos"],
+                    ["Eventos & Clock", "Eventos & Clock"],
+                    ["Efeitos", "Efeitos"],
+                    ["Utilidades", "Utilidades"],
+                    ["Controle", "Controle"],
+                    ["Saídas", "Saídas"],
+                    ["Personalizado", "Personalizado"]
+                ]), "CATEGORY");
+            this.setColour("#059669");
+            this.setTooltip("Define o título, dimensões físicas e cor da faceplate deste módulo no rack.");
+        }
+    };
+
+    Blockly.Blocks['module_io_label'] = {
+        init: function() {
+            this.appendDummyInput()
+                .appendField("rótulo texto [")
+                .appendField(new Blockly.FieldTextInput("ANALOG CORE"), "TEXT")
+                .appendField("]");
+            this.setPreviousStatement(true);
+            this.setNextStatement(true);
+            this.setColour("#059669");
+            this.setTooltip("Insere uma legenda de texto decorativa na faceplate do módulo.");
+        }
+    };
+
+    Blockly.Blocks['module_io_separator'] = {
+        init: function() {
+            this.appendDummyInput()
+                .appendField("─── divisor visual ───");
+            this.setPreviousStatement(true);
+            this.setNextStatement(true);
+            this.setColour("#059669");
+            this.setTooltip("Insere uma linha divisória estética na faceplate.");
+        }
+    };
+
     Blockly.Blocks['module_io_input'] = {
         init: function() {
             this.appendDummyInput()
@@ -59,8 +127,21 @@ export function registerSynthBlocks(Blockly) {
                 .appendField(new Blockly.FieldNumber(20), "MIN")
                 .appendField("max:")
                 .appendField(new Blockly.FieldNumber(20000), "MAX")
-                .appendField("padrao:")
-                .appendField(new Blockly.FieldNumber(440), "DEFAULT");
+                .appendField("padrão:")
+                .appendField(new Blockly.FieldNumber(440), "DEFAULT")
+                .appendField("unid:")
+                .appendField(new Blockly.FieldDropdown([
+                    ["nenhuma", ""],
+                    ["Hz", "Hz"],
+                    ["kHz", "kHz"],
+                    ["s", "s"],
+                    ["ms", "ms"],
+                    ["%", "%"],
+                    ["dB", "dB"],
+                    ["V", "V"],
+                    ["st", "st"],
+                    ["BPM", "BPM"]
+                ]), "UNIT");
             this.setOutput(true);
             this.setInputsInline(true);
             this.setColour(CATEGORIES.IO_PORTS ? CATEGORIES.IO_PORTS.colour : "#059669");
@@ -77,12 +158,12 @@ export function registerSynthBlocks(Blockly) {
                 .appendField(new Blockly.FieldNumber(0), "MIN")
                 .appendField("max:")
                 .appendField(new Blockly.FieldNumber(1), "MAX")
-                .appendField("padrao:")
+                .appendField("padrão:")
                 .appendField(new Blockly.FieldNumber(0.5), "DEFAULT");
             this.setOutput(true);
             this.setInputsInline(true);
             this.setColour(CATEGORIES.IO_PORTS ? CATEGORIES.IO_PORTS.colour : "#059669");
-            this.setTooltip("Cria um fader deslizante vertical na faceplate da caixa.");
+            this.setTooltip("Cria um fader deslizante na faceplate da caixa.");
         }
     };
 
@@ -91,7 +172,7 @@ export function registerSynthBlocks(Blockly) {
             this.appendDummyInput()
                 .appendField("chave toggle [")
                 .appendField(new Blockly.FieldTextInput("Ativo"), "NAME")
-                .appendField("] padrao:")
+                .appendField("] padrão:")
                 .appendField(new Blockly.FieldDropdown([
                     ["Ligado (1)", "1"],
                     ["Desligado (0)", "0"]
@@ -99,7 +180,20 @@ export function registerSynthBlocks(Blockly) {
             this.setOutput(true);
             this.setInputsInline(true);
             this.setColour(CATEGORIES.IO_PORTS ? CATEGORIES.IO_PORTS.colour : "#059669");
-            this.setTooltip("Cria uma chave alavanca 3D liga/desliga na faceplate.");
+            this.setTooltip("Cria uma chave alavanca liga/desliga na faceplate.");
+        }
+    };
+
+    Blockly.Blocks['module_io_button'] = {
+        init: function() {
+            this.appendDummyInput()
+                .appendField("botão push [")
+                .appendField(new Blockly.FieldTextInput("Trigger"), "NAME")
+                .appendField("]");
+            this.setOutput(true);
+            this.setInputsInline(true);
+            this.setColour(CATEGORIES.IO_PORTS ? CATEGORIES.IO_PORTS.colour : "#059669");
+            this.setTooltip("Cria um botão de disparo momentâneo na faceplate (emite 1 enquanto pressionado).");
         }
     };
 
@@ -134,13 +228,101 @@ export function registerSynthBlocks(Blockly) {
         }
     };
 
+    // -------------------------------------------------------------------------
+    // VISORES GRÁFICOS & DISPLAYS DA FACEPLATE
+    // -------------------------------------------------------------------------
+    Blockly.Blocks['module_visor_adsr'] = {
+        init: function() {
+            this.appendDummyInput()
+                .appendField("📈 visor curva ADSR [")
+                .appendField(new Blockly.FieldTextInput("Attack"), "A_NAME")
+                .appendField(",")
+                .appendField(new Blockly.FieldTextInput("Decay"), "D_NAME")
+                .appendField(",")
+                .appendField(new Blockly.FieldTextInput("Sustain"), "S_NAME")
+                .appendField(",")
+                .appendField(new Blockly.FieldTextInput("Release"), "R_NAME")
+                .appendField("]");
+            this.setPreviousStatement(true);
+            this.setNextStatement(true);
+            this.setColour("#2B8A3E");
+            this.setTooltip("Renderiza o display gráfico em tempo real do envelope ADSR na faceplate do módulo.");
+        }
+    };
+
+    Blockly.Blocks['module_visor_scope'] = {
+        init: function() {
+            this.appendValueInput("SIGNAL")
+                .appendField("📊 visor osciloscópio sinal:");
+            this.setPreviousStatement(true);
+            this.setNextStatement(true);
+            this.setColour("#1971C2");
+            this.setTooltip("Renderiza uma mini tela de osciloscópio ao vivo na faceplate exibindo a forma de onda.");
+        }
+    };
+
+    Blockly.Blocks['module_visor_vu'] = {
+        init: function() {
+            this.appendValueInput("SIGNAL")
+                .appendField("📶 visor medidor VU sinal:");
+            this.setPreviousStatement(true);
+            this.setNextStatement(true);
+            this.setColour("#E8590C");
+            this.setTooltip("Renderiza uma barra medidora de volume VU meter com LEDs na faceplate.");
+        }
+    };
+
+    Blockly.Blocks['module_visor_display'] = {
+        init: function() {
+            this.appendValueInput("VAL")
+                .appendField("🔢 visor digital [")
+                .appendField(new Blockly.FieldTextInput("FREQ"), "LABEL")
+                .appendField("] valor:");
+            this.setPreviousStatement(true);
+            this.setNextStatement(true);
+            this.setColour("#087F5B");
+            this.setTooltip("Renderiza um display digital LCD numérico de 7 segmentos na faceplate.");
+        }
+    };
+
+    Blockly.Blocks['module_visor_led'] = {
+        init: function() {
+            this.appendValueInput("SIGNAL")
+                .appendField("💡 led indicador cor:")
+                .appendField(new Blockly.FieldDropdown([
+                    ["Verde", "#22c55e"],
+                    ["Vermelho", "#ef4444"],
+                    ["Azul", "#3b82f6"],
+                    ["Âmbar", "#f59e0b"]
+                ]), "COLOR")
+                .appendField("sinal:");
+            this.setPreviousStatement(true);
+            this.setNextStatement(true);
+            this.setColour("#C67D0A");
+            this.setTooltip("Renderiza um LED luminoso indicador na faceplate cujo brilho reage ao sinal.");
+        }
+    };
+
+    // -------------------------------------------------------------------------
+    // GATILHOS DE EXECUÇÃO
+    // -------------------------------------------------------------------------
+    Blockly.Blocks['module_io_setup'] = {
+        init: function() {
+            this.appendDummyInput()
+                .appendField("⚡ quando módulo iniciar (setup)");
+            this.setNextStatement(true);
+            this.setColour("#D9480F");
+            this.setTooltip("Executa uma única vez quando o módulo for carregado ou reiniciado.");
+        }
+    };
+
     Blockly.Blocks['module_io_process'] = {
         init: function() {
             this.appendDummyInput()
-                .appendField("a cada bloco de áudio (128 amostras)");
+                .appendField("▶ a cada bloco de áudio (128 amostras)");
             this.setNextStatement(true);
             this.setColour(CATEGORIES.IO_PORTS ? CATEGORIES.IO_PORTS.colour : "#059669");
-            this.setTooltip("Executa a lógica interna do módulo continuamente a 48kHz.");
+            this.setTooltip("Executa a lógica interna do módulo continuamente a 48kHz (375 vezes/s).");
         }
     };
 

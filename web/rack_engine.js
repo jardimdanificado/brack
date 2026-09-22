@@ -85,20 +85,26 @@ export class RackEngine {
                 Blockly.Xml.domToWorkspace(tempDom, moduleInstance.workspace);
 
                 const iface = BlocklySynthEngine.extractInterface(moduleInstance.workspace);
-                if (iface.inputs.length > 0 || iface.outputs.length > 0 || iface.params.length > 0) {
-                    moduleInstance.inputs = iface.inputs;
-                    moduleInstance.outputs = iface.outputs;
+                if (iface.name) moduleInstance.name = iface.name;
+                if (iface.width) moduleInstance.width = iface.width;
+                if (iface.height) moduleInstance.height = iface.height;
+                if (iface.color) moduleInstance.color = iface.color;
+                if (iface.category) moduleInstance.category = iface.category;
+                moduleInstance.visors = iface.visors || [];
+                moduleInstance.decorations = iface.decorations || [];
 
-                    // Preserve existing param values
-                    const oldParamValues = new Map(moduleInstance.params.map(p => [p.name, p.value]));
-                    moduleInstance.params = iface.params.map(p => {
-                        const existingVal = oldParamValues.get(p.name);
-                        return {
-                            ...p,
-                            value: existingVal !== undefined ? existingVal : p.default
-                        };
-                    });
-                }
+                moduleInstance.inputs = iface.inputs;
+                moduleInstance.outputs = iface.outputs;
+
+                // Preserve existing param values
+                const oldParamValues = new Map(moduleInstance.params.map(p => [p.name, p.value]));
+                moduleInstance.params = iface.params.map(p => {
+                    const existingVal = oldParamValues.get(p.name);
+                    return {
+                        ...p,
+                        value: existingVal !== undefined ? existingVal : p.default
+                    };
+                });
 
                 moduleInstance.engine.setWorkspace(moduleInstance.workspace);
             } catch (err) {

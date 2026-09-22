@@ -207,7 +207,8 @@ export class BlocklySynthEngine {
 
             case 'module_io_knob':
             case 'module_io_slider':
-            case 'module_io_switch': {
+            case 'module_io_switch':
+            case 'module_io_button': {
                 const paramName = block.getFieldValue('NAME') || 'Cutoff';
                 if (this.knobValues && this.knobValues.has(paramName)) {
                     const val = this.knobValues.get(paramName);
@@ -242,12 +243,32 @@ export class BlocklySynthEngine {
                 return { type: 'VAL', val: Math.sin(idx / 128 * 2 * Math.PI), audio: null };
             }
 
-            case 'module_io_process': {
+            case 'module_io_process':
+            case 'module_io_setup':
+            case 'module_io_label':
+            case 'module_io_separator':
+            case 'module_visor_adsr': {
                 const nextBlock = block.getNextBlock ? block.getNextBlock() : null;
                 if (nextBlock) {
                     return this.evalBlock(nextBlock, visited);
                 }
                 return { type: 'VAL', val: 0, audio: null };
+            }
+
+            case 'module_visor_scope':
+            case 'module_visor_vu':
+            case 'module_visor_led': {
+                const sigRes = this.getAudioSource(block, 'SIGNAL', new Set(visited)) || this.getParamVal(block, 'SIGNAL', 0, new Set(visited));
+                const nextBlock = block.getNextBlock ? block.getNextBlock() : null;
+                if (nextBlock) this.evalBlock(nextBlock, visited);
+                return sigRes || { type: 'VAL', val: 0, audio: null };
+            }
+
+            case 'module_visor_display': {
+                const valRes = this.getParamVal(block, 'VAL', 0, new Set(visited));
+                const nextBlock = block.getNextBlock ? block.getNextBlock() : null;
+                if (nextBlock) this.evalBlock(nextBlock, visited);
+                return valRes;
             }
 
             // Free-Text Broadcast Send Block
@@ -849,73 +870,121 @@ export class BlocklySynthEngine {
     }
 
     /**
-     * Inspect workspace blocks and extract all declared inputs, outputs and knobs
+     * Inspect workspace blocks and extract all declared module metadata, inputs, outputs, controls, and visors
      */
     static extractInterface(workspace) {
-        if (!workspace) return { inputs: [], outputs: [], params: [] };
+        if (!workspace) return {
+            name: null,
+            width: null,
+            height: null,
+            color: null,
+            category: null,
+            inputs: [],
+            outputs: [],
+            params: [],
+            visors: [],
+            decorations: []
+        };
         const blocks = workspace.getAllBlocks(false);
         const inputs = [];
         const outputs = [];
         const params = [];
+        const visors = [];
+        const decorations = [];
         const seenIn = new Set();
         const seenOut = new Set();
         const seenParam = new Set();
 
+        // 1. Check for module_def block
+        const defBlock = blocks.find(b => b.type === 'module_def');
+        const name = defBlock ? (defBlock.getFieldValue('NAME') || null) : null;
+        const width = defBlock ? (Number(defBlock.getFieldValue('WIDTH')) || null) : null;
+        const height = defBlock ? (Number(defBlock.getFieldValue('HEIGHT')) || null) : null;
+        const color = defBlock ? (defBlock.getFieldValue('COLOR') || null) : null;
+        const category = defBlock ? (defBlock.getFieldValue('CATEGORY') || null) : null;
+
         for (const block of blocks) {
             if (block.type === 'module_io_input') {
-                const name = block.getFieldValue('PORT') || 'In';
+                const pName = block.getFieldValue('PORT') || 'In';
                 const type = block.getFieldValue('TYPE') || 'AUDIO';
-                if (!seenIn.has(name)) {
-                    seenIn.add(name);
-                    inputs.push({ id: name, name, type });
+                if (!seenIn.has(pName)) {
+                    seenIn.add(pName);
+                    inputs.push({ id: pName, name: pName, type });
                 }
             } else if (block.type === 'module_io_output') {
-                const name = block.getFieldValue('PORT') || 'Out';
+                const pName = block.getFieldValue('PORT') || 'Out';
                 const type = block.getFieldValue('TYPE') || 'AUDIO';
-                if (!seenOut.has(name)) {
-                    seenOut.add(name);
-                    outputs.push({ id: name, name, type });
+                if (!seenOut.has(pName)) {
+                    seenOut.add(pName);
+                    outputs.push({ id: pName, name: pName, type });
                 }
             } else if (block.type === 'module_io_knob') {
-                const name = block.getFieldValue('NAME') || 'Cutoff';
+                const kName = block.getFieldValue('NAME') || 'Cutoff';
                 const min = Number(block.getFieldValue('MIN')) || 0;
                 const max = Number(block.getFieldValue('MAX')) || 1;
                 const def = Number(block.getFieldValue('DEFAULT')) || 0.5;
-                if (!seenParam.has(name)) {
-                    seenParam.add(name);
-                    params.push({ id: name, name, type: 'KNOB', min, max, default: def, value: def });
+                const unit = block.getFieldValue('UNIT') || '';
+                if (!seenParam.has(kName)) {
+                    seenParam.add(kName);
+                    params.push({ id: kName, name: kName, type: 'KNOB', min, max, default: def, value: def, unit });
                 }
             } else if (block.type === 'module_io_slider') {
-                const name = block.getFieldValue('NAME') || 'Volume';
+                const sName = block.getFieldValue('NAME') || 'Volume';
                 const min = Number(block.getFieldValue('MIN')) || 0;
                 const max = Number(block.getFieldValue('MAX')) || 1;
                 const def = Number(block.getFieldValue('DEFAULT')) || 0.5;
-                if (!seenParam.has(name)) {
-                    seenParam.add(name);
-                    params.push({ id: name, name, type: 'SLIDER', min, max, default: def, value: def });
+                if (!seenParam.has(sName)) {
+                    seenParam.add(sName);
+                    params.push({ id: sName, name: sName, type: 'SLIDER', min, max, default: def, value: def });
                 }
             } else if (block.type === 'module_io_switch') {
-                const name = block.getFieldValue('NAME') || 'Ativo';
+                const swName = block.getFieldValue('NAME') || 'Ativo';
                 const def = Number(block.getFieldValue('DEFAULT')) || 0;
-                if (!seenParam.has(name)) {
-                    seenParam.add(name);
-                    params.push({ id: name, name, type: 'SWITCH', min: 0, max: 1, default: def, value: def });
+                if (!seenParam.has(swName)) {
+                    seenParam.add(swName);
+                    params.push({ id: swName, name: swName, type: 'SWITCH', min: 0, max: 1, default: def, value: def });
+                }
+            } else if (block.type === 'module_io_button') {
+                const bName = block.getFieldValue('NAME') || 'Trigger';
+                if (!seenParam.has(bName)) {
+                    seenParam.add(bName);
+                    params.push({ id: bName, name: bName, type: 'BUTTON', min: 0, max: 1, default: 0, value: 0 });
                 }
             } else if (block.type === 'module_io_xy') {
-                const name = block.getFieldValue('NAME') || 'Joy';
-                if (!seenParam.has(name)) {
-                    seenParam.add(name);
-                    params.push({ id: name, name, type: 'XY_PAD', defaultX: 0.5, defaultY: 0.5, valX: 0.5, valY: 0.5 });
+                const xyName = block.getFieldValue('NAME') || 'Joy';
+                if (!seenParam.has(xyName)) {
+                    seenParam.add(xyName);
+                    params.push({ id: xyName, name: xyName, type: 'XY_PAD', defaultX: 0.5, defaultY: 0.5, valX: 0.5, valY: 0.5 });
                 }
             } else if (block.type === 'module_io_wavedraw') {
-                const name = block.getFieldValue('NAME') || 'Wave';
-                if (!seenParam.has(name)) {
-                    seenParam.add(name);
-                    params.push({ id: name, name, type: 'WAVE_DRAW', waveTable: new Float32Array(128) });
+                const wName = block.getFieldValue('NAME') || 'Wave';
+                if (!seenParam.has(wName)) {
+                    seenParam.add(wName);
+                    params.push({ id: wName, name: wName, type: 'WAVE_DRAW', waveTable: new Float32Array(128) });
                 }
+            } else if (block.type === 'module_visor_adsr') {
+                visors.push({
+                    type: 'adsr',
+                    attackName: block.getFieldValue('A_NAME') || 'Attack',
+                    decayName: block.getFieldValue('D_NAME') || 'Decay',
+                    sustainName: block.getFieldValue('S_NAME') || 'Sustain',
+                    releaseName: block.getFieldValue('R_NAME') || 'Release'
+                });
+            } else if (block.type === 'module_visor_scope') {
+                visors.push({ type: 'scope', id: block.id });
+            } else if (block.type === 'module_visor_vu') {
+                visors.push({ type: 'vu', id: block.id });
+            } else if (block.type === 'module_visor_display') {
+                visors.push({ type: 'display', id: block.id, label: block.getFieldValue('LABEL') || '' });
+            } else if (block.type === 'module_visor_led') {
+                visors.push({ type: 'led', id: block.id, color: block.getFieldValue('COLOR') || '#22c55e' });
+            } else if (block.type === 'module_io_label') {
+                decorations.push({ type: 'label', text: block.getFieldValue('TEXT') || '' });
+            } else if (block.type === 'module_io_separator') {
+                decorations.push({ type: 'separator' });
             }
         }
 
-        return { inputs, outputs, params };
+        return { name, width, height, color, category, inputs, outputs, params, visors, decorations };
     }
 }
