@@ -36,34 +36,26 @@
         header {
             width: 100%;
             height: 48px;
-            background: #111714;
-            border-bottom: 1px solid #283731;
+            background: linear-gradient(180deg, #4d97fe 0%, #3884f5 100%);
+            border-bottom: 1px solid #2872dd;
             padding: 0 14px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-shrink: 0;
             z-index: 10;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
         }
 
         h1 {
-            font-size: 15px;
+            font-size: 18px;
             letter-spacing: 1.5px;
             display: flex;
             align-items: center;
             gap: 8px;
-            color: var(--chalk-yellow);
-            font-weight: 800;
-        }
-
-        h1 span {
-            font-size: 10px;
-            background: rgba(72, 219, 251, 0.15);
-            color: var(--chalk-cyan);
-            border: 1px solid var(--chalk-cyan);
-            padding: 2px 6px;
-            border-radius: 4px;
-            letter-spacing: 0.5px;
+            color: #ffffff;
+            font-weight: 900;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
         }
 
         .actions {
@@ -75,94 +67,96 @@
         .playback-controls {
             display: flex;
             align-items: center;
-            gap: 4px;
-            background: #18201d;
+            gap: 6px;
+            background: rgba(0, 0, 0, 0.2);
             padding: 3px 6px;
             border-radius: 20px;
-            border: 1px solid #283731;
+            border: 1px solid rgba(255, 255, 255, 0.25);
         }
 
         .btn-flag {
-            background: #00b894;
-            color: #fff;
+            background: #45c55e;
+            color: #ffffff;
             border: none;
-            width: 30px;
-            height: 30px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 13px;
-            font-weight: bold;
             cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0, 184, 148, 0.4);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
             transition: transform 0.1s ease, background 0.15s ease;
         }
 
         .btn-flag:hover {
-            background: #55efc4;
-            transform: scale(1.06);
+            background: #22c55e;
+            transform: scale(1.08);
         }
 
         .btn-flag.running {
-            background: #00cec9;
-            box-shadow: 0 0 12px #00cec9;
+            background: #16a34a;
+            box-shadow: 0 0 12px #45c55e;
             animation: pulse-flag 1.2s infinite ease-in-out;
         }
 
         @keyframes pulse-flag {
             0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.08); }
+            50% { transform: scale(1.1); }
         }
 
         .btn-stop {
-            background: #d63031;
-            color: #fff;
+            background: #ef4444;
+            color: #ffffff;
             border: none;
-            width: 30px;
-            height: 30px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 13px;
             cursor: pointer;
-            box-shadow: 0 2px 8px rgba(214, 48, 49, 0.4);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
             transition: transform 0.1s ease, background 0.15s ease;
         }
 
         .btn-stop:hover {
-            background: #ff7675;
-            transform: scale(1.06);
+            background: #dc2626;
+            transform: scale(1.08);
         }
 
         .project-toolbar {
             display: flex;
             align-items: center;
             gap: 5px;
-            background: #151c19;
+            background: rgba(0, 0, 0, 0.15);
             padding: 3px 6px;
             border-radius: 6px;
-            border: 1px solid #283731;
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
         #project-select {
-            background: #1e2723;
-            color: var(--chalk-yellow);
-            border: 1px solid #3d4f47;
+            background: rgba(255, 255, 255, 0.18);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.3);
             padding: 5px 8px;
             border-radius: 4px;
             font-weight: 700;
             font-size: 11px;
             outline: none;
-            max-width: 210px;
+            max-width: 220px;
             cursor: pointer;
         }
 
-        button, select {
+        #project-select option {
             background: #1e2723;
-            color: var(--chalk-white);
-            border: 1px solid #35433d;
+            color: #ffffff;
+        }
+
+        button, select {
+            background: rgba(255, 255, 255, 0.18);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.25);
             padding: 5px 10px;
             border-radius: 4px;
             cursor: pointer;
@@ -176,29 +170,32 @@
         }
 
         button:hover, select:hover {
-            border-color: var(--chalk-green);
-            color: var(--chalk-green);
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+            color: #ffffff;
         }
 
         button.btn-primary {
-            background: #10ac84;
-            color: #0b0c10;
-            border-color: #1dd1a1;
+            background: #ffab19;
+            color: #1e2723;
+            border-color: #f59f00;
         }
 
         button.btn-primary:hover {
-            background: #1dd1a1;
-            color: #000;
+            background: #ffd43b;
+            color: #000000;
         }
 
         button.btn-warn {
-            border-color: var(--chalk-orange);
-            color: var(--chalk-orange);
+            background: rgba(255, 159, 67, 0.25);
+            border-color: #ff9f43;
+            color: #ffffff;
         }
 
         button.btn-danger {
-            border-color: var(--chalk-pink);
-            color: var(--chalk-pink);
+            background: rgba(255, 107, 107, 0.25);
+            border-color: #ff6b6b;
+            color: #ffffff;
         }
 
         button.btn-sm {
@@ -208,13 +205,30 @@
 
         .zoom-info {
             font-size: 11px;
-            color: var(--chalk-yellow);
-            background: #18201d;
+            color: #ffffff;
+            background: rgba(0, 0, 0, 0.2);
             padding: 4px 8px;
             border-radius: 4px;
-            border: 1px solid #283430;
-            min-width: 90px;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            min-width: 80px;
             text-align: center;
+            font-weight: 700;
+        }
+
+        /* High-contrast block text for darker block backgrounds */
+        .blocklyText, .blocklyHtmlInput {
+            fill: #ffffff !important;
+            font-weight: 700 !important;
+        }
+
+        .blocklyDropdownText {
+            fill: #ffffff !important;
+            font-weight: 700 !important;
+        }
+
+        .blocklyEditableText > rect {
+            fill: rgba(0, 0, 0, 0.22) !important;
+            stroke: rgba(255, 255, 255, 0.25) !important;
         }
 
         /* Workspace Grid Fullscreen */
@@ -531,11 +545,19 @@
 <body>
 
     <header>
-        <h1>BRACK <span>MODULAR SYNTH</span></h1>
+        <h1>BRACK</h1>
         <div class="actions">
             <div class="playback-controls">
-                <button class="btn-flag" id="btn-flag" title="Iniciar Síntese">▶</button>
-                <button class="btn-stop" id="btn-stop" title="Parar Síntese">■</button>
+                <button class="btn-flag" id="btn-flag" title="Iniciar Síntese">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6h-5.6z"/>
+                    </svg>
+                </button>
+                <button class="btn-stop" id="btn-stop" title="Parar Síntese">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M15.73 3H8.27L3 8.27v7.46L8.27 21h7.46L21 15.73V8.27L15.73 3z"/>
+                    </svg>
+                </button>
             </div>
 
             <!-- Project Selector & Actions Toolbar -->

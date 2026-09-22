@@ -93,6 +93,7 @@ export const EXAMPLE_PRESETS = [
 ];
 
 // 1. Acid 303 Lab Builder
+// 1. Acid 303 Lab Builder
 function buildAcidBassPatch(workspace) {
     workspace.clear();
 
@@ -109,11 +110,19 @@ function buildAcidBassPatch(workspace) {
     sendClk.render();
     clockBlock.nextConnection.connect(sendClk.previousConnection);
 
-    // 8-Step Sequencer
+    // Numeric Note List & List Sequencer
+    const setList = workspace.newBlock('synth_list_set');
+    setList.setFieldValue('notas_acid', 'LIST');
+    setList.setFieldValue('48, 51, 55, 58, 60, 58, 55, 51', 'ITEMS');
+    setList.initSvg();
+    setList.render();
+    setList.moveTo(new Blockly.utils.Coordinate(-520, -150));
+
     const seqBlock = workspace.newBlock('synth_seq');
+    seqBlock.setFieldValue('notas_acid', 'LIST');
     seqBlock.initSvg();
     seqBlock.render();
-    seqBlock.moveTo(new Blockly.utils.Coordinate(-520, -120));
+    seqBlock.moveTo(new Blockly.utils.Coordinate(-520, -50));
 
     const recvClk1 = workspace.newBlock('synth_recv');
     recvClk1.setFieldValue('clk_master', 'CHANNEL');
@@ -121,38 +130,11 @@ function buildAcidBassPatch(workspace) {
     recvClk1.render();
     seqBlock.getInput('CLK').connection.connect(recvClk1.outputConnection);
 
-    const notesData = [
-        { note: "0", oct: 0 },
-        { note: "3", oct: 0 },
-        { note: "7", oct: 0 },
-        { note: "10", oct: 0 },
-        { note: "0", oct: 1 },
-        { note: "10", oct: 0 },
-        { note: "7", oct: 0 },
-        { note: "3", oct: 0 }
-    ];
-
-    let prevNoteBlock = null;
-    for (let i = 0; i < notesData.length; i++) {
-        const noteBlock = workspace.newBlock('seq_note');
-        noteBlock.setFieldValue(notesData[i].note, 'NOTE');
-        noteBlock.setFieldValue(notesData[i].oct, 'OCTAVE');
-        noteBlock.initSvg();
-        noteBlock.render();
-
-        if (i === 0) {
-            seqBlock.getInput('STEPS').connection.connect(noteBlock.previousConnection);
-        } else if (prevNoteBlock) {
-            prevNoteBlock.nextConnection.connect(noteBlock.previousConnection);
-        }
-        prevNoteBlock = noteBlock;
-    }
-
     const sendPitch = workspace.newBlock('synth_send');
     sendPitch.setFieldValue('pitch_cv', 'CHANNEL');
     sendPitch.initSvg();
     sendPitch.render();
-    sendPitch.moveTo(new Blockly.utils.Coordinate(-220, -120));
+    sendPitch.moveTo(new Blockly.utils.Coordinate(-220, -50));
     sendPitch.getInput('IN').connection.connect(seqBlock.outputConnection);
 
     // ADSR Envelope (Punchy Attack & Decay)
@@ -294,11 +276,19 @@ function buildAmbientPadPatch(workspace) {
     sendClk.render();
     clockBlock.nextConnection.connect(sendClk.previousConnection);
 
-    // Harmonic Chord Sequencer
+    // Harmonic Chord Numeric List & Sequencer
+    const setList = workspace.newBlock('synth_list_set');
+    setList.setFieldValue('notas_pad', 'LIST');
+    setList.setFieldValue('48, 55, 51, 58, 56, 55', 'ITEMS');
+    setList.initSvg();
+    setList.render();
+    setList.moveTo(new Blockly.utils.Coordinate(-520, -150));
+
     const seqBlock = workspace.newBlock('synth_seq');
+    seqBlock.setFieldValue('notas_pad', 'LIST');
     seqBlock.initSvg();
     seqBlock.render();
-    seqBlock.moveTo(new Blockly.utils.Coordinate(-520, -120));
+    seqBlock.moveTo(new Blockly.utils.Coordinate(-520, -50));
 
     const recvClk1 = workspace.newBlock('synth_recv');
     recvClk1.setFieldValue('pad_clk', 'CHANNEL');
@@ -306,36 +296,11 @@ function buildAmbientPadPatch(workspace) {
     recvClk1.render();
     seqBlock.getInput('CLK').connection.connect(recvClk1.outputConnection);
 
-    const notesData = [
-        { note: "0", oct: 0 },
-        { note: "7", oct: 0 },
-        { note: "3", oct: 0 },
-        { note: "10", oct: 0 },
-        { note: "8", oct: 0 },
-        { note: "7", oct: 0 }
-    ];
-
-    let prevNoteBlock = null;
-    for (let i = 0; i < notesData.length; i++) {
-        const noteBlock = workspace.newBlock('seq_note');
-        noteBlock.setFieldValue(notesData[i].note, 'NOTE');
-        noteBlock.setFieldValue(notesData[i].oct, 'OCTAVE');
-        noteBlock.initSvg();
-        noteBlock.render();
-
-        if (i === 0) {
-            seqBlock.getInput('STEPS').connection.connect(noteBlock.previousConnection);
-        } else if (prevNoteBlock) {
-            prevNoteBlock.nextConnection.connect(noteBlock.previousConnection);
-        }
-        prevNoteBlock = noteBlock;
-    }
-
     const sendPitch = workspace.newBlock('synth_send');
     sendPitch.setFieldValue('pad_pitch', 'CHANNEL');
     sendPitch.initSvg();
     sendPitch.render();
-    sendPitch.moveTo(new Blockly.utils.Coordinate(-220, -120));
+    sendPitch.moveTo(new Blockly.utils.Coordinate(-220, -50));
     sendPitch.getInput('IN').connection.connect(seqBlock.outputConnection);
 
     // Cross-Modulated Dual LFOs
@@ -488,11 +453,19 @@ function buildPercussionGroovePatch(workspace) {
     sendClkHalf.render();
     clkDiv.nextConnection.connect(sendClkHalf.previousConnection);
 
-    // Bassline Sequencer
+    // Bassline Numeric List & Sequencer
+    const setList = workspace.newBlock('synth_list_set');
+    setList.setFieldValue('notas_bass', 'LIST');
+    setList.setFieldValue('36, 36, 39, 36, 43, 41, 39, 46', 'ITEMS');
+    setList.initSvg();
+    setList.render();
+    setList.moveTo(new Blockly.utils.Coordinate(-520, 60));
+
     const seqBlock = workspace.newBlock('synth_seq');
+    seqBlock.setFieldValue('notas_bass', 'LIST');
     seqBlock.initSvg();
     seqBlock.render();
-    seqBlock.moveTo(new Blockly.utils.Coordinate(-520, 80));
+    seqBlock.moveTo(new Blockly.utils.Coordinate(-520, 160));
 
     const recvClk2 = workspace.newBlock('synth_recv');
     recvClk2.setFieldValue('m_clk', 'CHANNEL');
@@ -500,38 +473,11 @@ function buildPercussionGroovePatch(workspace) {
     recvClk2.render();
     seqBlock.getInput('CLK').connection.connect(recvClk2.outputConnection);
 
-    const notesData = [
-        { note: "0", oct: -1 },
-        { note: "0", oct: -1 },
-        { note: "3", oct: -1 },
-        { note: "0", oct: -1 },
-        { note: "7", oct: -1 },
-        { note: "5", oct: -1 },
-        { note: "3", oct: -1 },
-        { note: "10", oct: -1 }
-    ];
-
-    let prevNoteBlock = null;
-    for (let i = 0; i < notesData.length; i++) {
-        const noteBlock = workspace.newBlock('seq_note');
-        noteBlock.setFieldValue(notesData[i].note, 'NOTE');
-        noteBlock.setFieldValue(notesData[i].oct, 'OCTAVE');
-        noteBlock.initSvg();
-        noteBlock.render();
-
-        if (i === 0) {
-            seqBlock.getInput('STEPS').connection.connect(noteBlock.previousConnection);
-        } else if (prevNoteBlock) {
-            prevNoteBlock.nextConnection.connect(noteBlock.previousConnection);
-        }
-        prevNoteBlock = noteBlock;
-    }
-
     const sendBassPitch = workspace.newBlock('synth_send');
     sendBassPitch.setFieldValue('bass_pitch', 'CHANNEL');
     sendBassPitch.initSvg();
     sendBassPitch.render();
-    sendBassPitch.moveTo(new Blockly.utils.Coordinate(-220, 80));
+    sendBassPitch.moveTo(new Blockly.utils.Coordinate(-220, 160));
     sendBassPitch.getInput('IN').connection.connect(seqBlock.outputConnection);
 
     // Fast Exponential Envelope for Kick Pitch Drop & Gain

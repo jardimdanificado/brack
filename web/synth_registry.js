@@ -6,16 +6,18 @@
  */
 
 export const CATEGORIES = {
-    VARIABLES: { id: "VARIABLES", name: "Variáveis & Listas", colour: "#FF661A" },
-    ROUTING: { id: "ROUTING", name: "Barramentos de Áudio", colour: "#FF6680" },
-    CONTROL: { id: "CONTROL", name: "Controle & Lógica", colour: "#FFAB19" },
-    EVENTS: { id: "EVENTS", name: "Eventos & Clock", colour: "#FFBF00" },
-    GENERATORS: { id: "GENERATORS", name: "Geradores", colour: "#9966FF" },
-    FILTERS: { id: "FILTERS", name: "Filtros & Dinâmica", colour: "#FF8C1A" },
-    MODULATORS: { id: "MODULATORS", name: "Moduladores", colour: "#59C059" },
-    OPERATORS: { id: "OPERATORS", name: "Operadores & Matemática", colour: "#40C057" },
-    EFFECTS: { id: "EFFECTS", name: "Efeitos & Saída", colour: "#4C97FF" }
+    VARIABLES: { id: "VARIABLES", name: "Variáveis & Listas", colour: "#D9480F" },
+    ROUTING: { id: "ROUTING", name: "Barramentos de Áudio", colour: "#C2255C" },
+    CONTROL: { id: "CONTROL", name: "Controle & Lógica", colour: "#B45309" },
+    EVENTS: { id: "EVENTS", name: "Eventos & Clock", colour: "#C67D0A" },
+    GENERATORS: { id: "GENERATORS", name: "Geradores", colour: "#5F3DC4" },
+    FILTERS: { id: "FILTERS", name: "Filtros & Dinâmica", colour: "#E8590C" },
+    MODULATORS: { id: "MODULATORS", name: "Moduladores", colour: "#2B8A3E" },
+    OPERATORS: { id: "OPERATORS", name: "Operadores & Matemática", colour: "#087F5B" },
+    EFFECTS: { id: "EFFECTS", name: "Efeitos & Saída", colour: "#1971C2" }
 };
+
+export const GREEN_FLAG_ICON = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2345c55e'><path d='M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6h-5.6z'/></svg>";
 
 export const MODULE_REGISTRY = new Map();
 

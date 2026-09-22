@@ -5,11 +5,11 @@
  * =========================================================================
  */
 
-import { registerAllBlocksToBlockly } from './synth_registry.js';
+import { registerAllBlocksToBlockly, CATEGORIES, GREEN_FLAG_ICON } from './synth_registry.js';
 
 export function registerSynthBlocks(Blockly) {
     // -------------------------------------------------------------------------
-    // 1. VARIÁVEIS & LISTAS (#FF661A)
+    // 1. VARIÁVEIS & LISTAS
     // -------------------------------------------------------------------------
     Blockly.Blocks['synth_var_set'] = {
         init: function() {
@@ -20,7 +20,7 @@ export function registerSynthBlocks(Blockly) {
             this.setPreviousStatement(true);
             this.setNextStatement(true);
             this.setInputsInline(true);
-            this.setColour("#FF661A");
+            this.setColour(CATEGORIES.VARIABLES.colour);
             this.setTooltip("Armazena um sinal ou número na variável.");
         }
     };
@@ -34,7 +34,7 @@ export function registerSynthBlocks(Blockly) {
             this.setPreviousStatement(true);
             this.setNextStatement(true);
             this.setInputsInline(true);
-            this.setColour("#FF661A");
+            this.setColour(CATEGORIES.VARIABLES.colour);
             this.setTooltip("Acumulador: soma o valor à variável.");
         }
     };
@@ -48,7 +48,7 @@ export function registerSynthBlocks(Blockly) {
             this.setPreviousStatement(true);
             this.setNextStatement(true);
             this.setInputsInline(true);
-            this.setColour("#FF661A");
+            this.setColour(CATEGORIES.VARIABLES.colour);
             this.setTooltip("Multiplica o valor da variável por um fator.");
         }
     };
@@ -61,7 +61,7 @@ export function registerSynthBlocks(Blockly) {
                 .appendField("]");
             this.setPreviousStatement(true);
             this.setNextStatement(true);
-            this.setColour("#FF661A");
+            this.setColour(CATEGORIES.VARIABLES.colour);
             this.setTooltip("Zera o valor da variável.");
         }
     };
@@ -73,7 +73,7 @@ export function registerSynthBlocks(Blockly) {
                 .appendField(new Blockly.FieldTextInput("voltagem"), "VAR")
                 .appendField(")");
             this.setOutput(true);
-            this.setColour("#FF661A");
+            this.setColour(CATEGORIES.VARIABLES.colour);
             this.setTooltip("Lê o valor ou sinal da variável.");
         }
     };
@@ -85,11 +85,11 @@ export function registerSynthBlocks(Blockly) {
                 .appendField("definir lista [")
                 .appendField(new Blockly.FieldTextInput("notas"), "LIST")
                 .appendField("] para [")
-                .appendField(new Blockly.FieldTextInput("0, 3, 7, 10, 12, 10, 7, 3"), "ITEMS")
+                .appendField(new Blockly.FieldTextInput("60, 63, 67, 70, 72, 70, 67, 63"), "ITEMS")
                 .appendField("]");
             this.setPreviousStatement(true);
             this.setNextStatement(true);
-            this.setColour("#FF661A");
+            this.setColour(CATEGORIES.VARIABLES.colour);
             this.setTooltip("Define todos os itens numéricos de uma lista.");
         }
     };
@@ -105,7 +105,7 @@ export function registerSynthBlocks(Blockly) {
             this.setPreviousStatement(true);
             this.setNextStatement(true);
             this.setInputsInline(true);
-            this.setColour("#FF661A");
+            this.setColour(CATEGORIES.VARIABLES.colour);
             this.setTooltip("Adiciona um número ao final da lista.");
         }
     };
@@ -121,7 +121,7 @@ export function registerSynthBlocks(Blockly) {
             this.setPreviousStatement(true);
             this.setNextStatement(true);
             this.setInputsInline(true);
-            this.setColour("#FF661A");
+            this.setColour(CATEGORIES.VARIABLES.colour);
             this.setTooltip("Remove um item da lista na posição do índice especificado.");
         }
     };
@@ -139,7 +139,7 @@ export function registerSynthBlocks(Blockly) {
             this.setPreviousStatement(true);
             this.setNextStatement(true);
             this.setInputsInline(true);
-            this.setColour("#FF661A");
+            this.setColour(CATEGORIES.VARIABLES.colour);
             this.setTooltip("Insere um elemento em uma posição específica da lista.");
         }
     };
@@ -155,7 +155,7 @@ export function registerSynthBlocks(Blockly) {
             this.setPreviousStatement(true);
             this.setNextStatement(true);
             this.setInputsInline(true);
-            this.setColour("#FF661A");
+            this.setColour(CATEGORIES.VARIABLES.colour);
             this.setTooltip("Substitui o item da lista na posição especificada por um novo valor.");
         }
     };
@@ -168,7 +168,7 @@ export function registerSynthBlocks(Blockly) {
                 .appendField("]");
             this.setPreviousStatement(true);
             this.setNextStatement(true);
-            this.setColour("#FF661A");
+            this.setColour(CATEGORIES.VARIABLES.colour);
             this.setTooltip("Apaga todos os itens da lista.");
         }
     };
@@ -183,7 +183,7 @@ export function registerSynthBlocks(Blockly) {
                 .appendField("]");
             this.setOutput(true);
             this.setInputsInline(true);
-            this.setColour("#FF661A");
+            this.setColour(CATEGORIES.VARIABLES.colour);
             this.setTooltip("Lê um item da lista pelo índice numérico (wrap circular automático).");
         }
     };
@@ -195,7 +195,7 @@ export function registerSynthBlocks(Blockly) {
                 .appendField(new Blockly.FieldTextInput("notas"), "LIST")
                 .appendField("]");
             this.setOutput(true);
-            this.setColour("#FF661A");
+            this.setColour(CATEGORIES.VARIABLES.colour);
             this.setTooltip("Retorna a quantidade de itens na lista.");
         }
     };
@@ -209,7 +209,7 @@ export function registerSynthBlocks(Blockly) {
             this.appendValueInput("ITEM");
             this.setOutput(true);
             this.setInputsInline(true);
-            this.setColour("#FF661A");
+            this.setColour(CATEGORIES.VARIABLES.colour);
             this.setTooltip("Retorna 1 se a lista contém o item, ou 0 caso contrário.");
         }
     };
@@ -225,13 +225,13 @@ export function registerSynthBlocks(Blockly) {
                 .appendField("]");
             this.setOutput(true);
             this.setInputsInline(true);
-            this.setColour("#FF661A");
+            this.setColour(CATEGORIES.VARIABLES.colour);
             this.setTooltip("Retorna o primeiro índice numérico onde o item aparece na lista.");
         }
     };
 
     // -------------------------------------------------------------------------
-    // 2. BARRAMENTOS DE ÁUDIO LIVRES (#FF6680)
+    // 2. BARRAMENTOS DE ÁUDIO LIVRES
     // -------------------------------------------------------------------------
     Blockly.Blocks['synth_send'] = {
         init: function() {
@@ -244,7 +244,7 @@ export function registerSynthBlocks(Blockly) {
             this.setPreviousStatement(true);
             this.setNextStatement(true);
             this.setInputsInline(false);
-            this.setColour("#FF6680");
+            this.setColour(CATEGORIES.ROUTING.colour);
             this.setTooltip("Transmite o sinal para um barramento livre nomeado (1-para-muitos).");
         }
     };
@@ -256,21 +256,23 @@ export function registerSynthBlocks(Blockly) {
                 .appendField(new Blockly.FieldTextInput("meu_sinal"), "CHANNEL")
                 .appendField("]");
             this.setOutput(true);
-            this.setColour("#FF6680");
+            this.setColour(CATEGORIES.ROUTING.colour);
             this.setTooltip("Pílula de recepção. Lê o sinal do barramento nomeado.");
         }
     };
 
     // -------------------------------------------------------------------------
-    // 3. EVENTOS & CLOCK (#FFBF00)
+    // 3. EVENTOS & CLOCK
     // -------------------------------------------------------------------------
     Blockly.Blocks['event_whenflagclicked'] = {
         init: function() {
             this.appendDummyInput()
-                .appendField("quando Iniciar");
+                .appendField("quando")
+                .appendField(new Blockly.FieldImage(GREEN_FLAG_ICON, 20, 20, "bandeira"), "FLAG_IMG")
+                .appendField("for clicado");
             this.setNextStatement(true);
-            this.setColour("#FFBF00");
-            this.setTooltip("Inicia o motor modular de áudio quando a reprodução for acionada.");
+            this.setColour(CATEGORIES.EVENTS.colour);
+            this.setTooltip("Inicia o motor modular de áudio quando a bandeira verde for clicada.");
         }
     };
 
@@ -286,7 +288,7 @@ export function registerSynthBlocks(Blockly) {
                     ["pulsos de clock", "clocks"]
                 ]), "UNIT");
             this.setNextStatement(true);
-            this.setColour("#FFBF00");
+            this.setColour(CATEGORIES.EVENTS.colour);
             this.setTooltip("Executa a pilha de blocos periodicamente a cada X tempo.");
         }
     };
@@ -299,7 +301,7 @@ export function registerSynthBlocks(Blockly) {
                 .appendField("]");
             this.setPreviousStatement(true);
             this.setNextStatement(true);
-            this.setColour("#FFBF00");
+            this.setColour(CATEGORIES.EVENTS.colour);
             this.setTooltip("Dispara um evento nomeado para todos os blocos 'quando eu ouvir'.");
         }
     };
@@ -311,7 +313,7 @@ export function registerSynthBlocks(Blockly) {
                 .appendField(new Blockly.FieldTextInput("virada"), "EVENT")
                 .appendField("]");
             this.setNextStatement(true);
-            this.setColour("#FFBF00");
+            this.setColour(CATEGORIES.EVENTS.colour);
             this.setTooltip("Executa a pilha de blocos quando o evento for transmitido.");
         }
     };
@@ -340,7 +342,7 @@ export function registerSynthBlocks(Blockly) {
                 ]), "KEY")
                 .appendField("] for pressionada");
             this.setNextStatement(true);
-            this.setColour("#FFBF00");
+            this.setColour(CATEGORIES.EVENTS.colour);
             this.setTooltip("Dispara a pilha de blocos quando a tecla for pressionada no teclado.");
         }
     };
@@ -352,7 +354,7 @@ export function registerSynthBlocks(Blockly) {
             this.appendDummyInput()
                 .appendField("se tornar verdadeiro");
             this.setNextStatement(true);
-            this.setColour("#FFBF00");
+            this.setColour(CATEGORIES.EVENTS.colour);
             this.setTooltip("Dispara a pilha quando a condição passar de falso para verdadeiro.");
         }
     };
@@ -364,76 +366,78 @@ export function registerSynthBlocks(Blockly) {
             this.appendValueInput("CLK")
                 .appendField("Sinal Clock");
             this.setNextStatement(true);
-            this.setColour("#FFBF00");
+            this.setColour(CATEGORIES.EVENTS.colour);
             this.setTooltip("Dispara eventos e modulações a cada pulso do clock.");
         }
     };
 
     // -------------------------------------------------------------------------
-    // 4. SEQUENCIADOR DE PASSOS (#59C059)
+    // 4. SEQUENCIADOR DE LISTA & NOTAS
     // -------------------------------------------------------------------------
     Blockly.Blocks['synth_seq'] = {
         init: function() {
             this.appendDummyInput()
-                .appendField("Sequenciador de Passos");
+                .appendField("Sequenciador de Lista [")
+                .appendField(new Blockly.FieldTextInput("notas"), "LIST")
+                .appendField("]");
             this.appendValueInput("CLK")
                 .appendField("Clock Trigger (CV)");
-            this.appendStatementInput("STEPS")
-                .setCheck("NOTE")
-                .appendField("Passos / Notas:");
-            this.setPreviousStatement(true);
-            this.setNextStatement(true);
             this.setOutput(true, "VAL");
-            this.setInputsInline(false);
-            this.setColour("#59C059");
-            this.setTooltip("Sequenciador modular aberto. Encaixe quantos blocos de notas desejar.");
+            this.setInputsInline(true);
+            this.setColour(CATEGORIES.CONTROL.colour);
+            this.setTooltip("Percorre a lista de números/notas passo a passo a cada pulso de clock, emitindo voltagem Pitch CV.");
         }
     };
 
-    Blockly.Blocks['seq_note'] = {
+    // Macro de Nota: Gera o número MIDI correspondente (ex: C4 = 60, A4 = 69)
+    Blockly.Blocks['music_note'] = {
         init: function() {
             this.appendDummyInput()
-                .appendField("Nota")
+                .appendField("nota")
                 .appendField(new Blockly.FieldDropdown([
-                    ["C (Dó)", "0"], ["C# / Db", "1"], ["D (Ré)", "2"], ["D# / Eb", "3"],
-                    ["E (Mi)", "4"], ["F (Fá)", "5"], ["F# / Gb", "6"], ["G (Sol)", "7"],
-                    ["G# / Ab", "8"], ["A (Lá)", "9"], ["A# / Bb", "10"], ["B (Si)", "11"]
+                    ["C (Dó)", "0"],
+                    ["C# / Db", "1"],
+                    ["D (Ré)", "2"],
+                    ["D# / Eb", "3"],
+                    ["E (Mi)", "4"],
+                    ["F (Fá)", "5"],
+                    ["F# / Gb", "6"],
+                    ["G (Sol)", "7"],
+                    ["G# / Ab", "8"],
+                    ["A (Lá)", "9"],
+                    ["A# / Bb", "10"],
+                    ["B (Si)", "11"]
                 ]), "NOTE")
-                .appendField("Oitava")
-                .appendField(new Blockly.FieldNumber(0, -3, 3, 1), "OCTAVE")
-                .appendField("Gate")
-                .appendField(new Blockly.FieldDropdown([
-                    ["Ativo (1)", "1"],
-                    ["Tie (Ligado)", "2"],
-                    ["Mudo (0)", "0"]
-                ]), "GATE");
-            this.setPreviousStatement(true, "NOTE");
-            this.setNextStatement(true, "NOTE");
-            this.setColour("#1dd1a1");
-            this.setTooltip("Passo de nota musical. Conecte em sequência.");
+                .appendField("oitava")
+                .appendField(new Blockly.FieldNumber(4, -1, 9, 1), "OCTAVE");
+            this.setOutput(true);
+            this.setInputsInline(true);
+            this.setColour(CATEGORIES.OPERATORS.colour);
+            this.setTooltip("Macro de nota musical: gera o número de nota MIDI correspondente (ex: C4 = 60).");
         }
     };
+
+    Blockly.Blocks['seq_note'] = Blockly.Blocks['music_note'];
 
     Blockly.Blocks['seq_rest'] = {
         init: function() {
             this.appendDummyInput()
-                .appendField("Pausa / Silêncio");
-            this.setPreviousStatement(true, "NOTE");
-            this.setNextStatement(true, "NOTE");
-            this.setColour("#8395a7");
-            this.setTooltip("Passo de pausa silenciosa na sequência.");
+                .appendField("Pausa (0)");
+            this.setOutput(true);
+            this.setColour(CATEGORIES.OPERATORS.colour);
+            this.setTooltip("Pausa / silêncio na sequência.");
         }
     };
 
     // -------------------------------------------------------------------------
-    // 5. OPERADORES MATEMÁTICOS & CV (#59C059)
+    // 5. OPERADORES MATEMÁTICOS & CV
     // -------------------------------------------------------------------------
     Blockly.Blocks['math_number'] = {
         init: function() {
             this.appendDummyInput()
                 .appendField(new Blockly.FieldNumber(0), "NUM");
             this.setOutput(true);
-            this.setColour("#59C059");
+            this.setColour(CATEGORIES.OPERATORS.colour);
             this.setTooltip("Número ou voltagem constante.");
         }
     };
@@ -455,7 +459,7 @@ export function registerSynthBlocks(Blockly) {
             this.appendValueInput("B");
             this.setOutput(true);
             this.setInputsInline(true);
-            this.setColour("#59C059");
+            this.setColour(CATEGORIES.OPERATORS.colour);
             this.setTooltip("Operação matemática entre dois sinais ou valores.");
         }
     };
@@ -476,7 +480,7 @@ export function registerSynthBlocks(Blockly) {
                 .appendField("]");
             this.setOutput(true);
             this.setInputsInline(true);
-            this.setColour("#59C059");
+            this.setColour(CATEGORIES.OPERATORS.colour);
             this.setTooltip("Mapeia a escala de um sinal de entrada para um intervalo de saída.");
         }
     };
@@ -501,7 +505,7 @@ export function registerSynthBlocks(Blockly) {
                 .appendField("de");
             this.setOutput(true);
             this.setInputsInline(true);
-            this.setColour("#59C059");
+            this.setColour(CATEGORIES.OPERATORS.colour);
             this.setTooltip("Função matemática avançada sobre um sinal.");
         }
     };
@@ -515,7 +519,7 @@ export function registerSynthBlocks(Blockly) {
                 .appendField(new Blockly.FieldNumber(1), "TO");
             this.setOutput(true);
             this.setInputsInline(true);
-            this.setColour("#59C059");
+            this.setColour(CATEGORIES.OPERATORS.colour);
             this.setTooltip("Gera um número aleatório (ruído de controle).");
         }
     };
@@ -535,7 +539,7 @@ export function registerSynthBlocks(Blockly) {
             this.appendValueInput("B");
             this.setOutput(true);
             this.setInputsInline(true);
-            this.setColour("#59C059");
+            this.setColour(CATEGORIES.CONTROL.colour);
             this.setTooltip("Compara dois sinais e gera um Gate (1 ou 0).");
         }
     };
@@ -550,7 +554,7 @@ export function registerSynthBlocks(Blockly) {
                 .appendField("senão");
             this.setOutput(true);
             this.setInputsInline(true);
-            this.setColour("#FFAB19");
+            this.setColour(CATEGORIES.CONTROL.colour);
             this.setTooltip("Seletor condicional: se a condição for verdadeira (> 0.5), emite o sinal 'então', senão o sinal 'senão'.");
         }
     };
@@ -562,7 +566,7 @@ export function registerSynthBlocks(Blockly) {
             this.appendValueInput("B");
             this.setOutput(true);
             this.setInputsInline(true);
-            this.setColour("#59C059");
+            this.setColour(CATEGORIES.CONTROL.colour);
             this.setTooltip("Porta lógica E: retorna 1 se ambos os sinais forem ativos (> 0.5).");
         }
     };
@@ -574,7 +578,7 @@ export function registerSynthBlocks(Blockly) {
             this.appendValueInput("B");
             this.setOutput(true);
             this.setInputsInline(true);
-            this.setColour("#59C059");
+            this.setColour(CATEGORIES.CONTROL.colour);
             this.setTooltip("Porta lógica OU: retorna 1 se pelo menos um dos sinais for ativo (> 0.5).");
         }
     };
@@ -584,7 +588,7 @@ export function registerSynthBlocks(Blockly) {
             this.appendValueInput("A").appendField("não");
             this.setOutput(true);
             this.setInputsInline(true);
-            this.setColour("#59C059");
+            this.setColour(CATEGORIES.CONTROL.colour);
             this.setTooltip("Porta lógica NÃO: inverte o sinal de controle.");
         }
     };
@@ -596,7 +600,7 @@ export function registerSynthBlocks(Blockly) {
             this.appendValueInput("B");
             this.setOutput(true);
             this.setInputsInline(true);
-            this.setColour("#59C059");
+            this.setColour(CATEGORIES.CONTROL.colour);
             this.setTooltip("Porta lógica OU Exclusivo (XOR).");
         }
     };
@@ -609,7 +613,7 @@ export function registerSynthBlocks(Blockly) {
                 .appendField("para Hz");
             this.setOutput(true);
             this.setInputsInline(true);
-            this.setColour("#40C057");
+            this.setColour(CATEGORIES.OPERATORS.colour);
             this.setTooltip("Converte número de nota MIDI (ex: 60 = Dó4) em Hertz.");
         }
     };
@@ -621,7 +625,7 @@ export function registerSynthBlocks(Blockly) {
                 .appendField(new Blockly.FieldTextInput("C4"), "NOTE")
                 .appendField("]");
             this.setOutput(true);
-            this.setColour("#40C057");
+            this.setColour(CATEGORIES.OPERATORS.colour);
             this.setTooltip("Nota musical (ex: C4, Eb3, F#4, Sol4). Converte para valor numérico MIDI.");
         }
     };
@@ -639,7 +643,7 @@ export function registerSynthBlocks(Blockly) {
                 ]), "TARGET");
             this.setOutput(true);
             this.setInputsInline(true);
-            this.setColour("#40C057");
+            this.setColour(CATEGORIES.OPERATORS.colour);
             this.setTooltip("Converte notas musicais em Hertz, MIDI ou V/Oct para osciladores e filtros.");
         }
     };
@@ -654,7 +658,7 @@ export function registerSynthBlocks(Blockly) {
                 .appendField("semitons");
             this.setOutput(true);
             this.setInputsInline(true);
-            this.setColour("#40C057");
+            this.setColour(CATEGORIES.OPERATORS.colour);
             this.setTooltip("Transpõe uma nota musical ou voltagem por semitons.");
         }
     };

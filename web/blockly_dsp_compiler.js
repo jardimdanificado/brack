@@ -393,35 +393,55 @@ export class BlocklySynthEngine {
                 return { type: 'VAL', val: 0, audio: null };
             }
 
-            // Dynamic Chained Note Sequencer
+            // Note Macro Reporter Block (e.g. C4 -> 60)
+            case 'music_note':
+            case 'seq_note': {
+                const note = Number(block.getFieldValue('NOTE')) || 0;
+                const octField = block.getFieldValue('OCTAVE');
+                const oct = (octField !== null && octField !== undefined) ? Number(octField) : 4;
+                const midi = (oct + 1) * 12 + note;
+                return { type: 'VAL', val: midi, audio: null };
+            }
+
+            case 'seq_rest': {
+                return { type: 'VAL', val: 0, audio: null };
+            }
+
+            // Dynamic Numeric List-Driven Sequencer
             case 'synth_seq': {
                 const clkRes = this.getParamVal(block, 'CLK', 0, new Set(visited));
+                const listName = block.getFieldValue('LIST') || 'notas';
+                let rawList = this.lists.get(listName);
 
-                const notes = [];
-                let currentStepBlock = block.getInputTargetBlock('STEPS');
-                while (currentStepBlock) {
-                    if (currentStepBlock.type === 'seq_note') {
-                        const noteVal = Number(currentStepBlock.getFieldValue('NOTE')) || 0;
-                        const octVal = Number(currentStepBlock.getFieldValue('OCTAVE')) || 0;
-                        const gateMode = currentStepBlock.getFieldValue('GATE') || '1';
-                        notes.push({ note: noteVal, octave: octVal, gate: gateMode });
-                    } else if (currentStepBlock.type === 'seq_rest') {
-                        notes.push({ note: 0, octave: 0, gate: '0' });
+                // Fallback for chained legacy step blocks
+                if (!rawList || rawList.length === 0) {
+                    const notes = [];
+                    let currentStepBlock = block.getInputTargetBlock('STEPS');
+                    while (currentStepBlock) {
+                        if (currentStepBlock.type === 'seq_note' || currentStepBlock.type === 'music_note') {
+                            const noteVal = Number(currentStepBlock.getFieldValue('NOTE')) || 0;
+                            const octField = currentStepBlock.getFieldValue('OCTAVE');
+                            const octVal = (octField !== null && octField !== undefined) ? Number(octField) : 4;
+                            notes.push((octVal + 1) * 12 + noteVal);
+                        } else if (currentStepBlock.type === 'math_number') {
+                            notes.push(Number(currentStepBlock.getFieldValue('NUM')) || 60);
+                        }
+                        currentStepBlock = currentStepBlock.getNextBlock ? currentStepBlock.getNextBlock() : null;
                     }
-                    currentStepBlock = currentStepBlock.getNextBlock ? currentStepBlock.getNextBlock() : null;
+                    if (notes.length > 0) rawList = notes;
                 }
 
-                if (notes.length === 0) {
-                    notes.push({ note: 0, octave: 0, gate: '1' }, { note: 7, octave: 0, gate: '1' });
-                }
+                const list = (rawList && rawList.length > 0) ? rawList : [60, 63, 67, 70, 72, 70, 67, 63];
 
                 for (let s = 0; s < numSamples; s++) {
                     const clk = clkRes.audio ? clkRes.audio[s] : clkRes.val;
                     if (clk > 0.5 && state.last <= 0.5) {
-                        state.step = (state.step + 1) % notes.length;
-                        const n = notes[state.step];
-                        state.voct = (n.note / 12) + n.octave;
-                        state.gate = n.gate === '1' ? 1 : (n.gate === '2' ? 1 : 0);
+                        state.step = (state.step + 1) % list.length;
+                        const item = list[state.step];
+                        const midi = typeof item === 'number' ? item : (Number(item) || 60);
+                        // 1V/Oct CV relative to C4 (60)
+                        state.voct = (midi - 60) / 12.0;
+                        state.gate = midi > 0 ? 1 : 0;
                     }
                     state.last = clk;
                     state.audioBuf[s] = state.voct;
