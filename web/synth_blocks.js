@@ -269,13 +269,17 @@ export function registerSynthBlocks(Blockly) {
             this.appendDummyInput()
                 .appendField("Sequenciador Matriz Visual [")
                 .appendField(new Blockly.FieldTextInput("Seq"), "NAME")
-                .appendField("]");
+                .appendField("] saída:")
+                .appendField(new Blockly.FieldDropdown([
+                    ["Pitch CV (1V/Oct)", "CV"],
+                    ["Gate Trigger", "GATE"]
+                ]), "OUT");
             this.appendValueInput("CLK")
                 .appendField("Clock In");
             this.setOutput(true);
             this.setInputsInline(true);
             this.setColour(CATEGORIES.CONTROL.colour);
-            this.setTooltip("Avança o sequenciador visual de passos a cada pulso de clock e emite o Gate/CV do passo ativo.");
+            this.setTooltip("Avança o sequenciador visual de passos a cada pulso de clock e emite o Gate ou Pitch CV do passo ativo.");
         }
     };
 
@@ -767,13 +771,17 @@ export function registerSynthBlocks(Blockly) {
             this.appendDummyInput()
                 .appendField("Sequenciador de Lista [")
                 .appendField(new Blockly.FieldTextInput("notas"), "LIST")
-                .appendField("]");
+                .appendField("] saída:")
+                .appendField(new Blockly.FieldDropdown([
+                    ["Pitch CV (1V/Oct)", "CV"],
+                    ["Gate Trigger", "GATE"]
+                ]), "OUT");
             this.appendValueInput("CLK")
                 .appendField("Clock Trigger (CV)");
             this.setOutput(true);
             this.setInputsInline(true);
             this.setColour(CATEGORIES.CONTROL.colour);
-            this.setTooltip("Percorre a lista de números/notas passo a passo a cada pulso de clock, emitindo voltagem Pitch CV.");
+            this.setTooltip("Percorre a lista de números/notas passo a passo a cada pulso de clock, emitindo voltagem Pitch CV ou Gate.");
         }
     };
 

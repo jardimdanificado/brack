@@ -27,10 +27,13 @@ export class RackCanvas {
         this.cableDrag = null; // { fromModuleId, fromPort, isOutput, startX, startY, currentX, currentY, color }
 
         this.adsrCanvases = new Map();
+        this.scopeCanvases = new Map();
+        this.vuMeters = new Map();
 
         this.initDOM();
         this.attachEvents();
         this.render();
+        this.startAnimationLoop();
     }
 
     initDOM() {
@@ -124,6 +127,8 @@ export class RackCanvas {
     renderModules() {
         this.modulesContainer.innerHTML = '';
         this.adsrCanvases.clear();
+        this.scopeCanvases.clear();
+        this.vuMeters.clear();
 
         for (const mod of this.engine.modules) {
             const isAdsr = mod.type === 'adsr' || (mod.params.some(p => p.name.toLowerCase() === 'attack') && mod.params.some(p => p.name.toLowerCase() === 'release'));
@@ -284,15 +289,13 @@ export class RackCanvas {
                 centerCol.appendChild(this.createAdsrCurveElement(mod.id, mod));
             }
 
-            // 3. Controls (Knobs, Sliders, Switches, Buttons, XY Pads, Wavedraws, Step Grids, Drum Grids)
+            // 3. Controls (Knobs, Sliders, Switches, Buttons, XY Pads, Wavedraws)
             for (const param of mod.params) {
                 if (param.type === 'SLIDER') centerCol.appendChild(this.createSliderElement(mod.id, param));
                 else if (param.type === 'SWITCH') centerCol.appendChild(this.createSwitchElement(mod.id, param));
                 else if (param.type === 'BUTTON') centerCol.appendChild(this.createButtonElement(mod.id, param));
                 else if (param.type === 'XY_PAD') centerCol.appendChild(this.createXyPadElement(mod.id, param));
                 else if (param.type === 'WAVE_DRAW') centerCol.appendChild(this.createWaveDrawElement(mod.id, param));
-                else if (param.type === 'STEP_GRID') centerCol.appendChild(this.createStepGridElement(mod.id, param));
-                else if (param.type === 'DRUM_GRID') centerCol.appendChild(this.createDrumGridElement(mod.id, param));
                 else centerCol.appendChild(this.createKnobElement(mod.id, param));
             }
             body.appendChild(centerCol);
@@ -885,150 +888,6 @@ export class RackCanvas {
         return wrap;
     }
 
-    createStepGridElement(moduleId, param) {
-        const wrap = document.createElement('div');
-        wrap.className = 'rack-stepgrid-wrap';
-        wrap.style.display = 'flex';
-        wrap.style.flexDirection = 'column';
-        wrap.style.alignItems = 'center';
-        wrap.style.gap = '3px';
-        wrap.style.width = '100%';
-
-        const label = document.createElement('span');
-        label.textContent = param.name || 'Step Sequencer';
-        label.style.fontSize = '9px';
-        label.style.fontWeight = '700';
-        label.style.color = '#c8d6e5';
-
-        const steps = param.steps || 16;
-        if (!param.pattern) {
-            param.pattern = [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0].slice(0, steps);
-        }
-
-        const grid = document.createElement('div');
-        grid.style.display = 'grid';
-        grid.style.gridTemplateColumns = steps === 16 ? 'repeat(8, 1fr)' : 'repeat(8, 1fr)';
-        grid.style.gap = '3px';
-        grid.style.background = '#09110d';
-        grid.style.padding = '4px';
-        grid.style.borderRadius = '4px';
-        grid.style.border = '1px solid #283731';
-
-        for (let i = 0; i < steps; i++) {
-            const btn = document.createElement('button');
-            const isActive = param.pattern[i] > 0;
-            const isGroup = Math.floor(i / 4) % 2 === 0;
-
-            btn.style.width = '14px';
-            btn.style.height = '18px';
-            btn.style.borderRadius = '2px';
-            btn.style.border = isActive ? '1px solid #55efc4' : '1px solid #283731';
-            btn.style.background = isActive ? '#55efc4' : (isGroup ? '#1f2b25' : '#141c18');
-            btn.style.cursor = 'pointer';
-            btn.style.padding = '0';
-            btn.title = `Passo ${i + 1}`;
-
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                param.pattern[i] = param.pattern[i] > 0 ? 0 : 1;
-                const active = param.pattern[i] > 0;
-                btn.style.border = active ? '1px solid #55efc4' : '1px solid #283731';
-                btn.style.background = active ? '#55efc4' : (isGroup ? '#1f2b25' : '#141c18');
-                this.engine.setModuleKnob(moduleId, param.name, param.pattern);
-                this.onModuleChange();
-            });
-
-            grid.appendChild(btn);
-        }
-
-        wrap.appendChild(label);
-        wrap.appendChild(grid);
-        return wrap;
-    }
-
-    createDrumGridElement(moduleId, param) {
-        const wrap = document.createElement('div');
-        wrap.className = 'rack-drumgrid-wrap';
-        wrap.style.display = 'flex';
-        wrap.style.flexDirection = 'column';
-        wrap.style.alignItems = 'center';
-        wrap.style.gap = '3px';
-        wrap.style.width = '100%';
-
-        const label = document.createElement('span');
-        label.textContent = param.name || '16-Step Drum Machine';
-        label.style.fontSize = '9px';
-        label.style.fontWeight = '700';
-        label.style.color = '#c8d6e5';
-
-        const tracks = param.tracks || ['Kick', 'Snare', 'HiHat', 'Perc'];
-        if (!param.matrix) {
-            param.matrix = [
-                [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0],
-                [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
-                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-                [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0]
-            ];
-        }
-
-        const table = document.createElement('div');
-        table.style.display = 'flex';
-        table.style.flexDirection = 'column';
-        table.style.gap = '3px';
-        table.style.background = '#09110d';
-        table.style.padding = '4px';
-        table.style.borderRadius = '4px';
-        table.style.border = '1px solid #283731';
-
-        const trackColors = ['#ef4444', '#f59e0b', '#38bdf8', '#a855f7'];
-
-        tracks.forEach((trackName, tIdx) => {
-            const row = document.createElement('div');
-            row.style.display = 'flex';
-            row.style.alignItems = 'center';
-            row.style.gap = '2px';
-
-            const tLabel = document.createElement('span');
-            tLabel.textContent = trackName.substring(0, 4);
-            tLabel.style.fontSize = '8px';
-            tLabel.style.fontWeight = '900';
-            tLabel.style.color = trackColors[tIdx % trackColors.length];
-            tLabel.style.width = '24px';
-            row.appendChild(tLabel);
-
-            for (let i = 0; i < 16; i++) {
-                const btn = document.createElement('button');
-                const isActive = param.matrix[tIdx][i] > 0;
-                const isGroup = Math.floor(i / 4) % 2 === 0;
-
-                btn.style.width = '10px';
-                btn.style.height = '14px';
-                btn.style.borderRadius = '2px';
-                btn.style.border = isActive ? `1px solid ${trackColors[tIdx % trackColors.length]}` : '1px solid #283731';
-                btn.style.background = isActive ? trackColors[tIdx % trackColors.length] : (isGroup ? '#233029' : '#141c18');
-                btn.style.cursor = 'pointer';
-                btn.style.padding = '0';
-
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    param.matrix[tIdx][i] = param.matrix[tIdx][i] > 0 ? 0 : 1;
-                    const active = param.matrix[tIdx][i] > 0;
-                    btn.style.border = active ? `1px solid ${trackColors[tIdx % trackColors.length]}` : '1px solid #283731';
-                    btn.style.background = active ? trackColors[tIdx % trackColors.length] : (isGroup ? '#233029' : '#141c18');
-                    this.engine.setModuleKnob(moduleId, param.name, param.matrix);
-                    this.onModuleChange();
-                });
-
-                row.appendChild(btn);
-            }
-            table.appendChild(row);
-        });
-
-        wrap.appendChild(label);
-        wrap.appendChild(table);
-        return wrap;
-    }
-
     createScopeElement(moduleId, mod, visor) {
         const wrap = document.createElement('div');
         wrap.className = 'rack-scope-wrap';
@@ -1047,17 +906,7 @@ export class RackCanvas {
         canvas.style.borderRadius = '4px';
 
         const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#09110d';
-        ctx.fillRect(0, 0, 88, 36);
-        ctx.strokeStyle = '#38bdf8';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        for (let x = 0; x < 88; x++) {
-            const y = 18 + Math.sin(x * 0.15) * 12;
-            if (x === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
-        }
-        ctx.stroke();
+        this.scopeCanvases.set(moduleId, { canvas, ctx });
 
         wrap.appendChild(canvas);
         return wrap;
@@ -1075,15 +924,89 @@ export class RackCanvas {
         wrap.style.display = 'flex';
         wrap.style.gap = '2px';
 
+        const segs = [];
         for (let i = 0; i < 8; i++) {
             const seg = document.createElement('div');
             seg.style.flex = '1';
             seg.style.borderRadius = '1px';
             seg.style.background = i < 5 ? '#22c55e' : (i < 7 ? '#f59e0b' : '#ef4444');
-            seg.style.opacity = '0.35';
+            seg.style.opacity = '0.2';
+            seg.style.transition = 'opacity 0.05s';
+            segs.push(seg);
             wrap.appendChild(seg);
         }
+        this.vuMeters.set(moduleId, { segs });
         return wrap;
+    }
+
+    startAnimationLoop() {
+        const anim = () => {
+            // 1. Update Oscilloscopes (real-time waveform animation)
+            for (const [modId, item] of this.scopeCanvases.entries()) {
+                const outputs = this.engine.moduleOutputCache.get(modId);
+                let buf = null;
+                if (outputs && outputs.size > 0) {
+                    const firstSig = outputs.values().next().value;
+                    if (firstSig && firstSig.audio) buf = firstSig.audio;
+                }
+                if (!buf && this.engine.masterOutBuffers) {
+                    buf = this.engine.masterOutBuffers.left;
+                }
+                if (buf && item.canvas && item.ctx) {
+                    const ctx = item.ctx;
+                    const w = item.canvas.width;
+                    const h = item.canvas.height;
+                    ctx.fillStyle = '#09110d';
+                    ctx.fillRect(0, 0, w, h);
+
+                    // Zero axis line
+                    ctx.strokeStyle = 'rgba(85, 239, 196, 0.15)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(0, h / 2);
+                    ctx.lineTo(w, h / 2);
+                    ctx.stroke();
+
+                    // Waveform
+                    ctx.strokeStyle = '#55efc4';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    const len = buf.length;
+                    for (let x = 0; x < w; x++) {
+                        const idx = Math.floor((x / w) * len);
+                        const sVal = buf[idx] || 0;
+                        const y = (h / 2) - sVal * (h * 0.42);
+                        if (x === 0) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+                }
+            }
+
+            // 4. Update VU Meters
+            for (const [modId, item] of this.vuMeters.entries()) {
+                const outputs = this.engine.moduleOutputCache.get(modId);
+                let peak = 0;
+                if (outputs && outputs.size > 0) {
+                    const firstSig = outputs.values().next().value;
+                    if (firstSig && firstSig.audio) {
+                        for (let s = 0; s < firstSig.audio.length; s++) {
+                            const abs = Math.abs(firstSig.audio[s]);
+                            if (abs > peak) peak = abs;
+                        }
+                    }
+                }
+                if (item.segs) {
+                    const litCount = Math.min(8, Math.round(peak * 8));
+                    for (let i = 0; i < item.segs.length; i++) {
+                        item.segs[i].style.opacity = i < litCount ? '1' : '0.2';
+                    }
+                }
+            }
+
+            requestAnimationFrame(anim);
+        };
+        requestAnimationFrame(anim);
     }
 
     createDisplayElement(moduleId, mod, visor) {

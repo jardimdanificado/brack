@@ -422,10 +422,12 @@ export const MODULE_CATALOG = [
             { id: 'Clock', name: 'Clock', type: 'GATE' }
         ],
         outputs: [
-            { id: 'Pitch CV', name: 'Pitch CV', type: 'VAL' }
+            { id: 'Pitch CV', name: 'Pitch CV', type: 'VAL' },
+            { id: 'Gate', name: 'Gate', type: 'GATE' }
         ],
         params: [
-            { id: 'Glide', name: 'Glide', type: 'KNOB', min: 0.001, max: 0.5, default: 0.02, value: 0.02, unit: 's' }
+            { id: 'Glide', name: 'Glide', type: 'KNOB', min: 0.001, max: 0.5, default: 0.02, value: 0.02, unit: 's' },
+            { id: 'Transpose', name: 'Transpose', type: 'KNOB', min: -24, max: 24, default: 0, value: 0, unit: 'st' }
         ],
         getXml() {
             return `<xml xmlns="https://developers.google.com/blockly/xml">
@@ -448,12 +450,35 @@ export const MODULE_CATALOG = [
             <value name="SIGNAL">
               <block type="synth_slew">
                 <value name="IN">
-                  <block type="synth_seq">
-                    <field name="LIST">seq_notes</field>
-                    <value name="CLK">
-                      <block type="module_io_input">
-                        <field name="TYPE">GATE</field>
-                        <field name="PORT">Clock</field>
+                  <block type="math_arithmetic">
+                    <field name="OP">ADD</field>
+                    <value name="A">
+                      <block type="synth_seq">
+                        <field name="LIST">seq_notes</field>
+                        <field name="OUT">CV</field>
+                        <value name="CLK">
+                          <block type="module_io_input">
+                            <field name="TYPE">GATE</field>
+                            <field name="PORT">Clock</field>
+                          </block>
+                        </value>
+                      </block>
+                    </value>
+                    <value name="B">
+                      <block type="math_arithmetic">
+                        <field name="OP">DIVIDE</field>
+                        <value name="A">
+                          <block type="module_io_knob">
+                            <field name="NAME">Transpose</field>
+                            <field name="MIN">-24</field>
+                            <field name="MAX">24</field>
+                            <field name="DEFAULT">0</field>
+                            <field name="UNIT">st</field>
+                          </block>
+                        </value>
+                        <value name="B">
+                          <block type="math_number"><field name="NUM">12</field></block>
+                        </value>
                       </block>
                     </value>
                   </block>
@@ -469,6 +494,24 @@ export const MODULE_CATALOG = [
                 </value>
               </block>
             </value>
+            <next>
+              <block type="module_io_output">
+                <field name="TYPE">GATE</field>
+                <field name="PORT">Gate</field>
+                <value name="SIGNAL">
+                  <block type="synth_seq">
+                    <field name="LIST">seq_notes</field>
+                    <field name="OUT">GATE</field>
+                    <value name="CLK">
+                      <block type="module_io_input">
+                        <field name="TYPE">GATE</field>
+                        <field name="PORT">Clock</field>
+                      </block>
+                    </value>
+                  </block>
+                </value>
+              </block>
+            </next>
           </block>
         </next>
       </block>
@@ -1497,8 +1540,8 @@ export const MODULE_CATALOG = [
         name: '16-Step Visual Drum Machine',
         category: 'Geradores',
         color: '#D9480F',
-        width: 290,
-        height: 330,
+        width: 200,
+        height: 270,
         inputs: [
             { id: 'Clock', name: 'Clock', type: 'GATE' }
         ],
@@ -1508,131 +1551,144 @@ export const MODULE_CATALOG = [
             { id: 'HiHat', name: 'HiHat', type: 'AUDIO' },
             { id: 'Perc', name: 'Perc', type: 'AUDIO' }
         ],
-        params: [
-            {
-                id: 'Drums',
-                name: 'Drums',
-                type: 'DRUM_GRID',
-                tracks: ['Kick', 'Snare', 'Hi-Hat', 'Perc'],
-                steps: 16,
-                matrix: [
-                    [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0],
-                    [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
-                    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-                    [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0]
-                ]
-            }
+        params: [],
+        visors: [
+            { type: 'scope' }
         ],
         getXml() {
             return `<xml xmlns="https://developers.google.com/blockly/xml">
   <block type="module_def" x="30" y="30">
     <field name="NAME">16-Step Visual Drum Machine</field>
-    <field name="WIDTH">290</field>
-    <field name="HEIGHT">330</field>
+    <field name="WIDTH">200</field>
+    <field name="HEIGHT">270</field>
     <field name="COLOR">#D9480F</field>
     <field name="CATEGORY">Geradores</field>
   </block>
   <block type="module_io_process" x="30" y="160">
     <next>
-      <block type="module_io_output">
-        <field name="TYPE">AUDIO</field>
-        <field name="PORT">Kick</field>
-        <value name="SIGNAL">
-          <block type="synth_drum_voice">
-            <field name="TYPE">kick</field>
-            <value name="TRIG">
-              <block type="synth_drum_matrix">
-                <field name="NAME">Drums</field>
-                <field name="TRACK">0</field>
-                <value name="CLK">
-                  <block type="module_io_input">
-                    <field name="TYPE">GATE</field>
-                    <field name="PORT">Clock</field>
-                  </block>
-                </value>
-              </block>
-            </value>
-            <value name="TUNE"><block type="math_number"><field name="NUM">55</field></block></value>
-            <value name="DECAY"><block type="math_number"><field name="NUM">0.35</field></block></value>
-            <value name="SNAP"><block type="math_number"><field name="NUM">0.7</field></block></value>
-            <value name="DRIVE"><block type="math_number"><field name="NUM">0.3</field></block></value>
-          </block>
-        </value>
+      <block type="synth_list_set">
+        <field name="LIST">kick_pat</field>
+        <field name="ITEMS">1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0</field>
         <next>
-          <block type="module_io_output">
-            <field name="TYPE">AUDIO</field>
-            <field name="PORT">Snare</field>
-            <value name="SIGNAL">
-              <block type="synth_drum_voice">
-                <field name="TYPE">snare</field>
-                <value name="TRIG">
-                  <block type="synth_drum_matrix">
-                    <field name="NAME">Drums</field>
-                    <field name="TRACK">1</field>
-                    <value name="CLK">
-                      <block type="module_io_input">
-                        <field name="TYPE">GATE</field>
-                        <field name="PORT">Clock</field>
-                      </block>
-                    </value>
-                  </block>
-                </value>
-                <value name="TUNE"><block type="math_number"><field name="NUM">180</field></block></value>
-                <value name="DECAY"><block type="math_number"><field name="NUM">0.25</field></block></value>
-                <value name="SNAP"><block type="math_number"><field name="NUM">0.8</field></block></value>
-                <value name="DRIVE"><block type="math_number"><field name="NUM">0.2</field></block></value>
-              </block>
-            </value>
+          <block type="synth_list_set">
+            <field name="LIST">snare_pat</field>
+            <field name="ITEMS">0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0</field>
             <next>
-              <block type="module_io_output">
-                <field name="TYPE">AUDIO</field>
-                <field name="PORT">HiHat</field>
-                <value name="SIGNAL">
-                  <block type="synth_drum_voice">
-                    <field name="TYPE">hat</field>
-                    <value name="TRIG">
-                      <block type="synth_drum_matrix">
-                        <field name="NAME">Drums</field>
-                        <field name="TRACK">2</field>
-                        <value name="CLK">
-                          <block type="module_io_input">
-                            <field name="TYPE">GATE</field>
-                            <field name="PORT">Clock</field>
-                          </block>
-                        </value>
-                      </block>
-                    </value>
-                    <value name="TUNE"><block type="math_number"><field name="NUM">400</field></block></value>
-                    <value name="DECAY"><block type="math_number"><field name="NUM">0.08</field></block></value>
-                    <value name="SNAP"><block type="math_number"><field name="NUM">0.5</field></block></value>
-                    <value name="DRIVE"><block type="math_number"><field name="NUM">0.1</field></block></value>
-                  </block>
-                </value>
+              <block type="synth_list_set">
+                <field name="LIST">hat_pat</field>
+                <field name="ITEMS">1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1</field>
                 <next>
-                  <block type="module_io_output">
-                    <field name="TYPE">AUDIO</field>
-                    <field name="PORT">Perc</field>
-                    <value name="SIGNAL">
-                      <block type="synth_drum_voice">
-                        <field name="TYPE">clap</field>
-                        <value name="TRIG">
-                          <block type="synth_drum_matrix">
-                            <field name="NAME">Drums</field>
-                            <field name="TRACK">3</field>
-                            <value name="CLK">
-                              <block type="module_io_input">
-                                <field name="TYPE">GATE</field>
-                                <field name="PORT">Clock</field>
+                  <block type="synth_list_set">
+                    <field name="LIST">perc_pat</field>
+                    <field name="ITEMS">0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0</field>
+                    <next>
+                      <block type="module_io_output">
+                        <field name="TYPE">AUDIO</field>
+                        <field name="PORT">Kick</field>
+                        <value name="SIGNAL">
+                          <block type="synth_drum_voice">
+                            <field name="TYPE">kick</field>
+                            <value name="TRIG">
+                              <block type="synth_seq">
+                                <field name="LIST">kick_pat</field>
+                                <field name="OUT">GATE</field>
+                                <value name="CLK">
+                                  <block type="module_io_input">
+                                    <field name="TYPE">GATE</field>
+                                    <field name="PORT">Clock</field>
+                                  </block>
+                                </value>
                               </block>
                             </value>
+                            <value name="TUNE"><block type="math_number"><field name="NUM">55</field></block></value>
+                            <value name="DECAY"><block type="math_number"><field name="NUM">0.35</field></block></value>
+                            <value name="SNAP"><block type="math_number"><field name="NUM">0.7</field></block></value>
+                            <value name="DRIVE"><block type="math_number"><field name="NUM">0.3</field></block></value>
                           </block>
                         </value>
-                        <value name="TUNE"><block type="math_number"><field name="NUM">120</field></block></value>
-                        <value name="DECAY"><block type="math_number"><field name="NUM">0.2</field></block></value>
-                        <value name="SNAP"><block type="math_number"><field name="NUM">0.6</field></block></value>
-                        <value name="DRIVE"><block type="math_number"><field name="NUM">0.2</field></block></value>
+                        <next>
+                          <block type="module_io_output">
+                            <field name="TYPE">AUDIO</field>
+                            <field name="PORT">Snare</field>
+                            <value name="SIGNAL">
+                              <block type="synth_drum_voice">
+                                <field name="TYPE">snare</field>
+                                <value name="TRIG">
+                                  <block type="synth_seq">
+                                    <field name="LIST">snare_pat</field>
+                                    <field name="OUT">GATE</field>
+                                    <value name="CLK">
+                                      <block type="module_io_input">
+                                        <field name="TYPE">GATE</field>
+                                        <field name="PORT">Clock</field>
+                                      </block>
+                                    </value>
+                                  </block>
+                                </value>
+                                <value name="TUNE"><block type="math_number"><field name="NUM">180</field></block></value>
+                                <value name="DECAY"><block type="math_number"><field name="NUM">0.25</field></block></value>
+                                <value name="SNAP"><block type="math_number"><field name="NUM">0.8</field></block></value>
+                                <value name="DRIVE"><block type="math_number"><field name="NUM">0.2</field></block></value>
+                              </block>
+                            </value>
+                            <next>
+                              <block type="module_io_output">
+                                <field name="TYPE">AUDIO</field>
+                                <field name="PORT">HiHat</field>
+                                <value name="SIGNAL">
+                                  <block type="synth_drum_voice">
+                                    <field name="TYPE">hat</field>
+                                    <value name="TRIG">
+                                      <block type="synth_seq">
+                                        <field name="LIST">hat_pat</field>
+                                        <field name="OUT">GATE</field>
+                                        <value name="CLK">
+                                          <block type="module_io_input">
+                                            <field name="TYPE">GATE</field>
+                                            <field name="PORT">Clock</field>
+                                          </block>
+                                        </value>
+                                      </block>
+                                    </value>
+                                    <value name="TUNE"><block type="math_number"><field name="NUM">400</field></block></value>
+                                    <value name="DECAY"><block type="math_number"><field name="NUM">0.08</field></block></value>
+                                    <value name="SNAP"><block type="math_number"><field name="NUM">0.5</field></block></value>
+                                    <value name="DRIVE"><block type="math_number"><field name="NUM">0.1</field></block></value>
+                                  </block>
+                                </value>
+                                <next>
+                                  <block type="module_io_output">
+                                    <field name="TYPE">AUDIO</field>
+                                    <field name="PORT">Perc</field>
+                                    <value name="SIGNAL">
+                                      <block type="synth_drum_voice">
+                                        <field name="TYPE">clap</field>
+                                        <value name="TRIG">
+                                          <block type="synth_seq">
+                                            <field name="LIST">perc_pat</field>
+                                            <field name="OUT">GATE</field>
+                                            <value name="CLK">
+                                              <block type="module_io_input">
+                                                <field name="TYPE">GATE</field>
+                                                <field name="PORT">Clock</field>
+                                              </block>
+                                            </value>
+                                          </block>
+                                        </value>
+                                        <value name="TUNE"><block type="math_number"><field name="NUM">120</field></block></value>
+                                        <value name="DECAY"><block type="math_number"><field name="NUM">0.2</field></block></value>
+                                        <value name="SNAP"><block type="math_number"><field name="NUM">0.6</field></block></value>
+                                        <value name="DRIVE"><block type="math_number"><field name="NUM">0.2</field></block></value>
+                                      </block>
+                                    </value>
+                                  </block>
+                                </next>
+                              </block>
+                            </next>
+                          </block>
+                        </next>
                       </block>
-                    </value>
+                    </next>
                   </block>
                 </next>
               </block>
@@ -1653,7 +1709,8 @@ export const MODULE_CATALOG = [
         width: 190,
         height: 280,
         inputs: [
-            { id: 'Trig', name: 'Trig', type: 'GATE' }
+            { id: 'Trig', name: 'Trig', type: 'GATE' },
+            { id: 'Pitch CV', name: 'Pitch CV', type: 'VAL' }
         ],
         outputs: [
             { id: 'Out', name: 'Out', type: 'AUDIO' }
@@ -1691,12 +1748,31 @@ export const MODULE_CATALOG = [
               </block>
             </value>
             <value name="TUNE">
-              <block type="module_io_knob">
-                <field name="NAME">Tune</field>
-                <field name="MIN">20</field>
-                <field name="MAX">200</field>
-                <field name="DEFAULT">55</field>
-                <field name="UNIT">Hz</field>
+              <block type="math_arithmetic">
+                <field name="OP">ADD</field>
+                <value name="A">
+                  <block type="module_io_knob">
+                    <field name="NAME">Tune</field>
+                    <field name="MIN">20</field>
+                    <field name="MAX">200</field>
+                    <field name="DEFAULT">55</field>
+                    <field name="UNIT">Hz</field>
+                  </block>
+                </value>
+                <value name="B">
+                  <block type="math_arithmetic">
+                    <field name="OP">MULTIPLY</field>
+                    <value name="A">
+                      <block type="module_io_input">
+                        <field name="TYPE">VAL</field>
+                        <field name="PORT">Pitch CV</field>
+                      </block>
+                    </value>
+                    <value name="B">
+                      <block type="math_number"><field name="NUM">40</field></block>
+                    </value>
+                  </block>
+                </value>
               </block>
             </value>
             <value name="DECAY">

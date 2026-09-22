@@ -37,38 +37,37 @@
         header {
             width: 100%;
             height: 48px;
-            background: linear-gradient(180deg, #4d97fe 0%, #3884f5 100%);
-            border-bottom: 1px solid #2872dd;
-            padding: 0 14px;
+            background: linear-gradient(180deg, #18221e 0%, #0f1513 100%);
+            border-bottom: 2px solid #283731;
+            padding: 0 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-shrink: 0;
             z-index: 100;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.7);
         }
 
         h1 {
-            font-size: 18px;
+            font-size: 16px;
             letter-spacing: 1.5px;
             display: flex;
             align-items: center;
             gap: 8px;
             color: #ffffff;
             font-weight: 900;
-            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
         }
 
         .actions {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
         }
 
         .btn-play-toggle {
-            background: #45c55e;
+            background: #059669;
             color: #ffffff;
-            border: 2px solid rgba(255, 255, 255, 0.4);
+            border: 2px solid #10b981;
             width: 36px;
             height: 36px;
             border-radius: 50%;
@@ -76,25 +75,25 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 0 12px rgba(5, 150, 105, 0.4);
             transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .btn-play-toggle:hover {
             transform: scale(1.08);
-            background: #22c55e;
-            border-color: #ffffff;
+            background: #10b981;
+            box-shadow: 0 0 16px rgba(16, 185, 129, 0.7);
         }
 
         .btn-play-toggle.playing {
-            background: #ef4444;
-            border-color: rgba(255, 255, 255, 0.6);
-            box-shadow: 0 0 14px rgba(239, 68, 68, 0.7);
+            background: #dc2626;
+            border-color: #ef4444;
+            box-shadow: 0 0 16px rgba(239, 68, 68, 0.8);
             animation: pulse-play 1.3s infinite ease-in-out;
         }
 
         .btn-play-toggle.playing:hover {
-            background: #dc2626;
+            background: #b91c1c;
         }
 
         .btn-play-toggle .icon-play { display: block; }
@@ -110,35 +109,35 @@
         .project-toolbar {
             display: flex;
             align-items: center;
-            gap: 5px;
-            background: rgba(0, 0, 0, 0.15);
-            padding: 3px 6px;
+            gap: 6px;
+            background: #111714;
+            padding: 4px 8px;
             border-radius: 6px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid #283731;
         }
 
         #project-select {
-            background: rgba(255, 255, 255, 0.18);
+            background: #18221e;
             color: #ffffff;
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            border: 1px solid #384d43;
             padding: 5px 8px;
             border-radius: 4px;
             font-weight: 700;
             font-size: 11px;
             outline: none;
-            max-width: 220px;
+            max-width: 240px;
             cursor: pointer;
         }
 
         #project-select option {
-            background: #1e2723;
+            background: #141c18;
             color: #ffffff;
         }
 
         button, select {
-            background: rgba(255, 255, 255, 0.18);
-            color: #ffffff;
-            border: 1px solid rgba(255, 255, 255, 0.25);
+            background: #18221e;
+            color: #e2e8f0;
+            border: 1px solid #384d43;
             padding: 5px 10px;
             border-radius: 4px;
             cursor: pointer;
@@ -152,46 +151,58 @@
         }
 
         button:hover, select:hover {
-            background: rgba(255, 255, 255, 0.3);
-            border-color: rgba(255, 255, 255, 0.5);
+            background: #23302a;
+            border-color: #55efc4;
             color: #ffffff;
         }
 
         button.btn-primary {
-            background: #ffab19;
-            color: #1e2723;
-            border-color: #f59f00;
+            background: #10754f;
+            border-color: #10b981;
+            color: #ffffff;
         }
 
         button.btn-primary:hover {
-            background: #ffd43b;
-            color: #000000;
+            background: #15803d;
+            border-color: #22c55e;
         }
 
         button.btn-accent {
-            background: #10b981;
+            background: #059669;
+            border-color: #34d399;
             color: #ffffff;
-            border-color: #059669;
+            font-weight: 800;
         }
 
         button.btn-accent:hover {
-            background: #34d399;
+            background: #10b981;
+            box-shadow: 0 0 10px rgba(52, 211, 153, 0.4);
         }
 
         button.btn-warn {
-            background: rgba(255, 159, 67, 0.25);
-            border-color: #ff9f43;
-            color: #ffffff;
+            background: rgba(245, 158, 11, 0.2);
+            border-color: #f59e0b;
+            color: #f59e0b;
+        }
+
+        button.btn-warn:hover {
+            background: #f59e0b;
+            color: #000000;
         }
 
         button.btn-danger {
-            background: rgba(255, 107, 107, 0.25);
-            border-color: #ff6b6b;
+            background: rgba(239, 68, 68, 0.2);
+            border-color: #ef4444;
+            color: #ef4444;
+        }
+
+        button.btn-danger:hover {
+            background: #ef4444;
             color: #ffffff;
         }
 
         button.btn-sm {
-            padding: 3px 6px;
+            padding: 3px 8px;
             font-size: 10px;
         }
 
@@ -246,7 +257,7 @@
 
         .drawer-header h2 {
             font-size: 14px;
-            color: var(--chalk-yellow);
+            color: #55efc4;
             display: flex;
             align-items: center;
             gap: 8px;
@@ -311,7 +322,7 @@
             background: #111714;
             border-top: 1px solid #202b26;
             font-size: 11px;
-            color: var(--text-dim);
+            color: #8395a7;
             flex-shrink: 0;
             z-index: 100;
         }
@@ -323,8 +334,8 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: rgba(0, 0, 0, 0.75);
-            backdrop-filter: blur(4px);
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(6px);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -332,30 +343,32 @@
         }
 
         .modal-dialog {
-            background: #141c18;
+            background: #121916;
             border: 2px solid #283731;
-            border-radius: 10px;
+            border-radius: 8px;
             width: 90%;
-            max-width: 780px;
+            max-width: 860px;
             max-height: 85vh;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.95);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.05);
             overflow: hidden;
         }
 
         .modal-header {
-            padding: 12px 16px;
+            padding: 12px 18px;
             background: #18221e;
-            border-bottom: 1px solid #283731;
+            border-bottom: 2px solid #283731;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
         .modal-header h2 {
-            font-size: 15px;
-            color: var(--chalk-yellow);
+            font-size: 14px;
+            color: #55efc4;
+            font-weight: 800;
+            letter-spacing: 0.5px;
             display: flex;
             align-items: center;
             gap: 8px;
@@ -365,18 +378,18 @@
             background: transparent;
             border: none;
             color: #8395a7;
-            font-size: 16px;
+            font-size: 18px;
             cursor: pointer;
             padding: 2px 6px;
         }
 
         .modal-close:hover {
-            color: var(--chalk-pink);
+            color: #ef4444;
         }
 
         .modal-search-bar {
-            padding: 8px 16px;
-            background: #121815;
+            padding: 10px 18px;
+            background: #0e1411;
             border-bottom: 1px solid #202b26;
             display: flex;
             gap: 8px;
@@ -387,35 +400,68 @@
         .modal-search-bar input {
             flex: 1;
             min-width: 180px;
-            background: #090d0b;
+            background: #151d19;
             border: 1px solid #283731;
             border-radius: 4px;
-            color: var(--chalk-white);
-            padding: 6px 10px;
+            color: #ffffff;
+            padding: 6px 12px;
             font-size: 11px;
             outline: none;
         }
 
+        .modal-search-bar input:focus {
+            border-color: #55efc4;
+        }
+
+        .modal-filter-tabs {
+            display: flex;
+            gap: 4px;
+            padding: 8px 18px;
+            background: #101714;
+            border-bottom: 1px solid #202b26;
+            overflow-x: auto;
+        }
+
+        .modal-tab-btn {
+            background: #151d19;
+            border: 1px solid #283731;
+            color: #8395a7;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .modal-tab-btn.active {
+            background: #059669;
+            border-color: #34d399;
+            color: #ffffff;
+        }
+
         .modal-body {
-            padding: 12px 16px;
+            padding: 14px 18px;
             overflow-y: auto;
             flex: 1;
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 10px;
+            background: #0c100e;
         }
 
         .modules-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 10px;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 12px;
         }
 
         .module-pick-card {
-            background: #18221e;
+            background: #151d19;
             border: 1px solid #283731;
+            border-left: 4px solid #55efc4;
             border-radius: 6px;
-            padding: 10px 12px;
+            padding: 12px 14px;
             display: flex;
             flex-direction: column;
             gap: 6px;
@@ -426,24 +472,30 @@
         .module-pick-card:hover {
             border-color: #55efc4;
             transform: translateY(-2px);
-            background: #1f2d27;
+            background: #1c2722;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
         }
 
         .project-card {
-            background: #18221e;
+            background: #151d19;
             border: 1px solid #283731;
             border-radius: 6px;
             padding: 10px 14px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             transition: all 0.15s ease;
         }
 
+        .project-card:hover {
+            border-color: #384d43;
+            background: #19231f;
+        }
+
         .project-card.active {
-            border-color: var(--chalk-green);
-            background: #162a22;
+            border-color: #10b981;
+            background: #142920;
         }
 
         .project-info {
@@ -462,18 +514,18 @@
         .badge {
             font-size: 9px;
             font-weight: 700;
-            padding: 2px 5px;
+            padding: 2px 6px;
             border-radius: 3px;
             letter-spacing: 0.5px;
             text-transform: uppercase;
         }
 
-        .badge-example { background: rgba(72, 219, 251, 0.15); color: var(--chalk-cyan); border: 1px solid var(--chalk-cyan); }
-        .badge-user { background: rgba(254, 202, 87, 0.15); color: var(--chalk-yellow); border: 1px solid var(--chalk-yellow); }
-        .badge-active { background: rgba(29, 209, 161, 0.2); color: var(--chalk-green); border: 1px solid var(--chalk-green); }
+        .badge-example { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid #0284c7; }
+        .badge-user { background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid #d97706; }
+        .badge-active { background: rgba(16, 185, 129, 0.25); color: #34d399; border: 1px solid #10b981; }
 
         .modal-footer {
-            padding: 10px 16px;
+            padding: 10px 18px;
             background: #18221e;
             border-top: 1px solid #283731;
             display: flex;
@@ -486,13 +538,14 @@
             position: fixed;
             bottom: 34px;
             right: 20px;
-            background: #10ac84;
-            color: #0c100e;
+            background: #059669;
+            color: #ffffff;
             padding: 8px 16px;
             border-radius: 5px;
             font-weight: 700;
             font-size: 12px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8);
+            border: 1px solid #10b981;
             display: flex;
             align-items: center;
             gap: 6px;
@@ -503,15 +556,18 @@
         }
 
         .toast.show { transform: translateY(0); opacity: 1; }
-        .toast.toast-warn { background: var(--chalk-yellow); }
-        .toast.toast-error { background: var(--chalk-pink); color: #fff; }
+        .toast.toast-warn { background: #d97706; border-color: #f59e0b; color: #fff; }
+        .toast.toast-error { background: #dc2626; border-color: #ef4444; color: #fff; }
     </style>
     <script src="vendor/blockly.min.js"></script>
 </head>
 <body>
 
     <header>
-        <h1>BRACK</h1>
+        <h1>
+            <span style="color: #55efc4; font-weight: 900; letter-spacing: 2px;">BRACK</span>
+            <span style="font-size: 10px; font-weight: 800; color: #8395a7; letter-spacing: 1.5px; border: 1px solid #283731; padding: 2px 6px; border-radius: 4px; background: #0e1412;">MODULAR DSP</span>
+        </h1>
         <div class="actions">
             <button class="btn-play-toggle" id="btn-play-toggle" title="Iniciar / Parar Síntese (Espaço)">
                 <svg class="icon-play" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -551,7 +607,7 @@
                 <span>Editando Código Scratch: Módulo</span>
             </h2>
             <div style="display: flex; gap: 8px; align-items: center;">
-                <span style="font-size: 11px; color: var(--chalk-green); font-weight: 700;">● Sincronizado ao Vivo</span>
+                <span style="font-size: 11px; color: #10b981; font-weight: 700;">● Sincronizado ao Vivo</span>
                 <button id="btn-close-drawer" class="btn-primary" title="Voltar ao Rack (ESC)">Voltar ao Rack</button>
             </div>
         </div>
@@ -567,17 +623,23 @@
 
     <!-- Modal Adicionar Módulo -->
     <div class="modal-overlay" id="add-module-modal" style="display: none;">
-        <div class="modal-dialog" style="max-width: 650px;">
+        <div class="modal-dialog" style="max-width: 860px;">
             <div class="modal-header">
                 <h2>Biblioteca de Módulos</h2>
                 <button class="modal-close" id="btn-close-add-modal">✕</button>
+            </div>
+            <div class="modal-search-bar">
+                <input type="text" id="add-module-search-input" placeholder="Buscar módulo por nome, função ou tipo..." />
+            </div>
+            <div class="modal-filter-tabs" id="add-module-category-tabs">
+                <!-- Injected dynamically -->
             </div>
             <div class="modal-body">
                 <div class="modules-grid" id="modules-catalog-grid"></div>
             </div>
             <div class="modal-footer">
-                <div style="font-size: 11px; color: var(--text-dim);">Clique em um módulo para adicioná-lo ao rack. Todos possuem código Scratch editável!</div>
-                <button id="btn-cancel-add-modal">Cancelar</button>
+                <div style="font-size: 11px; color: #8395a7;">Clique em um módulo para adicioná-lo ao rack. Todos possuem código Scratch 100% editável!</div>
+                <button id="btn-cancel-add-modal">Fechar</button>
             </div>
         </div>
     </div>
@@ -586,7 +648,7 @@
     <div class="modal-overlay" id="projects-modal" style="display: none;">
         <div class="modal-dialog">
             <div class="modal-header">
-                <h2>Gerenciador de Patches & Exemplos de Rack</h2>
+                <h2>Gerenciador de Patches &amp; Exemplos de Rack</h2>
                 <button class="modal-close" id="btn-modal-close" title="Fechar">✕</button>
             </div>
             <div class="modal-search-bar">
@@ -597,7 +659,7 @@
             </div>
             <div class="modal-body" id="modal-projects-list"></div>
             <div class="modal-footer">
-                <div class="modal-tip">Seus patches salvam a posição das caixas, knobs, cabos e o código Scratch de todos os módulos.</div>
+                <div class="modal-tip" style="font-size: 11px; color: #8395a7;">Seus patches salvam a posição das caixas, knobs, cabos e o código Scratch de todos os módulos.</div>
                 <button id="btn-modal-done" class="btn-primary">Fechar</button>
             </div>
         </div>

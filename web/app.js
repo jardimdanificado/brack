@@ -281,28 +281,80 @@ function closeProjectsModal() {
     if (modal) modal.style.display = 'none';
 }
 
-/* =========================================================================
- * Add Module Modal Helper
- * ========================================================================= */
+let activeModuleCategory = 'Todos';
+let moduleSearchQuery = '';
+
 function renderAddModuleModal() {
     const grid = document.getElementById('modules-catalog-grid');
+    const tabsContainer = document.getElementById('add-module-category-tabs');
+    const searchInput = document.getElementById('add-module-search-input');
     if (!grid) return;
+
+    // 1. Build Category Tabs
+    if (tabsContainer && tabsContainer.children.length === 0) {
+        const categories = ['Todos', 'Geradores', 'Filtros', 'Moduladores', 'Efeitos', 'Eventos & Clock', 'Controle', 'Saídas'];
+        categories.forEach(cat => {
+            const btn = document.createElement('button');
+            btn.className = `modal-tab-btn ${activeModuleCategory === cat ? 'active' : ''}`;
+            btn.textContent = cat;
+            btn.addEventListener('click', () => {
+                activeModuleCategory = cat;
+                Array.from(tabsContainer.children).forEach(c => c.classList.toggle('active', c.textContent === cat));
+                renderAddModuleModal();
+            });
+            tabsContainer.appendChild(btn);
+        });
+    }
+
+    if (searchInput && !searchInput.dataset.bound) {
+        searchInput.dataset.bound = 'true';
+        searchInput.addEventListener('input', (e) => {
+            moduleSearchQuery = e.target.value.toLowerCase().trim();
+            renderAddModuleModal();
+        });
+    }
 
     grid.innerHTML = '';
 
-    for (const spec of MODULE_CATALOG) {
+    const filtered = MODULE_CATALOG.filter(spec => {
+        const matchesCat = activeModuleCategory === 'Todos' || spec.category === activeModuleCategory || (activeModuleCategory === 'Eventos & Clock' && spec.category.includes('Eventos'));
+        const matchesSearch = !moduleSearchQuery ||
+            spec.name.toLowerCase().includes(moduleSearchQuery) ||
+            spec.category.toLowerCase().includes(moduleSearchQuery) ||
+            spec.type.toLowerCase().includes(moduleSearchQuery);
+        return matchesCat && matchesSearch;
+    });
+
+    if (filtered.length === 0) {
+        grid.innerHTML = `
+            <div style="grid-column: 1 / -1; padding: 40px 20px; text-align: center; color: #8395a7;">
+                Nenhum módulo encontrado com o filtro atual.
+            </div>
+        `;
+        return;
+    }
+
+    for (const spec of filtered) {
         const card = document.createElement('div');
         card.className = 'module-pick-card';
+        card.style.borderLeftColor = spec.color || '#55efc4';
+
+        const inputsCount = spec.inputs ? spec.inputs.length : 0;
+        const outputsCount = spec.outputs ? spec.outputs.length : 0;
+        const paramsCount = spec.params ? spec.params.length : 0;
+
         card.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <b style="color: ${spec.color || '#55efc4'}; font-size: 13px;">${spec.name}</b>
-                <span class="badge" style="background: rgba(255,255,255,0.1); font-size: 8px;">${spec.category}</span>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 6px;">
+                <b style="color: #ffffff; font-size: 13px; font-weight: 800;">${spec.name}</b>
+                <span class="badge" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: ${spec.color || '#55efc4'}; font-size: 8px;">${spec.category}</span>
             </div>
-            <div style="font-size: 10px; color: var(--text-dim);">
-                In: ${spec.inputs.map(i => i.name).join(', ') || 'Nenhum'} | Out: ${spec.outputs.map(o => o.name).join(', ') || 'Nenhum'}
+            <div style="display: flex; gap: 12px; font-size: 10px; color: #8395a7; margin-top: 2px;">
+                <span>🔌 <b>${inputsCount}</b> In</span>
+                <span>⚡ <b>${outputsCount}</b> Out</span>
+                <span>🎛️ <b>${paramsCount}</b> Knobs</span>
             </div>
-            <div style="font-size: 10px; color: #8395a7;">
-                Knobs: ${spec.params.map(p => p.name).join(', ') || 'Nenhum'}
+            <div style="font-size: 10px; color: #94a3b8; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                ${spec.params.map(p => p.name).join(', ') || 'Controle Modular'}
             </div>
         `;
 
@@ -320,7 +372,10 @@ function renderAddModuleModal() {
 
 function openAddModuleModal() {
     const modal = document.getElementById('add-module-modal');
+    const searchInput = document.getElementById('add-module-search-input');
     if (modal) {
+        if (searchInput) searchInput.value = '';
+        moduleSearchQuery = '';
         renderAddModuleModal();
         modal.style.display = 'flex';
     }

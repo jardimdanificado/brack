@@ -29,6 +29,7 @@ export class BlocklySynthEngine {
         this.inputSignals = new Map();
         this.outputSignals = new Map();
         this.knobValues = new Map();
+        this.latestSteps = new Map();
         this.moduleOutputBlocks = [];
         this.moduleProcessBlocks = [];
     }
@@ -528,13 +529,14 @@ export class BlocklySynthEngine {
                 return { type: 'VAL', val: 0, audio: null };
             }
 
-            // Dynamic Numeric List-Driven Sequencer
+            // Dynamic Numeric List-Driven Sequencer in Pure Scratch
             case 'synth_seq': {
                 const clkRes = this.getParamVal(block, 'CLK', 0, new Set(visited));
                 const listName = block.getFieldValue('LIST') || 'notas';
+                const outMode = block.getFieldValue('OUT') || 'CV';
                 let rawList = this.lists.get(listName);
 
-                // Fallback for chained legacy step blocks
+                // Fallback for chained step blocks
                 if (!rawList || rawList.length === 0) {
                     const notes = [];
                     let currentStepBlock = block.getInputTargetBlock('STEPS');
@@ -563,18 +565,38 @@ export class BlocklySynthEngine {
                         // 1V/Oct CV relative to C4 (60)
                         state.voct = (midi - 60) / 12.0;
                         state.gate = midi > 0 ? 1 : 0;
+                    } else if (clk <= 0.5) {
+                        state.gate = 0;
                     }
                     state.last = clk;
-                    state.audioBuf[s] = state.voct;
+                    state.audioBuf[s] = (outMode === 'GATE') ? state.gate : state.voct;
                 }
-                return { type: 'AUDIO', val: state.voct, audio: state.audioBuf, gate: state.gate };
+                state.currentStep = state.step;
+                this.latestSteps.set(listName, state.step);
+                return {
+                    type: 'AUDIO',
+                    val: (outMode === 'GATE') ? state.gate : state.voct,
+                    audio: state.audioBuf,
+                    gate: state.gate,
+                    voct: state.voct,
+                    currentStep: state.step
+                };
             }
 
             case 'synth_step_matrix': {
                 const clkRes = this.getParamVal(block, 'CLK', 0, new Set(visited));
                 const name = block.getFieldValue('NAME') || 'Seq';
-                const pattern = this.knobValues.get(name) || [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0];
-                const len = pattern.length || 16;
+                const outMode = block.getFieldValue('OUT') || 'CV';
+                const paramVal = this.knobValues.get(name);
+
+                let pattern = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
+                let pitches = [0, 3, 7, 10, 12, 10, 7, 3, 0, 3, 7, 10, 12, 10, 7, 3];
+                if (paramVal) {
+                    if (paramVal.pattern && Array.isArray(paramVal.pattern)) pattern = paramVal.pattern;
+                    else if (Array.isArray(paramVal)) pattern = paramVal;
+                    if (paramVal.pitches && Array.isArray(paramVal.pitches)) pitches = paramVal.pitches;
+                }
+                const len = Math.max(1, pattern.length);
 
                 for (let s = 0; s < numSamples; s++) {
                     const clk = clkRes.audio ? clkRes.audio[s] : clkRes.val;
@@ -582,28 +604,39 @@ export class BlocklySynthEngine {
                         state.step = (state.step + 1) % len;
                         const active = pattern[state.step];
                         state.gate = (active > 0) ? 1 : 0;
-                        state.voct = (state.step % 12) / 12.0;
+                        const p = (pitches && pitches[state.step] !== undefined) ? pitches[state.step] : (state.step % 12);
+                        state.voct = (Number(p) || 0) / 12.0;
                     } else if (clk <= 0.5) {
                         state.gate = 0;
                     }
                     state.lastClk = clk;
-                    state.audioBuf[s] = state.gate;
+                    state.audioBuf[s] = (outMode === 'GATE') ? state.gate : state.voct;
                 }
-                return { type: 'AUDIO', val: state.gate, audio: state.audioBuf, currentStep: state.step };
+                state.currentStep = state.step;
+                this.latestSteps.set(name, state.step);
+                return {
+                    type: 'AUDIO',
+                    val: (outMode === 'GATE') ? state.gate : state.voct,
+                    audio: state.audioBuf,
+                    currentStep: state.step,
+                    gate: state.gate,
+                    voct: state.voct
+                };
             }
 
             case 'synth_drum_matrix': {
                 const clkRes = this.getParamVal(block, 'CLK', 0, new Set(visited));
                 const name = block.getFieldValue('NAME') || 'Drums';
                 const trackIdx = parseInt(block.getFieldValue('TRACK'), 10) || 0;
-                const matrix = this.knobValues.get(name) || [
+                const paramVal = this.knobValues.get(name);
+                const matrix = (paramVal && paramVal.matrix) ? paramVal.matrix : (Array.isArray(paramVal) ? paramVal : [
                     [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0], // Kick
                     [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0], // Snare
                     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // Hat
                     [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0]  // Perc
-                ];
+                ]);
 
-                const trackPattern = matrix[trackIdx] || matrix[0];
+                const trackPattern = matrix[trackIdx] || matrix[0] || [0];
                 const len = trackPattern.length || 16;
 
                 for (let s = 0; s < numSamples; s++) {
@@ -618,6 +651,8 @@ export class BlocklySynthEngine {
                     state.lastClk = clk;
                     state.audioBuf[s] = state.gates[trackIdx];
                 }
+                state.currentStep = state.step;
+                this.latestSteps.set(name, state.step);
                 return { type: 'AUDIO', val: state.gates[trackIdx], audio: state.audioBuf, currentStep: state.step };
             }
 
@@ -923,6 +958,19 @@ export class BlocklySynthEngine {
         return this.outputSignals;
     }
 
+    getCurrentStep(name = null) {
+        if (name && this.latestSteps.has(name)) {
+            return this.latestSteps.get(name);
+        }
+        if (this.latestSteps.size > 0) {
+            return this.latestSteps.values().next().value;
+        }
+        for (const st of this.blockStates.values()) {
+            if (st && st.currentStep !== undefined) return st.currentStep;
+        }
+        return 0;
+    }
+
     /**
      * Inspect workspace blocks and extract all declared module metadata, inputs, outputs, controls, and visors
      */
@@ -983,7 +1031,7 @@ export class BlocklySynthEngine {
                     params.push({ id: kName, name: kName, type: 'KNOB', min, max, default: def, value: def, unit });
                 }
             } else if (block.type === 'module_io_slider') {
-                const sName = block.getFieldValue('NAME') || 'Volume';
+                const sName = block.getFieldValue('NAME') || 'Level';
                 const min = Number(block.getFieldValue('MIN')) || 0;
                 const max = Number(block.getFieldValue('MAX')) || 1;
                 const def = Number(block.getFieldValue('DEFAULT')) || 0.5;
@@ -992,8 +1040,8 @@ export class BlocklySynthEngine {
                     params.push({ id: sName, name: sName, type: 'SLIDER', min, max, default: def, value: def });
                 }
             } else if (block.type === 'module_io_switch') {
-                const swName = block.getFieldValue('NAME') || 'Ativo';
-                const def = Number(block.getFieldValue('DEFAULT')) || 0;
+                const swName = block.getFieldValue('NAME') || 'Mute';
+                const def = block.getFieldValue('DEFAULT') === 'TRUE' ? 1 : 0;
                 if (!seenParam.has(swName)) {
                     seenParam.add(swName);
                     params.push({ id: swName, name: swName, type: 'SWITCH', min: 0, max: 1, default: def, value: def });
@@ -1026,7 +1074,8 @@ export class BlocklySynthEngine {
                         name: gName,
                         type: 'STEP_GRID',
                         steps: steps,
-                        pattern: [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0].slice(0, steps)
+                        pattern: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1].slice(0, steps),
+                        pitches: [0, 3, 7, 10, 12, 10, 7, 3, 0, 3, 7, 10, 12, 10, 7, 3].slice(0, steps)
                     });
                 }
             } else if (block.type === 'module_io_drum_grid') {

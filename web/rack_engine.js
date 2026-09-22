@@ -171,8 +171,20 @@ export class RackEngine {
         if (!mod) return;
         const p = mod.params.find(pr => pr.name === knobName);
         if (p) {
-            p.value = Number(value);
+            if (typeof value === 'object' && value !== null) {
+                p.value = value;
+            } else if (!isNaN(Number(value))) {
+                p.value = Number(value);
+            } else {
+                p.value = value;
+            }
         }
+    }
+
+    getModuleStep(moduleId, paramName = null) {
+        const mod = this.getModule(moduleId);
+        if (!mod || !mod.engine) return 0;
+        return mod.engine.getCurrentStep(paramName);
     }
 
     /**
