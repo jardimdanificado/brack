@@ -37,7 +37,7 @@ export class RackCanvas {
         this.container.style.overflow = 'hidden';
         this.container.style.width = '100%';
         this.container.style.height = '100%';
-        this.container.style.background = '#0c100e';
+        this.container.style.background = '#060a0e';
         this.container.style.userSelect = 'none';
 
         // World Container that gets panned/zoomed
@@ -47,11 +47,13 @@ export class RackCanvas {
         this.world.style.transformOrigin = '0 0';
         this.world.style.width = '5000px';
         this.world.style.height = '3000px';
+        // Y2K Cyberdeck grid + aluminum mounting rails background
         this.world.style.backgroundImage = `
-            linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px)
+            linear-gradient(to right, rgba(0, 242, 254, 0.05) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(0, 242, 254, 0.05) 1px, transparent 1px),
+            radial-gradient(circle at 50% 50%, rgba(13, 27, 42, 0.6) 0%, rgba(6, 10, 14, 0.95) 100%)
         `;
-        this.world.style.backgroundSize = '30px 30px';
+        this.world.style.backgroundSize = '32px 32px, 32px 32px, 100% 100%';
 
         // Modules layer (underneath cables)
         this.modulesContainer = document.createElement('div');
@@ -72,8 +74,22 @@ export class RackCanvas {
         this.svgCables.style.height = '100%';
         this.svgCables.style.zIndex = '30';
         this.svgCables.style.pointerEvents = 'none';
-        this.world.appendChild(this.svgCables);
 
+        // SVG Filter Definitions for Neon Glowing Cables
+        this.svgCables.innerHTML = `
+            <defs>
+                <filter id="neon-glow-audio" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                    <feMerge>
+                        <feMergeNode in="coloredBlur"/>
+                        <feMergeNode in="coloredBlur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                </filter>
+            </defs>
+        `;
+
+        this.world.appendChild(this.svgCables);
         this.container.appendChild(this.world);
     }
 
@@ -125,62 +141,100 @@ export class RackCanvas {
             card.style.top = `${mod.y}px`;
             card.style.width = `${mod.width}px`;
             card.style.minHeight = `${mod.height}px`;
-            card.style.background = 'linear-gradient(180deg, #18221e 0%, #121916 100%)';
-            card.style.border = '2px solid #283731';
-            card.style.borderRadius = '8px';
-            card.style.boxShadow = '0 10px 30px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.1)';
+            // Exact Y2K Titanium / Brushed Chrome Chassis like Header
+            card.style.background = 'linear-gradient(180deg, #3d4a54 0%, #222c34 45%, #151d23 50%, #202b33 100%)';
+            card.style.border = '1px solid #485460';
+            card.style.borderTop = '1px solid rgba(255, 255, 255, 0.45)';
+            card.style.borderBottom = '2px solid #080c10';
+            card.style.borderRadius = '6px';
+            card.style.boxShadow = '0 16px 40px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 -1px 0 rgba(0, 0, 0, 0.8)';
             card.style.display = 'flex';
             card.style.flexDirection = 'column';
             card.style.zIndex = '5';
 
-            // Top screw rail
+            // Top screw rail with crosshead screws
             const screwHeader = document.createElement('div');
             screwHeader.style.height = '14px';
-            screwHeader.style.background = '#0e1411';
-            screwHeader.style.borderTopLeftRadius = '6px';
-            screwHeader.style.borderTopRightRadius = '6px';
+            screwHeader.style.background = 'linear-gradient(180deg, #2a343d 0%, #172027 100%)';
+            screwHeader.style.borderTopLeftRadius = '5px';
+            screwHeader.style.borderTopRightRadius = '5px';
+            screwHeader.style.borderBottom = '1px solid #080c10';
             screwHeader.style.display = 'flex';
             screwHeader.style.justifyContent = 'space-between';
             screwHeader.style.alignItems = 'center';
             screwHeader.style.padding = '0 8px';
             screwHeader.innerHTML = `
-                <div style="width: 7px; height: 7px; border-radius: 50%; background: #33443d; border: 1px solid #1a2420;"></div>
-                <div style="width: 7px; height: 7px; border-radius: 50%; background: #33443d; border: 1px solid #1a2420;"></div>
+                <div style="width: 8px; height: 8px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #ffffff 0%, #b2bec3 40%, #636e72 70%, #2d3436 100%); border: 1px solid #141c22; box-shadow: inset 0 1px 1px #ffffff, 0 1px 2px rgba(0,0,0,0.8); position: relative;">
+                    <div style="position: absolute; top: 3.5px; left: 1.5px; width: 5px; height: 1px; background: #141c22;"></div>
+                    <div style="position: absolute; top: 1.5px; left: 3.5px; width: 1px; height: 5px; background: #141c22;"></div>
+                </div>
+                <div style="width: 8px; height: 8px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #ffffff 0%, #b2bec3 40%, #636e72 70%, #2d3436 100%); border: 1px solid #141c22; box-shadow: inset 0 1px 1px #ffffff, 0 1px 2px rgba(0,0,0,0.8); position: relative;">
+                    <div style="position: absolute; top: 3.5px; left: 1.5px; width: 5px; height: 1px; background: #141c22;"></div>
+                    <div style="position: absolute; top: 1.5px; left: 3.5px; width: 1px; height: 5px; background: #141c22;"></div>
+                </div>
             `;
             card.appendChild(screwHeader);
 
             // Module Title Header (Drag Handle)
             const header = document.createElement('div');
             header.className = 'module-header';
-            header.style.padding = '6px 10px';
-            header.style.background = mod.color || '#059669';
+            header.style.padding = '6px 8px';
+            header.style.background = 'linear-gradient(180deg, #3d4a54 0%, #222c34 45%, #151d23 50%, #202b33 100%)';
+            header.style.borderTop = '1px solid rgba(255, 255, 255, 0.45)';
+            header.style.borderBottom = '2px solid #080c10';
             header.style.display = 'flex';
             header.style.justifyContent = 'space-between';
             header.style.alignItems = 'center';
             header.style.cursor = 'grab';
-            header.style.color = '#ffffff';
-            header.style.fontWeight = '900';
-            header.style.fontSize = '12px';
-            header.style.letterSpacing = '0.5px';
+            header.style.boxShadow = '0 4px 10px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.35)';
 
+            const titleLeft = document.createElement('div');
+            titleLeft.style.display = 'flex';
+            titleLeft.style.alignItems = 'center';
+            titleLeft.style.gap = '6px';
+
+            // Glowing LED indicator dot
+            const ledDot = document.createElement('div');
+            ledDot.style.width = '7px';
+            ledDot.style.height = '7px';
+            ledDot.style.borderRadius = '50%';
+            ledDot.style.background = mod.color || '#00f2fe';
+            ledDot.style.boxShadow = `0 0 8px ${mod.color || '#00f2fe'}, inset 0 1px 1px #ffffff`;
+            ledDot.style.border = '1px solid rgba(255,255,255,0.6)';
+            titleLeft.appendChild(ledDot);
+
+            // Chrome Metallic Text with Cyan Glow (Like Header H1)
             const titleSpan = document.createElement('span');
-            titleSpan.textContent = mod.name;
+            titleSpan.textContent = mod.name.toUpperCase();
             titleSpan.title = 'Duplo clique para abrir editor Scratch';
-            header.appendChild(titleSpan);
+            titleSpan.style.fontFamily = "'Orbitron', sans-serif";
+            titleSpan.style.fontWeight = '900';
+            titleSpan.style.fontSize = '11px';
+            titleSpan.style.letterSpacing = '1.2px';
+            titleSpan.style.background = 'linear-gradient(180deg, #ffffff 0%, #b2bec3 50%, #dfe6e9 51%, #ffffff 100%)';
+            titleSpan.style.webkitBackgroundClip = 'text';
+            titleSpan.style.webkitTextFillColor = 'transparent';
+            titleSpan.style.filter = 'drop-shadow(0 0 6px rgba(0, 242, 254, 0.5))';
+            titleLeft.appendChild(titleSpan);
+
+            header.appendChild(titleLeft);
 
             const btnGroup = document.createElement('div');
             btnGroup.style.display = 'flex';
             btnGroup.style.gap = '4px';
 
-            // Scratch Code Edit Button
+            // Scratch Code Edit Button (Aqua / Metallic Glass like Header Buttons)
             const btnCode = document.createElement('button');
-            btnCode.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>`;
+            btnCode.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>`;
             btnCode.title = 'Editar Código Scratch deste módulo';
-            btnCode.style.background = 'rgba(0,0,0,0.3)';
-            btnCode.style.border = '1px solid rgba(255,255,255,0.3)';
+            btnCode.style.background = 'linear-gradient(180deg, #00f2fe 0%, #4facfe 48%, #0984e3 52%, #00cec9 100%)';
+            btnCode.style.border = '1px solid #81ecec';
+            btnCode.style.borderBottom = '1px solid #0652dd';
             btnCode.style.padding = '2px 5px';
             btnCode.style.borderRadius = '3px';
             btnCode.style.cursor = 'pointer';
+            btnCode.style.color = '#ffffff';
+            btnCode.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.8), 0 0 8px rgba(0, 242, 254, 0.4)';
             btnCode.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.onEditModule(mod);
@@ -192,12 +246,15 @@ export class RackCanvas {
                 const btnDel = document.createElement('button');
                 btnDel.innerHTML = '✕';
                 btnDel.title = 'Excluir módulo';
-                btnDel.style.background = 'rgba(239, 68, 68, 0.4)';
-                btnDel.style.border = '1px solid rgba(255,255,255,0.3)';
+                btnDel.style.background = 'linear-gradient(180deg, #ff7675 0%, #d63031 48%, #c0392b 52%, #e74c3c 100%)';
+                btnDel.style.border = '1px solid #ffaaaa';
+                btnDel.style.borderBottom = '1px solid #801010';
                 btnDel.style.padding = '2px 5px';
                 btnDel.style.borderRadius = '3px';
-                btnDel.style.fontSize = '10px';
+                btnDel.style.fontSize = '9px';
+                btnDel.style.color = '#ffffff';
                 btnDel.style.cursor = 'pointer';
+                btnDel.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.7), 0 0 8px rgba(255, 56, 56, 0.4)';
                 btnDel.addEventListener('click', (e) => {
                     e.stopPropagation();
                     if (confirm(`Excluir módulo "${mod.name}"?`)) {
@@ -219,20 +276,27 @@ export class RackCanvas {
                 }
             });
 
-            // Module Body (Knobs and Jacks)
+            // Module Body (Subpanel background with high-contrast bevel)
             const body = document.createElement('div');
             body.style.flex = '1';
-            body.style.padding = '10px 8px';
+            body.style.margin = '4px 6px 6px 6px';
+            body.style.padding = '8px 6px';
+            body.style.background = 'linear-gradient(180deg, #18222b 0%, #0d141a 100%)';
+            body.style.border = '1px solid #283743';
+            body.style.borderTop = '1px solid #3d4f5c';
+            body.style.borderBottom = '1px solid #080c10';
+            body.style.borderRadius = '4px';
+            body.style.boxShadow = 'inset 0 2px 8px rgba(0,0,0,0.85), 0 1px 0 rgba(255,255,255,0.08)';
             body.style.display = 'flex';
-            body.style.gap = '8px';
+            body.style.gap = '6px';
             body.style.justifyContent = 'space-between';
 
             // Left Column: Inputs
             const inputsCol = document.createElement('div');
             inputsCol.style.display = 'flex';
             inputsCol.style.flexDirection = 'column';
-            inputsCol.style.gap = '10px';
-            inputsCol.style.minWidth = '45px';
+            inputsCol.style.gap = '8px';
+            inputsCol.style.minWidth = '42px';
 
             for (const inp of mod.inputs) {
                 inputsCol.appendChild(this.createJackElement(mod.id, inp.name, inp.type, false));
@@ -245,7 +309,7 @@ export class RackCanvas {
             knobsCol.style.display = 'flex';
             knobsCol.style.flexDirection = 'column';
             knobsCol.style.alignItems = 'center';
-            knobsCol.style.gap = '10px';
+            knobsCol.style.gap = '8px';
 
             for (const param of mod.params) {
                 knobsCol.appendChild(this.createKnobElement(mod.id, param));
@@ -257,8 +321,8 @@ export class RackCanvas {
             outputsCol.style.display = 'flex';
             outputsCol.style.flexDirection = 'column';
             outputsCol.style.alignItems = 'flex-end';
-            outputsCol.style.gap = '10px';
-            outputsCol.style.minWidth = '45px';
+            outputsCol.style.gap = '8px';
+            outputsCol.style.minWidth = '42px';
 
             for (const out of mod.outputs) {
                 outputsCol.appendChild(this.createJackElement(mod.id, out.name, out.type, true));
@@ -267,19 +331,26 @@ export class RackCanvas {
 
             card.appendChild(body);
 
-            // Bottom screw rail
+            // Bottom screw rail with crosshead screws
             const screwFooter = document.createElement('div');
             screwFooter.style.height = '14px';
-            screwFooter.style.background = '#0e1411';
-            screwFooter.style.borderBottomLeftRadius = '6px';
-            screwFooter.style.borderBottomRightRadius = '6px';
+            screwFooter.style.background = 'linear-gradient(180deg, #18222b 0%, #10161d 100%)';
+            screwFooter.style.borderBottomLeftRadius = '5px';
+            screwFooter.style.borderBottomRightRadius = '5px';
+            screwFooter.style.borderTop = '1px solid #283743';
             screwFooter.style.display = 'flex';
             screwFooter.style.justifyContent = 'space-between';
             screwFooter.style.alignItems = 'center';
             screwFooter.style.padding = '0 8px';
             screwFooter.innerHTML = `
-                <div style="width: 7px; height: 7px; border-radius: 50%; background: #33443d; border: 1px solid #1a2420;"></div>
-                <div style="width: 7px; height: 7px; border-radius: 50%; background: #33443d; border: 1px solid #1a2420;"></div>
+                <div style="width: 8px; height: 8px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #ffffff 0%, #b2bec3 40%, #636e72 70%, #2d3436 100%); border: 1px solid #141c22; box-shadow: inset 0 1px 1px #ffffff, 0 1px 2px rgba(0,0,0,0.8); position: relative;">
+                    <div style="position: absolute; top: 3.5px; left: 1.5px; width: 5px; height: 1px; background: #141c22;"></div>
+                    <div style="position: absolute; top: 1.5px; left: 3.5px; width: 1px; height: 5px; background: #141c22;"></div>
+                </div>
+                <div style="width: 8px; height: 8px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #ffffff 0%, #b2bec3 40%, #636e72 70%, #2d3436 100%); border: 1px solid #141c22; box-shadow: inset 0 1px 1px #ffffff, 0 1px 2px rgba(0,0,0,0.8); position: relative;">
+                    <div style="position: absolute; top: 3.5px; left: 1.5px; width: 5px; height: 1px; background: #141c22;"></div>
+                    <div style="position: absolute; top: 1.5px; left: 3.5px; width: 1px; height: 5px; background: #141c22;"></div>
+                </div>
             `;
             card.appendChild(screwFooter);
 
@@ -307,13 +378,17 @@ export class RackCanvas {
 
         const label = document.createElement('span');
         label.textContent = portName;
-        label.style.fontSize = '9px';
+        label.style.fontSize = '8.5px';
+        label.style.fontFamily = "'Share Tech Mono', monospace";
         label.style.fontWeight = '700';
-        label.style.color = '#a0afab';
+        label.style.color = '#8395a7';
         label.style.whiteSpace = 'nowrap';
-        label.style.maxWidth = '60px';
+        label.style.maxWidth = '55px';
         label.style.overflow = 'hidden';
         label.style.textOverflow = 'ellipsis';
+        label.style.letterSpacing = '0.5px';
+
+        const portColor = this.getPortColor(type);
 
         const jack = document.createElement('div');
         jack.className = 'rack-jack';
@@ -325,9 +400,10 @@ export class RackCanvas {
         jack.style.width = '24px';
         jack.style.height = '24px';
         jack.style.borderRadius = '50%';
-        jack.style.background = '#0a0e0c';
-        jack.style.border = `3px solid ${this.getPortColor(type)}`;
-        jack.style.boxShadow = 'inset 0 2px 4px rgba(0,0,0,0.8), 0 0 6px rgba(0,0,0,0.5)';
+        // 3D Machined Chrome Washer Ring
+        jack.style.background = 'radial-gradient(circle at 35% 30%, #a4b0be 0%, #57606f 50%, #2f3542 100%)';
+        jack.style.border = `2px solid ${portColor}`;
+        jack.style.boxShadow = `0 2px 5px rgba(0,0,0,0.8), inset 0 1px 1px rgba(255,255,255,0.7), 0 0 6px ${portColor}55`;
         jack.style.display = 'flex';
         jack.style.alignItems = 'center';
         jack.style.justifyContent = 'center';
@@ -338,18 +414,19 @@ export class RackCanvas {
         hole.style.width = '10px';
         hole.style.height = '10px';
         hole.style.borderRadius = '50%';
-        hole.style.background = '#000000';
-        hole.style.border = '1px solid rgba(255,255,255,0.2)';
+        hole.style.background = '#060a0e';
+        hole.style.border = '1px solid #1e272e';
+        hole.style.boxShadow = 'inset 0 2px 4px rgba(0,0,0,0.95)';
         jack.appendChild(hole);
 
-        // Check if connected to draw a plug ring
+        // Check if connected to draw a glowing plug indicator
         const isConnected = isOutput
             ? this.engine.cables.some(c => c.fromModuleId === moduleId && c.fromPort === portName)
             : this.engine.cables.some(c => c.toModuleId === moduleId && c.toPort === portName);
 
         if (isConnected) {
-            hole.style.background = this.getPortColor(type);
-            hole.style.boxShadow = `0 0 6px ${this.getPortColor(type)}`;
+            hole.style.background = `radial-gradient(circle at 40% 40%, #ffffff 0%, ${portColor} 60%, #000000 100%)`;
+            hole.style.boxShadow = `0 0 10px ${portColor}, inset 0 0 4px #ffffff`;
         }
 
         jack.addEventListener('mousedown', (e) => {
@@ -365,7 +442,7 @@ export class RackCanvas {
                     startY: pos.y,
                     currentX: pos.x,
                     currentY: pos.y,
-                    color: this.getPortColor(type)
+                    color: portColor
                 };
             } else if (e.button === 2) {
                 // Right click: disconnect cable at this port
@@ -396,36 +473,61 @@ export class RackCanvas {
         wrap.style.gap = '2px';
 
         const label = document.createElement('span');
-        label.textContent = param.name;
-        label.style.fontSize = '9px';
+        label.textContent = param.name.toUpperCase();
+        label.style.fontSize = '8.5px';
+        label.style.fontFamily = "'Rajdhani', sans-serif";
         label.style.fontWeight = '700';
-        label.style.color = '#c8d6e5';
+        label.style.color = '#cad3df';
+        label.style.letterSpacing = '0.5px';
 
+        // Retro Cyber LCD readout
         const valDisplay = document.createElement('span');
         valDisplay.textContent = this.formatKnobValue(param.value !== undefined ? param.value : param.default, param.unit);
         valDisplay.style.fontSize = '8px';
-        valDisplay.style.color = '#55efc4';
-        valDisplay.style.fontFamily = 'monospace';
+        valDisplay.style.color = '#00ff88';
+        valDisplay.style.fontFamily = "'Share Tech Mono', monospace";
+        valDisplay.style.background = '#020d09';
+        valDisplay.style.border = '1px solid rgba(0, 255, 136, 0.35)';
+        valDisplay.style.padding = '0.5px 4px';
+        valDisplay.style.borderRadius = '2px';
+        valDisplay.style.boxShadow = 'inset 0 0 4px rgba(0, 255, 136, 0.2)';
+        valDisplay.style.textShadow = '0 0 4px #00ff88';
+        valDisplay.style.minWidth = '36px';
+        valDisplay.style.textAlign = 'center';
 
+        // 3D Lathe-turned metallic rotary dial
         const knob = document.createElement('div');
         knob.className = 'rack-knob';
         knob.style.width = '36px';
         knob.style.height = '36px';
         knob.style.borderRadius = '50%';
-        knob.style.background = 'radial-gradient(circle at 35% 35%, #2f3e37, #131c17)';
-        knob.style.border = '2px solid #3b5247';
-        knob.style.boxShadow = '0 3px 8px rgba(0,0,0,0.6), inset 0 1px 2px rgba(255,255,255,0.2)';
+        knob.style.background = 'radial-gradient(circle at 35% 30%, #4a5763 0%, #2c363e 48%, #161e24 85%, #0f1418 100%)';
+        knob.style.border = '2px solid #576574';
+        knob.style.boxShadow = '0 4px 10px rgba(0,0,0,0.75), inset 0 1px 2px rgba(255,255,255,0.45), 0 0 0 1px #151d23';
         knob.style.position = 'relative';
         knob.style.cursor = 'ns-resize';
 
-        // Indicator line
+        // Center glossy dome ring
+        const dome = document.createElement('div');
+        dome.style.position = 'absolute';
+        dome.style.top = '3px';
+        dome.style.left = '3px';
+        dome.style.right = '3px';
+        dome.style.bottom = '3px';
+        dome.style.borderRadius = '50%';
+        dome.style.background = 'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.2) 0%, transparent 60%)';
+        dome.style.pointerEvents = 'none';
+        knob.appendChild(dome);
+
+        // High-visibility neon laser pointer
         const indicator = document.createElement('div');
         indicator.style.position = 'absolute';
-        indicator.style.top = '3px';
+        indicator.style.top = '2.5px';
         indicator.style.left = 'calc(50% - 1.5px)';
         indicator.style.width = '3px';
         indicator.style.height = '10px';
-        indicator.style.background = '#55efc4';
+        indicator.style.background = '#00f2fe';
+        indicator.style.boxShadow = '0 0 8px #00f2fe, 0 0 2px #ffffff';
         indicator.style.borderRadius = '2px';
         indicator.style.transformOrigin = 'center 15px';
 
@@ -484,30 +586,35 @@ export class RackCanvas {
 
     getPortColor(type) {
         switch (type) {
-            case 'AUDIO': return '#22c55e'; // Green
-            case 'GATE': return '#f59e0b'; // Amber / Yellow
-            case 'VAL': default: return '#06b6d4'; // Cyan
+            case 'AUDIO': return '#00ff88'; // Y2K Neon Lime
+            case 'GATE': return '#fed330';  // Y2K Electric Amber
+            case 'VAL': default: return '#00f2fe'; // Y2K Cyber Cyan
         }
     }
 
     renderCables() {
-        this.svgCables.innerHTML = '';
+        // Keep <defs> filter preserved
+        const defs = this.svgCables.querySelector('defs');
+        const defsHtml = defs ? defs.outerHTML : '';
+        this.svgCables.innerHTML = defsHtml;
 
         // 1. Render all connected cables
         for (const cable of this.engine.cables) {
             const start = this.getJackPosition(cable.fromModuleId, cable.fromPort, true);
             const end = this.getJackPosition(cable.toModuleId, cable.toPort, false);
+            const cableColor = cable.color || '#00ff88';
 
             const pathD = this.computeCablePath(start.x, start.y, end.x, end.y);
             const pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             pathEl.setAttribute('d', pathD);
-            pathEl.setAttribute('stroke', cable.color || '#22c55e');
+            pathEl.setAttribute('stroke', cableColor);
             pathEl.setAttribute('stroke-width', '4.5');
             pathEl.setAttribute('fill', 'none');
             pathEl.setAttribute('stroke-linecap', 'round');
             pathEl.setAttribute('stroke-linejoin', 'round');
-            pathEl.style.opacity = '0.92';
-            pathEl.style.filter = 'drop-shadow(0 6px 10px rgba(0,0,0,0.7))';
+            pathEl.style.opacity = '0.94';
+            // Neon glowing drop shadow
+            pathEl.style.filter = `drop-shadow(0 0 6px ${cableColor}) drop-shadow(0 6px 12px rgba(0,0,0,0.85))`;
             pathEl.style.pointerEvents = 'stroke';
             pathEl.style.cursor = 'pointer';
 
@@ -523,35 +630,37 @@ export class RackCanvas {
             pathEl.addEventListener('mouseenter', () => {
                 pathEl.setAttribute('stroke-width', '6.5');
                 pathEl.style.opacity = '1.0';
+                pathEl.style.filter = `drop-shadow(0 0 12px ${cableColor}) drop-shadow(0 8px 16px rgba(0,0,0,0.9))`;
             });
             pathEl.addEventListener('mouseleave', () => {
                 pathEl.setAttribute('stroke-width', '4.5');
-                pathEl.style.opacity = '0.92';
+                pathEl.style.opacity = '0.94';
+                pathEl.style.filter = `drop-shadow(0 0 6px ${cableColor}) drop-shadow(0 6px 12px rgba(0,0,0,0.85))`;
             });
 
             this.svgCables.appendChild(pathEl);
 
-            // Plug cap start
+            // Plug cap start - Machined Chrome Plug
             const plugStart = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
             plugStart.setAttribute('cx', start.x);
             plugStart.setAttribute('cy', start.y);
-            plugStart.setAttribute('r', '6');
-            plugStart.setAttribute('fill', '#141c18');
-            plugStart.setAttribute('stroke', cable.color || '#22c55e');
-            plugStart.setAttribute('stroke-width', '3');
-            plugStart.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.8))';
+            plugStart.setAttribute('r', '6.5');
+            plugStart.setAttribute('fill', '#1a252f');
+            plugStart.setAttribute('stroke', cableColor);
+            plugStart.setAttribute('stroke-width', '2.5');
+            plugStart.style.filter = `drop-shadow(0 0 6px ${cableColor}) drop-shadow(0 2px 4px rgba(0,0,0,0.9))`;
             plugStart.style.pointerEvents = 'none';
             this.svgCables.appendChild(plugStart);
 
-            // Plug cap end
+            // Plug cap end - Machined Chrome Plug
             const plugEnd = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
             plugEnd.setAttribute('cx', end.x);
             plugEnd.setAttribute('cy', end.y);
-            plugEnd.setAttribute('r', '6');
-            plugEnd.setAttribute('fill', '#141c18');
-            plugEnd.setAttribute('stroke', cable.color || '#22c55e');
-            plugEnd.setAttribute('stroke-width', '3');
-            plugEnd.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.8))';
+            plugEnd.setAttribute('r', '6.5');
+            plugEnd.setAttribute('fill', '#1a252f');
+            plugEnd.setAttribute('stroke', cableColor);
+            plugEnd.setAttribute('stroke-width', '2.5');
+            plugEnd.style.filter = `drop-shadow(0 0 6px ${cableColor}) drop-shadow(0 2px 4px rgba(0,0,0,0.9))`;
             plugEnd.style.pointerEvents = 'none';
             this.svgCables.appendChild(plugEnd);
         }
@@ -562,16 +671,17 @@ export class RackCanvas {
             const startY = this.cableDrag.startY;
             const endX = this.cableDrag.currentX;
             const endY = this.cableDrag.currentY;
+            const dragColor = this.cableDrag.color || '#fed330';
 
             const pathD = this.computeCablePath(startX, startY, endX, endY);
             const dragPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             dragPath.setAttribute('d', pathD);
-            dragPath.setAttribute('stroke', this.cableDrag.color || '#f59e0b');
+            dragPath.setAttribute('stroke', dragColor);
             dragPath.setAttribute('stroke-width', '4');
             dragPath.setAttribute('fill', 'none');
             dragPath.setAttribute('stroke-linecap', 'round');
-            dragPath.style.opacity = '0.85';
-            dragPath.style.filter = 'drop-shadow(0 4px 8px rgba(0,0,0,0.7))';
+            dragPath.style.opacity = '0.9';
+            dragPath.style.filter = `drop-shadow(0 0 10px ${dragColor}) drop-shadow(0 4px 8px rgba(0,0,0,0.7))`;
             this.svgCables.appendChild(dragPath);
         }
     }

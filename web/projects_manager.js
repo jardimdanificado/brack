@@ -5,8 +5,8 @@
  * =========================================================================
  */
 
-const STORAGE_KEY = 'brack_rack_projects_v8';
-const ACTIVE_PROJECT_KEY = 'brack_active_rack_id_v8';
+const STORAGE_KEY = 'brack_rack_projects_v9';
+const ACTIVE_PROJECT_KEY = 'brack_active_rack_id_v9';
 
 function sanitizeText(str) {
     if (!str || typeof str !== 'string') return '';
@@ -52,17 +52,17 @@ export const EXAMPLE_RACK_PRESETS = [
             engine.setModuleKnob(master.id, 'Master Vol', 0.85);
 
             // Connect cables
-            engine.connectCable(clk.id, 'Clock', seq.id, 'Clock', '#f59e0b');
-            engine.connectCable(clk.id, 'Clock', adsr.id, 'Gate', '#f59e0b');
-            engine.connectCable(seq.id, 'Pitch CV', vco.id, 'Pitch CV', '#06b6d4');
-            engine.connectCable(vco.id, 'Out', vcf.id, 'In', '#22c55e');
-            engine.connectCable(adsr.id, 'Env', vcf.id, 'Cutoff CV', '#06b6d4');
-            engine.connectCable(vcf.id, 'Out', vca.id, 'In', '#22c55e');
-            engine.connectCable(adsr.id, 'Env', vca.id, 'Gain CV', '#06b6d4');
-            engine.connectCable(vca.id, 'Out', delay.id, 'In', '#22c55e');
-            engine.connectCable(delay.id, 'Out', reverb.id, 'In', '#22c55e');
-            engine.connectCable(reverb.id, 'Out', master.id, 'Left', '#22c55e');
-            engine.connectCable(reverb.id, 'Out', master.id, 'Right', '#22c55e');
+            engine.connectCable(clk.id, 'Clock', seq.id, 'Clock', '#fed330');
+            engine.connectCable(clk.id, 'Clock', adsr.id, 'Gate', '#fed330');
+            engine.connectCable(seq.id, 'Pitch CV', vco.id, 'Pitch CV', '#00f2fe');
+            engine.connectCable(vco.id, 'Out', vcf.id, 'In', '#00ff88');
+            engine.connectCable(adsr.id, 'Env', vcf.id, 'Cutoff CV', '#00f2fe');
+            engine.connectCable(vcf.id, 'Out', vca.id, 'In', '#00ff88');
+            engine.connectCable(adsr.id, 'Env', vca.id, 'Gain CV', '#00f2fe');
+            engine.connectCable(vca.id, 'Out', delay.id, 'In', '#00ff88');
+            engine.connectCable(delay.id, 'Out', reverb.id, 'In', '#00ff88');
+            engine.connectCable(reverb.id, 'Out', master.id, 'Left', '#00ff88');
+            engine.connectCable(reverb.id, 'Out', master.id, 'Right', '#00ff88');
         }
     },
     {
@@ -96,14 +96,14 @@ export const EXAMPLE_RACK_PRESETS = [
             engine.setModuleKnob(reverb.id, 'Mix', 0.42);
             engine.setModuleKnob(master.id, 'Master Vol', 0.85);
 
-            engine.connectCable(vco1.id, 'Out', mixer.id, 'In 1', '#22c55e');
-            engine.connectCable(vco2.id, 'Out', mixer.id, 'In 2', '#22c55e');
-            engine.connectCable(mixer.id, 'Out', vcf.id, 'In', '#22c55e');
-            engine.connectCable(lfo.id, 'Tri', vcf.id, 'Cutoff CV', '#06b6d4');
-            engine.connectCable(vcf.id, 'Out', delay.id, 'In', '#22c55e');
-            engine.connectCable(delay.id, 'Out', reverb.id, 'In', '#22c55e');
-            engine.connectCable(reverb.id, 'Out', master.id, 'Left', '#22c55e');
-            engine.connectCable(reverb.id, 'Out', master.id, 'Right', '#22c55e');
+            engine.connectCable(vco1.id, 'Out', mixer.id, 'In 1', '#00ff88');
+            engine.connectCable(vco2.id, 'Out', mixer.id, 'In 2', '#00ff88');
+            engine.connectCable(mixer.id, 'Out', vcf.id, 'In', '#00ff88');
+            engine.connectCable(lfo.id, 'Tri', vcf.id, 'Cutoff CV', '#00f2fe');
+            engine.connectCable(vcf.id, 'Out', delay.id, 'In', '#00ff88');
+            engine.connectCable(delay.id, 'Out', reverb.id, 'In', '#00ff88');
+            engine.connectCable(reverb.id, 'Out', master.id, 'Left', '#00ff88');
+            engine.connectCable(reverb.id, 'Out', master.id, 'Right', '#00ff88');
         }
     },
     {
@@ -140,17 +140,17 @@ export const EXAMPLE_RACK_PRESETS = [
             engine.setModuleKnob(delay.id, 'Mix', 0.25);
             engine.setModuleKnob(master.id, 'Master Vol', 0.85);
 
-            engine.connectCable(clk.id, 'Clock', seq.id, 'Clock', '#f59e0b');
-            engine.connectCable(clk.id, 'Clock', adsr.id, 'Gate', '#f59e0b');
-            engine.connectCable(seq.id, 'Pitch CV', vco.id, 'Pitch CV', '#06b6d4');
-            engine.connectCable(vco.id, 'Out', dist.id, 'In', '#22c55e');
-            engine.connectCable(dist.id, 'Out', vcf.id, 'In', '#22c55e');
-            engine.connectCable(adsr.id, 'Env', vcf.id, 'Cutoff CV', '#06b6d4');
-            engine.connectCable(vcf.id, 'Out', vca.id, 'In', '#22c55e');
-            engine.connectCable(adsr.id, 'Env', vca.id, 'Gain CV', '#06b6d4');
-            engine.connectCable(vca.id, 'Out', delay.id, 'In', '#22c55e');
-            engine.connectCable(delay.id, 'Out', master.id, 'Left', '#22c55e');
-            engine.connectCable(delay.id, 'Out', master.id, 'Right', '#22c55e');
+            engine.connectCable(clk.id, 'Clock', seq.id, 'Clock', '#fed330');
+            engine.connectCable(clk.id, 'Clock', adsr.id, 'Gate', '#fed330');
+            engine.connectCable(seq.id, 'Pitch CV', vco.id, 'Pitch CV', '#00f2fe');
+            engine.connectCable(vco.id, 'Out', dist.id, 'In', '#00ff88');
+            engine.connectCable(dist.id, 'Out', vcf.id, 'In', '#00ff88');
+            engine.connectCable(adsr.id, 'Env', vcf.id, 'Cutoff CV', '#00f2fe');
+            engine.connectCable(vcf.id, 'Out', vca.id, 'In', '#00ff88');
+            engine.connectCable(adsr.id, 'Env', vca.id, 'Gain CV', '#00f2fe');
+            engine.connectCable(vca.id, 'Out', delay.id, 'In', '#00ff88');
+            engine.connectCable(delay.id, 'Out', master.id, 'Left', '#00ff88');
+            engine.connectCable(delay.id, 'Out', master.id, 'Right', '#00ff88');
         }
     },
     {
@@ -173,11 +173,11 @@ export const EXAMPLE_RACK_PRESETS = [
             engine.setModuleKnob(delay.id, 'Time', 0.20);
             engine.setModuleKnob(delay.id, 'Feedback', 0.50);
 
-            engine.connectCable(clk.id, 'Clock', seq.id, 'Clock', '#f59e0b');
-            engine.connectCable(seq.id, 'Pitch CV', vco.id, 'Pitch CV', '#06b6d4');
-            engine.connectCable(vco.id, 'Out', delay.id, 'In', '#22c55e');
-            engine.connectCable(delay.id, 'Out', master.id, 'Left', '#22c55e');
-            engine.connectCable(delay.id, 'Out', master.id, 'Right', '#22c55e');
+            engine.connectCable(clk.id, 'Clock', seq.id, 'Clock', '#fed330');
+            engine.connectCable(seq.id, 'Pitch CV', vco.id, 'Pitch CV', '#00f2fe');
+            engine.connectCable(vco.id, 'Out', delay.id, 'In', '#00ff88');
+            engine.connectCable(delay.id, 'Out', master.id, 'Left', '#00ff88');
+            engine.connectCable(delay.id, 'Out', master.id, 'Right', '#00ff88');
         }
     },
     {
@@ -199,32 +199,32 @@ export const EXAMPLE_RACK_PRESETS = [
             const master = engine.addModule('master_out', 1700, 40, 'Master Out');
 
             engine.setModuleKnob(clk.id, 'BPM', 124);
-            engine.setModuleKnob(vco.id, 'Freq', 261.63);
-            engine.setModuleKnob(vcf.id, 'Cutoff', 800);
-            engine.setModuleKnob(vcf.id, 'Res', 0.50);
+            engine.setModuleKnob(vco.id, 'Freq', 220);
+            engine.setModuleKnob(vcf.id, 'Cutoff', 520);
+            engine.setModuleKnob(vcf.id, 'Res', 0.55);
             engine.setModuleKnob(adsr.id, 'Attack', 0.005);
-            engine.setModuleKnob(adsr.id, 'Decay', 0.28);
+            engine.setModuleKnob(adsr.id, 'Decay', 0.25);
             engine.setModuleKnob(adsr.id, 'Sustain', 0.0);
             engine.setModuleKnob(adsr.id, 'Release', 0.15);
-            engine.setModuleKnob(vca.id, 'Gain', 0.85);
+            engine.setModuleKnob(vca.id, 'Gain', 0.9);
             engine.setModuleKnob(delay.id, 'Time', 0.36);
             engine.setModuleKnob(delay.id, 'Feedback', 0.45);
-            engine.setModuleKnob(delay.id, 'Mix', 0.35);
-            engine.setModuleKnob(reverb.id, 'Size', 0.82);
+            engine.setModuleKnob(delay.id, 'Mix', 0.30);
+            engine.setModuleKnob(reverb.id, 'Size', 0.85);
             engine.setModuleKnob(reverb.id, 'Mix', 0.35);
             engine.setModuleKnob(master.id, 'Master Vol', 0.85);
 
-            engine.connectCable(clk.id, 'Clock', seq.id, 'Clock', '#f59e0b');
-            engine.connectCable(clk.id, 'Clock', adsr.id, 'Gate', '#f59e0b');
-            engine.connectCable(seq.id, 'Pitch CV', vco.id, 'Pitch CV', '#06b6d4');
-            engine.connectCable(vco.id, 'Out', vcf.id, 'In', '#22c55e');
-            engine.connectCable(adsr.id, 'Env', vcf.id, 'Cutoff CV', '#06b6d4');
-            engine.connectCable(vcf.id, 'Out', vca.id, 'In', '#22c55e');
-            engine.connectCable(adsr.id, 'Env', vca.id, 'Gain CV', '#06b6d4');
-            engine.connectCable(vca.id, 'Out', delay.id, 'In', '#22c55e');
-            engine.connectCable(delay.id, 'Out', reverb.id, 'In', '#22c55e');
-            engine.connectCable(reverb.id, 'Out', master.id, 'Left', '#22c55e');
-            engine.connectCable(reverb.id, 'Out', master.id, 'Right', '#22c55e');
+            engine.connectCable(clk.id, 'Clock', seq.id, 'Clock', '#fed330');
+            engine.connectCable(clk.id, 'Clock', adsr.id, 'Gate', '#fed330');
+            engine.connectCable(seq.id, 'Pitch CV', vco.id, 'Pitch CV', '#00f2fe');
+            engine.connectCable(vco.id, 'Out', vcf.id, 'In', '#00ff88');
+            engine.connectCable(adsr.id, 'Env', vcf.id, 'Cutoff CV', '#00f2fe');
+            engine.connectCable(vcf.id, 'Out', vca.id, 'In', '#00ff88');
+            engine.connectCable(adsr.id, 'Env', vca.id, 'Gain CV', '#00f2fe');
+            engine.connectCable(vca.id, 'Out', delay.id, 'In', '#00ff88');
+            engine.connectCable(delay.id, 'Out', reverb.id, 'In', '#00ff88');
+            engine.connectCable(reverb.id, 'Out', master.id, 'Left', '#00ff88');
+            engine.connectCable(reverb.id, 'Out', master.id, 'Right', '#00ff88');
         }
     }
 ];

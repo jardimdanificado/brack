@@ -3,206 +3,266 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BRACK // Modular Rack & Scratch DSP</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎛️</text></svg>">
+    <title>BRACK // Y2K Modular Synthesizer & DSP Cyberdeck</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Rajdhani:wght@600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #0c100e;
-            --chalk-board: #151c19;
-            --chalk-white: #f5f6fa;
-            --chalk-yellow: #feca57;
-            --chalk-cyan: #48dbfb;
-            --chalk-pink: #ff6b6b;
-            --chalk-green: #1dd1a1;
-            --chalk-purple: #a29bfe;
-            --chalk-orange: #ff9f43;
-            --editor-bg: #111714;
-            --text-dim: #8395a7;
+            --bg-chassis: #0b1118;
+            --metal-light: #485460;
+            --metal-mid: #2d3436;
+            --metal-dark: #1e272e;
+            --metal-highlight: #718093;
+            --neon-cyan: #00f2fe;
+            --neon-lime: #00ff88;
+            --neon-amber: #fed330;
+            --neon-pink: #ff3838;
+            --neon-magenta: #e056fd;
+            --lcd-bg: #03130c;
+            --lcd-text: #00ff88;
+            --text-main: #f5f6fa;
+            --text-dim: #95a5a6;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Rajdhani', sans-serif; }
 
         html, body {
             width: 100vw;
             height: 100vh;
             overflow: hidden;
-            background: var(--bg);
-            color: var(--chalk-white);
+            background: var(--bg-chassis);
+            color: var(--text-main);
             display: flex;
             flex-direction: column;
             user-select: none;
             -webkit-user-select: none;
         }
 
+        /* Y2K Titanium / Brushed Chrome Header */
         header {
             width: 100%;
-            height: 48px;
-            background: linear-gradient(180deg, #4d97fe 0%, #3884f5 100%);
-            border-bottom: 1px solid #2872dd;
-            padding: 0 14px;
+            height: 52px;
+            background: linear-gradient(180deg, #3d4a54 0%, #222c34 45%, #151d23 50%, #202b33 100%);
+            border-bottom: 2px solid #080c10;
+            border-top: 1px solid rgba(255, 255, 255, 0.45);
+            padding: 0 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-shrink: 0;
             z-index: 100;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
 
         h1 {
-            font-size: 18px;
-            letter-spacing: 1.5px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 20px;
+            letter-spacing: 3px;
             display: flex;
             align-items: center;
             gap: 8px;
-            color: #ffffff;
+            background: linear-gradient(180deg, #ffffff 0%, #b2bec3 50%, #dfe6e9 51%, #ffffff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
             font-weight: 900;
-            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+            filter: drop-shadow(0 0 8px rgba(0, 242, 254, 0.6));
+            text-transform: uppercase;
+        }
+
+        .brand-badge {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 10px;
+            color: #00f2fe;
+            background: rgba(0, 242, 254, 0.12);
+            border: 1px solid rgba(0, 242, 254, 0.4);
+            padding: 2px 6px;
+            border-radius: 3px;
+            letter-spacing: 1px;
+            box-shadow: 0 0 8px rgba(0, 242, 254, 0.3), inset 0 0 4px rgba(0, 242, 254, 0.2);
         }
 
         .actions {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
         }
 
+        /* Y2K Glossy Gel Play Button */
         .btn-play-toggle {
-            background: #45c55e;
-            color: #ffffff;
-            border: 2px solid rgba(255, 255, 255, 0.4);
-            width: 36px;
-            height: 36px;
+            background: radial-gradient(circle at 35% 30%, #48ff98 0%, #00d26a 50%, #008744 100%);
+            color: #0c1810;
+            border: 2px solid #85ffbe;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 16px rgba(0, 255, 136, 0.7), inset 0 2px 4px rgba(255, 255, 255, 0.8), 0 4px 10px rgba(0, 0, 0, 0.7);
+            transition: all 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
         .btn-play-toggle:hover {
-            transform: scale(1.08);
-            background: #22c55e;
-            border-color: #ffffff;
+            transform: scale(1.1);
+            filter: brightness(1.2);
+            box-shadow: 0 0 24px rgba(0, 255, 136, 1), inset 0 2px 6px rgba(255, 255, 255, 0.9);
         }
 
         .btn-play-toggle.playing {
-            background: #ef4444;
-            border-color: rgba(255, 255, 255, 0.6);
-            box-shadow: 0 0 14px rgba(239, 68, 68, 0.7);
-            animation: pulse-play 1.3s infinite ease-in-out;
+            background: radial-gradient(circle at 35% 30%, #ff7675 0%, #d63031 50%, #8b0000 100%);
+            border-color: #ffaaaa;
+            box-shadow: 0 0 20px rgba(255, 56, 56, 0.85), inset 0 2px 4px rgba(255, 255, 255, 0.8);
+            animation: pulse-y2k 1.2s infinite alternate ease-in-out;
         }
 
-        .btn-play-toggle.playing:hover {
-            background: #dc2626;
-        }
-
-        .btn-play-toggle .icon-play { display: block; }
-        .btn-play-toggle .icon-stop { display: none; }
+        .btn-play-toggle .icon-play { display: block; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5)); }
+        .btn-play-toggle .icon-stop { display: none; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5)); }
         .btn-play-toggle.playing .icon-play { display: none; }
         .btn-play-toggle.playing .icon-stop { display: block; }
 
-        @keyframes pulse-play {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.08); }
+        @keyframes pulse-y2k {
+            0% { transform: scale(1); filter: drop-shadow(0 0 10px #ff3838); }
+            100% { transform: scale(1.08); filter: drop-shadow(0 0 22px #ff3838); }
         }
 
+        /* Y2K Beveled Titanium Toolbar */
         .project-toolbar {
             display: flex;
             align-items: center;
-            gap: 5px;
-            background: rgba(0, 0, 0, 0.15);
-            padding: 3px 6px;
+            gap: 6px;
+            background: linear-gradient(180deg, #1e262c 0%, #11171b 100%);
+            padding: 4px 8px;
             border-radius: 6px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid #3d4a54;
+            border-top-color: #576574;
+            border-bottom-color: #090d10;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6), 0 1px 0 rgba(255, 255, 255, 0.1);
         }
 
         #project-select {
-            background: rgba(255, 255, 255, 0.18);
-            color: #ffffff;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            padding: 5px 8px;
+            background: linear-gradient(180deg, #09131a 0%, #03080b 100%);
+            color: #00f2fe;
+            border: 1px solid #00f2fe;
+            padding: 6px 10px;
             border-radius: 4px;
+            font-family: 'Share Tech Mono', monospace;
             font-weight: 700;
-            font-size: 11px;
+            font-size: 12px;
             outline: none;
-            max-width: 220px;
+            max-width: 240px;
             cursor: pointer;
+            box-shadow: inset 0 0 8px rgba(0, 242, 254, 0.25), 0 0 6px rgba(0, 242, 254, 0.3);
+            text-shadow: 0 0 6px #00f2fe;
         }
 
         #project-select option {
-            background: #1e2723;
-            color: #ffffff;
+            background: #0d141a;
+            color: #00f2fe;
+            font-family: 'Share Tech Mono', monospace;
         }
 
+        /* Y2K Aqua / Metallic Glass Buttons */
         button, select {
-            background: rgba(255, 255, 255, 0.18);
+            background: linear-gradient(180deg, #4b5a66 0%, #28343c 48%, #182026 52%, #26333c 100%);
             color: #ffffff;
-            border: 1px solid rgba(255, 255, 255, 0.25);
-            padding: 5px 10px;
+            border: 1px solid #485460;
+            border-top-color: #8395a7;
+            border-bottom-color: #0a0e11;
+            padding: 6px 12px;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 11px;
+            font-size: 13px;
             font-weight: 700;
-            letter-spacing: 0.3px;
-            transition: all 0.15s ease;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+            transition: all 0.12s ease;
             display: inline-flex;
             align-items: center;
-            gap: 4px;
+            gap: 5px;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 2px 4px rgba(0, 0, 0, 0.6);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
         }
 
         button:hover, select:hover {
-            background: rgba(255, 255, 255, 0.3);
-            border-color: rgba(255, 255, 255, 0.5);
-            color: #ffffff;
+            background: linear-gradient(180deg, #5b6c7a 0%, #36444e 48%, #202b33 52%, #32434f 100%);
+            border-color: #00f2fe;
+            color: #00f2fe;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 0 10px rgba(0, 242, 254, 0.4);
+            transform: translateY(-1px);
+        }
+
+        button:active {
+            background: linear-gradient(180deg, #182026 0%, #28343c 100%);
+            transform: translateY(1px);
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.8);
         }
 
         button.btn-primary {
-            background: #ffab19;
-            color: #1e2723;
-            border-color: #f59f00;
+            background: linear-gradient(180deg, #ffd32a 0%, #ffa801 48%, #e67e22 52%, #f39c12 100%);
+            color: #1e1e1e;
+            border-color: #ffeaa7;
+            border-bottom-color: #b75e07;
+            font-weight: 800;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 0 10px rgba(255, 168, 1, 0.5);
+            text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
         }
 
         button.btn-primary:hover {
-            background: #ffd43b;
+            background: linear-gradient(180deg, #fffa65 0%, #ffd32a 48%, #f39c12 52%, #ffa801 100%);
+            box-shadow: inset 0 1px 0 #ffffff, 0 0 16px rgba(255, 211, 42, 0.8);
             color: #000000;
         }
 
         button.btn-accent {
-            background: #10b981;
+            background: linear-gradient(180deg, #00f2fe 0%, #4facfe 48%, #0984e3 52%, #00cec9 100%);
             color: #ffffff;
-            border-color: #059669;
+            border-color: #81ecec;
+            border-bottom-color: #0652dd;
+            font-weight: 800;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 0 12px rgba(0, 242, 254, 0.6);
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
         }
 
         button.btn-accent:hover {
-            background: #34d399;
+            background: linear-gradient(180deg, #81ecec 0%, #00f2fe 48%, #0984e3 52%, #74b9ff 100%);
+            box-shadow: inset 0 1px 0 #ffffff, 0 0 20px rgba(0, 242, 254, 0.9);
         }
 
         button.btn-warn {
-            background: rgba(255, 159, 67, 0.25);
-            border-color: #ff9f43;
+            background: linear-gradient(180deg, #ff9f43 0%, #e67e22 50%, #d35400 100%);
+            border-color: #f39c12;
             color: #ffffff;
         }
 
         button.btn-danger {
-            background: rgba(255, 107, 107, 0.25);
-            border-color: #ff6b6b;
+            background: linear-gradient(180deg, #ff7675 0%, #d63031 50%, #c0392b 100%);
+            border-color: #e74c3c;
             color: #ffffff;
         }
 
         button.btn-sm {
-            padding: 3px 6px;
-            font-size: 10px;
+            padding: 4px 8px;
+            font-size: 11px;
+            font-weight: 700;
         }
 
         /* Main Workspace View Container */
         .workspace-grid {
             flex: 1;
             width: 100vw;
-            height: calc(100vh - 48px - 26px);
+            height: calc(100vh - 52px - 28px);
             display: flex;
             position: relative;
-            background: #0c100e;
+            background: #070c10;
         }
 
         #rack-container {
@@ -213,21 +273,22 @@
             left: 0;
         }
 
-        /* Scratch Editor Modal / Drawer */
+        /* Y2K Scratch Cyberdeck Drawer */
         .scratch-drawer {
             position: fixed;
-            top: 48px;
+            top: 52px;
             right: 0;
             width: 65vw;
-            min-width: 500px;
-            height: calc(100vh - 48px - 26px);
-            background: #111714;
-            border-left: 2px solid #283731;
-            box-shadow: -10px 0 40px rgba(0, 0, 0, 0.85);
+            min-width: 520px;
+            height: calc(100vh - 52px - 28px);
+            background: rgba(10, 16, 22, 0.96);
+            backdrop-filter: blur(16px);
+            border-left: 3px solid #00f2fe;
+            box-shadow: -15px 0 50px rgba(0, 0, 0, 0.9), 0 0 20px rgba(0, 242, 254, 0.3);
             display: flex;
             flex-direction: column;
             z-index: 500;
-            transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: transform 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.2);
             transform: translateX(100%);
         }
 
@@ -236,20 +297,24 @@
         }
 
         .drawer-header {
-            padding: 10px 16px;
-            background: #18221e;
-            border-bottom: 1px solid #283731;
+            padding: 10px 18px;
+            background: linear-gradient(180deg, #2c3e50 0%, #1a252f 50%, #11181f 100%);
+            border-bottom: 2px solid #00f2fe;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
         }
 
         .drawer-header h2 {
+            font-family: 'Orbitron', sans-serif;
             font-size: 14px;
-            color: var(--chalk-yellow);
+            color: #00f2fe;
             display: flex;
             align-items: center;
             gap: 8px;
+            letter-spacing: 1px;
+            text-shadow: 0 0 8px rgba(0, 242, 254, 0.6);
         }
 
         .drawer-body {
@@ -257,7 +322,7 @@
             position: relative;
             width: 100%;
             height: 100%;
-            background: #0c100e;
+            background: #070c10;
         }
 
         #blockly-div {
@@ -268,63 +333,78 @@
             left: 0;
         }
 
+        /* Y2K LCD Screen Footer */
+        .chalk-footer {
+            height: 28px;
+            background: linear-gradient(180deg, #11181f 0%, #070c10 100%);
+            border-top: 1px solid #2f3640;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 11px;
+            color: #718093;
+            letter-spacing: 0.5px;
+            flex-shrink: 0;
+            z-index: 100;
+        }
+
+        #status-live {
+            color: #00ff88;
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            padding: 1px 6px;
+            border-radius: 3px;
+            font-weight: 700;
+        }
+
         /* High-contrast block text for darker block backgrounds */
         .blocklyText, .blocklyHtmlInput, .blocklyDropdownText {
             fill: #ffffff !important;
             font-weight: 700 !important;
+            font-family: 'Share Tech Mono', monospace !important;
         }
 
         .blocklyEditableText > rect {
-            fill: rgba(0, 0, 0, 0.22) !important;
-            stroke: rgba(255, 255, 255, 0.25) !important;
+            fill: rgba(0, 0, 0, 0.4) !important;
+            stroke: #00f2fe !important;
         }
 
         .blocklyToolboxDiv {
-            width: 195px !important;
-            background-color: #141c18 !important;
-            border-right: 1px solid #283731 !important;
+            width: 215px !important;
+            background: linear-gradient(180deg, #18222b 0%, #0d141a 100%) !important;
+            border-right: 2px solid #00f2fe !important;
             overflow-y: auto !important;
+            box-shadow: inset 0 0 15px rgba(0, 242, 254, 0.15) !important;
         }
 
         .blocklyTreeLabel {
             font-size: 12px !important;
             font-weight: 700 !important;
             color: #dcdde1 !important;
+            font-family: 'Rajdhani', sans-serif !important;
+            letter-spacing: 0.5px !important;
         }
 
         .blocklyFlyoutBackground {
-            fill: #111714 !important;
-            fill-opacity: 0.96 !important;
+            fill: #090f14 !important;
+            fill-opacity: 0.98 !important;
         }
 
         .blocklyMainBackground {
-            fill: #0c100e !important;
+            fill: #050a0e !important;
         }
 
-        .chalk-footer {
-            width: 100%;
-            height: 26px;
-            padding: 0 14px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #111714;
-            border-top: 1px solid #202b26;
-            font-size: 11px;
-            color: var(--text-dim);
-            flex-shrink: 0;
-            z-index: 100;
-        }
-
-        /* Modal Gerenciador de Projetos & Modal Adicionar Módulo */
+        /* Y2K Modal Windows */
         .modal-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: rgba(0, 0, 0, 0.75);
-            backdrop-filter: blur(4px);
+            background: rgba(3, 7, 10, 0.85);
+            backdrop-filter: blur(8px);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -332,10 +412,166 @@
         }
 
         .modal-dialog {
-            background: #141c18;
-            border: 2px solid #283731;
-            border-radius: 10px;
+            background: linear-gradient(180deg, #1f2a33 0%, #0d1419 100%);
+            border: 2px solid #00f2fe;
+            border-radius: 8px;
             width: 90%;
+            max-width: 780px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 25px 70px rgba(0, 0, 0, 0.95), 0 0 25px rgba(0, 242, 254, 0.35);
+            overflow: hidden;
+        }
+
+        .modal-header {
+            padding: 10px 16px;
+            background: linear-gradient(180deg, #3d4f5c 0%, #1c2730 100%);
+            border-bottom: 2px solid #00f2fe;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+        }
+
+        .modal-header h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 14px;
+            color: #00f2fe;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            letter-spacing: 1px;
+            text-shadow: 0 0 8px rgba(0, 242, 254, 0.6);
+        }
+
+        .modal-close {
+            background: linear-gradient(180deg, #ff7675 0%, #d63031 100%);
+            border: 1px solid #ffaaaa;
+            color: #ffffff;
+            font-size: 12px;
+            font-weight: 900;
+            border-radius: 4px;
+            cursor: pointer;
+            padding: 2px 8px;
+            box-shadow: 0 0 8px rgba(255, 56, 56, 0.6);
+        }
+
+        .modal-search-bar {
+            padding: 10px 16px;
+            background: #090f14;
+            border-bottom: 1px solid #1f2d38;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .modal-search-bar input {
+            flex: 1;
+            min-width: 180px;
+            background: #04080b;
+            border: 1px solid #00f2fe;
+            border-radius: 4px;
+            color: #00f2fe;
+            padding: 6px 10px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 12px;
+            outline: none;
+            box-shadow: inset 0 0 6px rgba(0, 242, 254, 0.2);
+        }
+
+        .modal-body {
+            padding: 14px 16px;
+            overflow-y: auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            background: #070c10;
+        }
+
+        .modules-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 12px;
+        }
+
+        .module-pick-card {
+            background: linear-gradient(180deg, #1a252f 0%, #0f161c 100%);
+            border: 1px solid #2d3e4d;
+            border-top-color: #50687a;
+            border-radius: 6px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 4px 10px rgba(0, 0, 0, 0.6);
+        }
+
+        .module-pick-card:hover {
+            border-color: #00f2fe;
+            transform: translateY(-2px);
+            background: linear-gradient(180deg, #243543 0%, #152029 100%);
+            box-shadow: 0 0 15px rgba(0, 242, 254, 0.4);
+        }
+
+        .project-card {
+            background: linear-gradient(180deg, #18232c 0%, #0e141a 100%);
+            border: 1px solid #2d3e4d;
+            border-radius: 6px;
+            padding: 10px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.15s ease;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .project-card.active {
+            border-color: #00ff88;
+            background: linear-gradient(180deg, #10261e 0%, #081711 100%);
+            box-shadow: 0 0 12px rgba(0, 255, 136, 0.35);
+        }
+
+        .project-info {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            flex: 1;
+        }
+
+        .project-title-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .badge {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 9px;
+            font-weight: 700;
+            padding: 2px 5px;
+            border-radius: 3px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .badge-example { background: rgba(0, 242, 254, 0.15); color: #00f2fe; border: 1px solid #00f2fe; }
+        .badge-user { background: rgba(254, 211, 42, 0.15); color: #fed330; border: 1px solid #fed330; }
+        .badge-active { background: rgba(0, 255, 136, 0.2); color: #00ff88; border: 1px solid #00ff88; }
+
+        .modal-footer {
+            padding: 10px 16px;
+            background: #0f161c;
+            border-top: 1px solid #25333f;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
             max-width: 780px;
             max-height: 85vh;
             display: flex;
