@@ -53,7 +53,16 @@ export class RackCanvas {
         `;
         this.world.style.backgroundSize = '30px 30px';
 
-        // SVG layer for patch cables
+        // Modules layer (underneath cables)
+        this.modulesContainer = document.createElement('div');
+        this.modulesContainer.className = 'rack-modules-layer';
+        this.modulesContainer.style.position = 'absolute';
+        this.modulesContainer.style.top = '0';
+        this.modulesContainer.style.left = '0';
+        this.modulesContainer.style.zIndex = '5';
+        this.world.appendChild(this.modulesContainer);
+
+        // SVG layer for patch cables (rendered on top of modules)
         this.svgCables = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         this.svgCables.setAttribute('class', 'rack-cables-layer');
         this.svgCables.style.position = 'absolute';
@@ -61,16 +70,9 @@ export class RackCanvas {
         this.svgCables.style.left = '0';
         this.svgCables.style.width = '100%';
         this.svgCables.style.height = '100%';
+        this.svgCables.style.zIndex = '30';
         this.svgCables.style.pointerEvents = 'none';
         this.world.appendChild(this.svgCables);
-
-        // Modules layer
-        this.modulesContainer = document.createElement('div');
-        this.modulesContainer.className = 'rack-modules-layer';
-        this.modulesContainer.style.position = 'absolute';
-        this.modulesContainer.style.top = '0';
-        this.modulesContainer.style.left = '0';
-        this.world.appendChild(this.modulesContainer);
 
         this.container.appendChild(this.world);
     }
@@ -287,7 +289,7 @@ export class RackCanvas {
                 this.draggedModule = mod;
                 const worldPos = this.screenToWorld(e.clientX, e.clientY);
                 this.dragOffset = { x: worldPos.x - mod.x, y: worldPos.y - mod.y };
-                card.style.zIndex = '20';
+                card.style.zIndex = '10';
                 e.preventDefault();
             });
 
@@ -500,12 +502,12 @@ export class RackCanvas {
             const pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             pathEl.setAttribute('d', pathD);
             pathEl.setAttribute('stroke', cable.color || '#22c55e');
-            pathEl.setAttribute('stroke-width', '4');
+            pathEl.setAttribute('stroke-width', '4.5');
             pathEl.setAttribute('fill', 'none');
             pathEl.setAttribute('stroke-linecap', 'round');
             pathEl.setAttribute('stroke-linejoin', 'round');
-            pathEl.style.opacity = '0.9';
-            pathEl.style.filter = 'drop-shadow(0 4px 6px rgba(0,0,0,0.6))';
+            pathEl.style.opacity = '0.92';
+            pathEl.style.filter = 'drop-shadow(0 6px 10px rgba(0,0,0,0.7))';
             pathEl.style.pointerEvents = 'stroke';
             pathEl.style.cursor = 'pointer';
 
@@ -519,15 +521,39 @@ export class RackCanvas {
 
             // Highlight on hover
             pathEl.addEventListener('mouseenter', () => {
-                pathEl.setAttribute('stroke-width', '6');
+                pathEl.setAttribute('stroke-width', '6.5');
                 pathEl.style.opacity = '1.0';
             });
             pathEl.addEventListener('mouseleave', () => {
-                pathEl.setAttribute('stroke-width', '4');
-                pathEl.style.opacity = '0.9';
+                pathEl.setAttribute('stroke-width', '4.5');
+                pathEl.style.opacity = '0.92';
             });
 
             this.svgCables.appendChild(pathEl);
+
+            // Plug cap start
+            const plugStart = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            plugStart.setAttribute('cx', start.x);
+            plugStart.setAttribute('cy', start.y);
+            plugStart.setAttribute('r', '6');
+            plugStart.setAttribute('fill', '#141c18');
+            plugStart.setAttribute('stroke', cable.color || '#22c55e');
+            plugStart.setAttribute('stroke-width', '3');
+            plugStart.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.8))';
+            plugStart.style.pointerEvents = 'none';
+            this.svgCables.appendChild(plugStart);
+
+            // Plug cap end
+            const plugEnd = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            plugEnd.setAttribute('cx', end.x);
+            plugEnd.setAttribute('cy', end.y);
+            plugEnd.setAttribute('r', '6');
+            plugEnd.setAttribute('fill', '#141c18');
+            plugEnd.setAttribute('stroke', cable.color || '#22c55e');
+            plugEnd.setAttribute('stroke-width', '3');
+            plugEnd.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.8))';
+            plugEnd.style.pointerEvents = 'none';
+            this.svgCables.appendChild(plugEnd);
         }
 
         // 2. Render live dragged cable
