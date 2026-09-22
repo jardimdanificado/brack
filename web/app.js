@@ -1,48 +1,44 @@
 /**
  * =========================================================================
- * BRACK Scratch Modular Synth Engine (web/app.js)
- * Scratch-Themed Controls, Snap Sound FX, and C/WASM 48kHz Real-Time DSP
+ * BRACK Modular Synth Engine (web/app.js)
+ * Fullscreen Canvas, Clean Typography, 48kHz Real-Time DSP,
+ * and Persistent Project / Example Management
  * =========================================================================
  */
 
 import { registerSynthBlocks } from './synth_blocks.js';
 import { BlocklySynthEngine } from './blockly_dsp_compiler.js';
+import { ProjectsManager } from './projects_manager.js';
 
 let audioCtx = null;
 let scriptNode = null;
 let isPlaying = false;
 let synthEngine = null;
 let workspace = null;
+let projectsManager = null;
 
 const BLOCK_SIZE = 128;
 
 /* =========================================================================
- * Scratch Snap Pop Sound Synthesizer (Web Audio FX)
+ * Toast Feedback Notification Helper
  * ========================================================================= */
 
-function playScratchSnapSound() {
-    try {
-        if (!audioCtx || audioCtx.state !== 'running') return;
+let toastTimer = null;
+function showToast(message, type = 'success') {
+    const toast = document.getElementById('toast-notification');
+    if (!toast) return;
 
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
+    if (toastTimer) clearTimeout(toastTimer);
 
-        osc.type = 'sine';
-        const now = audioCtx.currentTime;
-        osc.frequency.setValueAtTime(650, now);
-        osc.frequency.exponentialRampToValueAtTime(140, now + 0.045);
+    toast.textContent = message;
+    toast.className = 'toast';
+    if (type === 'warn') toast.classList.add('toast-warn');
+    else if (type === 'error') toast.classList.add('toast-error');
 
-        gain.gain.setValueAtTime(0.25, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
-
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-
-        osc.start(now);
-        osc.stop(now + 0.05);
-    } catch (e) {
-        // Ignored
-    }
+    toast.classList.add('show');
+    toastTimer = setTimeout(() => {
+        toast.classList.remove('show');
+    }, 2500);
 }
 
 /* =========================================================================
@@ -80,160 +76,206 @@ async function startAudio() {
 }
 
 /* =========================================================================
- * Default Scratch Modular Patch Builder
+ * UI Sync Helpers: Select Dropdown & Projects Manager Modal
  * ========================================================================= */
 
-function loadDefaultPatch() {
-    if (!workspace) return;
-    workspace.clear();
+function updateProjectSelect() {
+    const select = document.getElementById('project-select');
+    if (!select || !projectsManager) return;
 
-    // 1. Column 1: Modulators & Broadcast Senders (Left)
-    // Clock -> Transmit [clock_mestre]
-    const clockBlock = workspace.newBlock('synth_clock');
-    clockBlock.initSvg();
-    clockBlock.render();
-    clockBlock.moveTo(new Blockly.utils.Coordinate(-460, -280));
+    const all = projectsManager.getAllProjects();
+    const activeId = projectsManager.getActiveProjectId();
 
-    const sendClk = workspace.newBlock('synth_send');
-    sendClk.setFieldValue('clock_mestre', 'CHANNEL');
-    sendClk.initSvg();
-    sendClk.render();
-    clockBlock.nextConnection.connect(sendClk.previousConnection);
+    select.innerHTML = '';
 
-    // Sequencer (CLK receives clock_mestre) -> Transmit [pitch_seq]
-    const seqBlock = workspace.newBlock('synth_seq');
-    seqBlock.initSvg();
-    seqBlock.render();
-    seqBlock.moveTo(new Blockly.utils.Coordinate(-460, -80));
+    const examplesGroup = document.createElement('optgroup');
+    examplesGroup.label = 'Exemplos Prontos';
 
-    const recvClk1 = workspace.newBlock('synth_recv');
-    recvClk1.setFieldValue('clock_mestre', 'CHANNEL');
-    recvClk1.initSvg();
-    recvClk1.render();
-    seqBlock.getInput('CLK').connection.connect(recvClk1.outputConnection);
+    const userGroup = document.createElement('optgroup');
+    userGroup.label = 'Meus Projetos';
 
-    // Build chainable note sequence: C ➔ Eb ➔ G ➔ Bb ➔ C(+1) ➔ Bb ➔ G ➔ Eb
-    const notesData = [
-        { note: "0", oct: 0 },
-        { note: "3", oct: 0 },
-        { note: "7", oct: 0 },
-        { note: "10", oct: 0 },
-        { note: "0", oct: 1 },
-        { note: "10", oct: 0 },
-        { note: "7", oct: 0 },
-        { note: "3", oct: 0 }
-    ];
+    let hasUserProjects = false;
 
-    let prevNoteBlock = null;
-    for (let i = 0; i < notesData.length; i++) {
-        const noteBlock = workspace.newBlock('seq_note');
-        noteBlock.setFieldValue(notesData[i].note, 'NOTE');
-        noteBlock.setFieldValue(notesData[i].oct, 'OCTAVE');
-        noteBlock.initSvg();
-        noteBlock.render();
+    for (const proj of all) {
+        const opt = document.createElement('option');
+        opt.value = proj.id;
+        opt.textContent = proj.name;
+        if (proj.id === activeId) opt.selected = true;
 
-        if (i === 0) {
-            seqBlock.getInput('STEPS').connection.connect(noteBlock.previousConnection);
-        } else if (prevNoteBlock) {
-            prevNoteBlock.nextConnection.connect(noteBlock.previousConnection);
+        if (proj.isExample) {
+            examplesGroup.appendChild(opt);
+        } else {
+            userGroup.appendChild(opt);
+            hasUserProjects = true;
         }
-        prevNoteBlock = noteBlock;
     }
 
-    const sendPitch = workspace.newBlock('synth_send');
-    sendPitch.setFieldValue('pitch_seq', 'CHANNEL');
-    sendPitch.initSvg();
-    sendPitch.render();
-    sendPitch.moveTo(new Blockly.utils.Coordinate(-180, -80));
-    sendPitch.getInput('IN').connection.connect(seqBlock.outputConnection);
+    select.appendChild(examplesGroup);
+    if (hasUserProjects) {
+        select.appendChild(userGroup);
+    }
+}
 
-    // ADSR Envelope (GATE receives clock_mestre) -> Transmit [envelope_adsr]
-    const adsrBlock = workspace.newBlock('synth_adsr');
-    adsrBlock.initSvg();
-    adsrBlock.render();
-    adsrBlock.moveTo(new Blockly.utils.Coordinate(-460, 260));
+function renderModalProjectsList(filterQuery = '') {
+    const listContainer = document.getElementById('modal-projects-list');
+    if (!listContainer || !projectsManager) return;
 
-    const recvClk2 = workspace.newBlock('synth_recv');
-    recvClk2.setFieldValue('clock_mestre', 'CHANNEL');
-    recvClk2.initSvg();
-    recvClk2.render();
-    adsrBlock.getInput('GATE').connection.connect(recvClk2.outputConnection);
+    const all = projectsManager.getAllProjects();
+    const activeId = projectsManager.getActiveProjectId();
+    const query = filterQuery.trim().toLowerCase();
 
-    const sendEnv = workspace.newBlock('synth_send');
-    sendEnv.setFieldValue('envelope_adsr', 'CHANNEL');
-    sendEnv.initSvg();
-    sendEnv.render();
-    sendEnv.moveTo(new Blockly.utils.Coordinate(-180, 260));
-    sendEnv.getInput('IN').connection.connect(adsrBlock.outputConnection);
+    listContainer.innerHTML = '';
 
-    // 2. Column 2: Scratch Audio Rack Stack (Right)
-    const flagBlock = workspace.newBlock('event_whenflagclicked');
-    flagBlock.initSvg();
-    flagBlock.render();
-    flagBlock.moveTo(new Blockly.utils.Coordinate(100, -280));
+    const filtered = all.filter(p => {
+        if (!query) return true;
+        return p.name.toLowerCase().includes(query) || (p.description && p.description.toLowerCase().includes(query));
+    });
 
-    const vcoBlock = workspace.newBlock('synth_vco');
-    vcoBlock.initSvg();
-    vcoBlock.render();
+    if (filtered.length === 0) {
+        listContainer.innerHTML = `
+            <div style="text-align: center; color: var(--text-dim); padding: 40px 10px;">
+                Nenhum projeto ou exemplo encontrado para "<b>${filterQuery}</b>".
+            </div>
+        `;
+        return;
+    }
 
-    const recvPitch = workspace.newBlock('synth_recv');
-    recvPitch.setFieldValue('pitch_seq', 'CHANNEL');
-    recvPitch.initSvg();
-    recvPitch.render();
-    vcoBlock.getInput('FM').connection.connect(recvPitch.outputConnection);
+    for (const proj of filtered) {
+        const isActive = proj.id === activeId;
+        const card = document.createElement('div');
+        card.className = `project-card ${isActive ? 'active' : ''}`;
 
-    const vcfBlock = workspace.newBlock('synth_vcf');
-    vcfBlock.initSvg();
-    vcfBlock.render();
+        const info = document.createElement('div');
+        info.className = 'project-info';
 
-    // Map ADSR envelope (0..1) to Moog cutoff (250..7000 Hz) using math_map
-    const mapCutoff = workspace.newBlock('math_map');
-    mapCutoff.setFieldValue(0, 'IN_MIN');
-    mapCutoff.setFieldValue(1, 'IN_MAX');
-    mapCutoff.setFieldValue(250, 'OUT_MIN');
-    mapCutoff.setFieldValue(7000, 'OUT_MAX');
-    mapCutoff.initSvg();
-    mapCutoff.render();
+        const titleRow = document.createElement('div');
+        titleRow.className = 'project-title-row';
 
-    const recvEnv1 = workspace.newBlock('synth_recv');
-    recvEnv1.setFieldValue('envelope_adsr', 'CHANNEL');
-    recvEnv1.initSvg();
-    recvEnv1.render();
-    mapCutoff.getInput('VAL').connection.connect(recvEnv1.outputConnection);
-    vcfBlock.getInput('CUTOFF').connection.connect(mapCutoff.outputConnection);
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'project-name';
+        nameSpan.textContent = proj.name;
 
-    const vcaBlock = workspace.newBlock('synth_vca');
-    vcaBlock.initSvg();
-    vcaBlock.render();
+        const badge = document.createElement('span');
+        badge.className = `badge ${proj.isExample ? 'badge-example' : 'badge-user'}`;
+        badge.textContent = proj.isExample ? 'Exemplo' : 'Projeto';
 
-    const recvEnv2 = workspace.newBlock('synth_recv');
-    recvEnv2.setFieldValue('envelope_adsr', 'CHANNEL');
-    recvEnv2.initSvg();
-    recvEnv2.render();
-    vcaBlock.getInput('GAIN').connection.connect(recvEnv2.outputConnection);
+        titleRow.appendChild(nameSpan);
+        titleRow.appendChild(badge);
 
-    const scopeBlock = workspace.newBlock('synth_scope');
-    scopeBlock.initSvg();
-    scopeBlock.render();
+        if (isActive) {
+            const activeBadge = document.createElement('span');
+            activeBadge.className = 'badge badge-active';
+            activeBadge.textContent = 'Ativo';
+            titleRow.appendChild(activeBadge);
+        }
 
-    const delayBlock = workspace.newBlock('synth_delay');
-    delayBlock.initSvg();
-    delayBlock.render();
+        const desc = document.createElement('div');
+        desc.className = 'project-desc';
+        desc.textContent = proj.description || (proj.isExample ? 'Preset original de fábrica' : 'Projeto salvo pelo usuário');
 
-    const outBlock = workspace.newBlock('synth_out');
-    outBlock.initSvg();
-    outBlock.render();
+        const dateEl = document.createElement('div');
+        dateEl.className = 'project-date';
+        const dateStr = proj.updatedAt ? new Date(proj.updatedAt).toLocaleString('pt-BR') : 'Original';
+        dateEl.textContent = `Atualizado: ${dateStr}`;
 
-    // Snap Vertical Scratch Audio Stack: Flag ➔ VCO ➔ VCF ➔ VCA ➔ Scope ➔ Delay ➔ Out
-    flagBlock.nextConnection.connect(vcoBlock.previousConnection);
-    vcoBlock.nextConnection.connect(vcfBlock.previousConnection);
-    vcfBlock.nextConnection.connect(vcaBlock.previousConnection);
-    vcaBlock.nextConnection.connect(scopeBlock.previousConnection);
-    scopeBlock.nextConnection.connect(delayBlock.previousConnection);
-    delayBlock.nextConnection.connect(outBlock.previousConnection);
+        info.appendChild(titleRow);
+        info.appendChild(desc);
+        info.appendChild(dateEl);
 
-    workspace.scrollCenter();
-    synthEngine.compile();
+        const actions = document.createElement('div');
+        actions.className = 'project-actions';
+
+        // Load Button
+        const btnLoad = document.createElement('button');
+        btnLoad.className = 'btn-sm btn-primary';
+        btnLoad.textContent = 'Abrir';
+        btnLoad.title = 'Carregar este projeto na área de trabalho';
+        btnLoad.addEventListener('click', () => {
+            projectsManager.loadProject(proj.id);
+            updateProjectSelect();
+            renderModalProjectsList(filterQuery);
+            closeProjectsModal();
+            showToast(`Projeto aberto: ${proj.name}`);
+        });
+
+        // Duplicate Button
+        const btnDup = document.createElement('button');
+        btnDup.className = 'btn-sm';
+        btnDup.textContent = 'Duplicar';
+        btnDup.title = 'Criar uma cópia deste projeto';
+        btnDup.addEventListener('click', () => {
+            const copy = projectsManager.duplicateProject(proj.id);
+            if (copy) {
+                updateProjectSelect();
+                renderModalProjectsList(filterQuery);
+                showToast(`Cópia criada: ${copy.name}`);
+            }
+        });
+
+        // Export Button
+        const btnExport = document.createElement('button');
+        btnExport.className = 'btn-sm';
+        btnExport.textContent = 'Exportar';
+        btnExport.title = 'Baixar arquivo .json';
+        btnExport.addEventListener('click', () => {
+            projectsManager.exportProjectJson(proj.id);
+            showToast(`Exportando: ${proj.name}`);
+        });
+
+        actions.appendChild(btnLoad);
+        actions.appendChild(btnDup);
+        actions.appendChild(btnExport);
+
+        // Rename & Delete for user projects
+        if (!proj.isExample) {
+            const btnRename = document.createElement('button');
+            btnRename.className = 'btn-sm';
+            btnRename.textContent = 'Renomear';
+            btnRename.addEventListener('click', () => {
+                const newName = prompt('Novo nome para o projeto:', proj.name);
+                if (newName && newName.trim() && newName !== proj.name) {
+                    projectsManager.renameProject(proj.id, newName.trim());
+                    updateProjectSelect();
+                    renderModalProjectsList(filterQuery);
+                    showToast(`Renomeado para: ${newName.trim()}`);
+                }
+            });
+
+            const btnDel = document.createElement('button');
+            btnDel.className = 'btn-sm btn-danger';
+            btnDel.textContent = 'Excluir';
+            btnDel.addEventListener('click', () => {
+                if (confirm(`Tem certeza que deseja excluir o projeto "${proj.name}"?`)) {
+                    projectsManager.deleteProject(proj.id);
+                    updateProjectSelect();
+                    renderModalProjectsList(filterQuery);
+                    showToast(`Projeto excluído: ${proj.name}`, 'warn');
+                }
+            });
+
+            actions.appendChild(btnRename);
+            actions.appendChild(btnDel);
+        }
+
+        card.appendChild(info);
+        card.appendChild(actions);
+        listContainer.appendChild(card);
+    }
+}
+
+function openProjectsModal() {
+    const modal = document.getElementById('projects-modal');
+    const searchInput = document.getElementById('modal-search-input');
+    if (!modal) return;
+
+    if (searchInput) searchInput.value = '';
+    renderModalProjectsList('');
+    modal.style.display = 'flex';
+}
+
+function closeProjectsModal() {
+    const modal = document.getElementById('projects-modal');
+    if (modal) modal.style.display = 'none';
 }
 
 /* =========================================================================
@@ -241,10 +283,56 @@ function loadDefaultPatch() {
  * ========================================================================= */
 
 window.addEventListener('DOMContentLoaded', () => {
-    // 1. Register Scratch Synth Blocks
+    // 1. Register Synth Blocks
     registerSynthBlocks(Blockly);
 
-    // 2. Define Dark Scratch Theme for Blockly
+    // 2. Lock Flyout Scale to Fixed Crisp Size (Blocks in selection palette never scale with canvas zoom)
+    const FIXED_FLYOUT_SCALE = 0.85;
+
+    if (Blockly.Flyout) {
+        Blockly.Flyout.prototype.getFlyoutScale = function() {
+            return FIXED_FLYOUT_SCALE;
+        };
+    }
+
+    if (Blockly.VerticalFlyout) {
+        Blockly.VerticalFlyout.prototype.getFlyoutScale = function() {
+            return FIXED_FLYOUT_SCALE;
+        };
+
+        Blockly.VerticalFlyout.prototype.layout_ = function(a, b) {
+            this.workspace_.scale = FIXED_FLYOUT_SCALE;
+            let c = this.MARGIN;
+            const d = this.RTL ? c : c + this.tabWidth_;
+            for (let h = 0, k; (k = a[h]); h++) {
+                if ("block" === k.type) {
+                    const e = k.block;
+                    if (!e) continue;
+                    const f = e.getDescendants(false);
+                    for (let m = 0, n; (n = f[m]); m++) n.isInFlyout = true;
+                    const svgRoot = e.getSvgRoot();
+                    const l = e.getHeightWidth();
+                    const g = e.outputConnection ? d - this.tabWidth_ : d;
+                    e.moveBy(g, c);
+                    const rect = this.createRect_(e, this.RTL ? g - l.width : g, c, l, h);
+                    this.addBlockListeners_(svgRoot, e, rect);
+                    c += l.height + b[h];
+                } else if ("button" === k.type) {
+                    const e = k.button;
+                    this.initFlyoutButton_(e, d, c);
+                    c += e.height + b[h];
+                }
+            }
+        };
+    }
+
+    if (Blockly.HorizontalFlyout) {
+        Blockly.HorizontalFlyout.prototype.getFlyoutScale = function() {
+            return FIXED_FLYOUT_SCALE;
+        };
+    }
+
+    // 3. Define Clean Dark Theme for Blockly
     const scratchTheme = Blockly.Theme.defineTheme('scratchTheme', {
         base: Blockly.Themes.Classic,
         blockStyles: {
@@ -256,10 +344,10 @@ window.addEventListener('DOMContentLoaded', () => {
         },
         componentStyles: {
             workspaceBackgroundColour: '#0c100e',
-            toolboxBackgroundColour: '#16201c',
+            toolboxBackgroundColour: '#141c18',
             toolboxForegroundColour: '#dcdde1',
             flyoutBackgroundColour: '#111714',
-            flyoutOpacity: 0.95,
+            flyoutOpacity: 0.96,
             scrollbarColour: '#283731',
             scrollbarOpacity: 0.6,
             insertionMarkerColour: '#55efc4',
@@ -267,13 +355,13 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 3. Inject Blockly Workspace
+    // 4. Inject Blockly Workspace (Fullscreen)
     workspace = Blockly.inject('blockly-div', {
         toolbox: document.getElementById('toolbox'),
         grid: {
             spacing: 25,
             length: 3,
-            colour: '#22302a',
+            colour: '#1c2823',
             snap: true
         },
         zoom: {
@@ -288,26 +376,35 @@ window.addEventListener('DOMContentLoaded', () => {
         theme: scratchTheme
     });
 
-    // 4. Initialize Real-Time DSP Engine
+    // 4. Handle Fullscreen Responsive Canvas Resizing
+    window.addEventListener('resize', () => {
+        if (workspace) {
+            Blockly.svgResize(workspace);
+        }
+    });
+    setTimeout(() => {
+        if (workspace) Blockly.svgResize(workspace);
+    }, 100);
+
+    // 5. Initialize Real-Time DSP Engine
     synthEngine = new BlocklySynthEngine(48000);
     synthEngine.setWorkspace(workspace);
 
-    // Re-compile audio graph & play snap sound on block connections
+    // 6. Initialize Projects & Examples Manager
+    projectsManager = new ProjectsManager(workspace, synthEngine);
+
+    // Load active or default preset
+    const initialProjId = projectsManager.getActiveProjectId();
+    projectsManager.loadProject(initialProjId);
+    updateProjectSelect();
+
+    // Re-compile audio graph on block changes
     workspace.addChangeListener((e) => {
         if (e.isUiEvent) return;
-
-        // Play Scratch snap pop when block connects
-        if (e.type === Blockly.Events.BLOCK_MOVE && e.newParentId && !e.oldParentId) {
-            playScratchSnapSound();
-        }
-
         synthEngine.compile();
     });
 
-    // 5. Load Default Scratch Modular Preset
-    loadDefaultPatch();
-
-    // 6. Scratch Header Controls (Green Flag 🚩 / Red Stop 🛑)
+    // 7. Header Controls (Play / Stop)
     const btnFlag = document.getElementById('btn-flag');
     const btnStop = document.getElementById('btn-stop');
     const statusLabel = document.getElementById('status-label');
@@ -316,21 +413,155 @@ window.addEventListener('DOMContentLoaded', () => {
         await startAudio();
         isPlaying = true;
         btnFlag.classList.add('running');
-        statusLabel.textContent = '🔊 Sintetizando';
+        statusLabel.textContent = 'Sintetizando';
         statusLabel.style.color = '#55efc4';
     });
 
     btnStop.addEventListener('click', async () => {
         isPlaying = false;
         btnFlag.classList.remove('running');
-        statusLabel.textContent = '🛑 Parado';
+        statusLabel.textContent = 'Parado';
         statusLabel.style.color = '#ff7675';
     });
 
-    document.getElementById('btn-preset-default').addEventListener('click', loadDefaultPatch);
-    document.getElementById('btn-clear-workspace').addEventListener('click', () => {
-        workspace.clear();
-        synthEngine.compile();
+    // 8. Project Toolbar Event Handlers
+    const projectSelect = document.getElementById('project-select');
+    const btnSaveProject = document.getElementById('btn-save-project');
+    const btnSaveAsProject = document.getElementById('btn-save-as-project');
+    const btnNewProject = document.getElementById('btn-new-project');
+    const btnManageProjects = document.getElementById('btn-manage-projects');
+    const btnExportProject = document.getElementById('btn-export-project');
+    const btnImportProject = document.getElementById('btn-import-project');
+    const fileInputProject = document.getElementById('file-input-project');
+    const btnClearWorkspace = document.getElementById('btn-clear-workspace');
+
+    projectSelect.addEventListener('change', (e) => {
+        const id = e.target.value;
+        const loaded = projectsManager.loadProject(id);
+        if (loaded) {
+            const proj = projectsManager.getProject(id);
+            showToast(`Carregado: ${proj ? proj.name : id}`);
+        }
+    });
+
+    btnSaveProject.addEventListener('click', () => {
+        const currentId = projectsManager.getActiveProjectId();
+        const current = projectsManager.getProject(currentId);
+
+        if (current && current.isExample) {
+            const name = prompt(`Você está editando um exemplo de fábrica.\nDigite o nome para salvar sua cópia personalizada:`, `${current.name} (Minha Cópia)`);
+            if (name && name.trim()) {
+                const saved = projectsManager.saveAsNewProject(name.trim());
+                updateProjectSelect();
+                showToast(`Salvo como novo projeto: ${saved.name}`);
+            }
+        } else {
+            const saved = projectsManager.saveCurrentProject();
+            updateProjectSelect();
+            showToast(`Projeto salvo: ${saved ? saved.name : ''}`);
+        }
+    });
+
+    btnSaveAsProject.addEventListener('click', () => {
+        const currentId = projectsManager.getActiveProjectId();
+        const current = projectsManager.getProject(currentId);
+        const defaultName = current ? `${current.name} (Cópia)` : 'Novo Patch';
+
+        const name = prompt('Nome para o novo projeto:', defaultName);
+        if (name && name.trim()) {
+            const saved = projectsManager.saveAsNewProject(name.trim());
+            updateProjectSelect();
+            showToast(`Projeto salvo: ${saved.name}`);
+        }
+    });
+
+    btnNewProject.addEventListener('click', () => {
+        if (confirm('Deseja criar um novo projeto em branco?')) {
+            workspace.clear();
+            const newProj = projectsManager.saveAsNewProject('Novo Projeto ' + (projectsManager.getAllProjects().length + 1));
+            updateProjectSelect();
+            synthEngine.compile();
+            showToast(`Novo projeto criado: ${newProj.name}`);
+        }
+    });
+
+    btnManageProjects.addEventListener('click', openProjectsModal);
+
+    btnExportProject.addEventListener('click', () => {
+        const activeId = projectsManager.getActiveProjectId();
+        const proj = projectsManager.getProject(activeId);
+        projectsManager.exportProjectJson(activeId);
+        showToast(`Exportando: ${proj ? proj.name : 'patch'}`);
+    });
+
+    btnImportProject.addEventListener('click', () => {
+        fileInputProject.value = '';
+        fileInputProject.click();
+    });
+
+    fileInputProject.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+            try {
+                const imported = projectsManager.importProjectJson(evt.target.result);
+                updateProjectSelect();
+                showToast(`Projeto importado: ${imported.name}`);
+            } catch (err) {
+                alert('Erro ao importar arquivo: ' + err.message);
+            }
+        };
+        reader.readAsText(file);
+    });
+
+    btnClearWorkspace.addEventListener('click', () => {
+        if (confirm('Limpar todos os blocos da área de trabalho?')) {
+            workspace.clear();
+            synthEngine.compile();
+            showToast('Área de trabalho limpa', 'warn');
+        }
+    });
+
+    // 9. Modal Event Handlers
+    document.getElementById('btn-modal-close').addEventListener('click', closeProjectsModal);
+    document.getElementById('btn-modal-done').addEventListener('click', closeProjectsModal);
+
+    const modalOverlay = document.getElementById('projects-modal');
+    modalOverlay.addEventListener('click', (e) => {
+        if (e.target === modalOverlay) closeProjectsModal();
+    });
+
+    document.getElementById('modal-search-input').addEventListener('input', (e) => {
+        renderModalProjectsList(e.target.value);
+    });
+
+    document.getElementById('btn-modal-new-proj').addEventListener('click', () => {
+        const name = prompt('Nome para o novo projeto:', 'Novo Patch');
+        if (name && name.trim()) {
+            workspace.clear();
+            const p = projectsManager.saveAsNewProject(name.trim());
+            updateProjectSelect();
+            renderModalProjectsList('');
+            synthEngine.compile();
+            closeProjectsModal();
+            showToast(`Projeto criado: ${p.name}`);
+        }
+    });
+
+    document.getElementById('btn-modal-import-proj').addEventListener('click', () => {
+        fileInputProject.value = '';
+        fileInputProject.click();
+    });
+
+    document.getElementById('btn-modal-reset-examples').addEventListener('click', () => {
+        if (confirm('Deseja restaurar todos os 6 exemplos originais de fábrica? (Seus projetos pessoais não serão apagados)')) {
+            projectsManager.resetFactoryExamples();
+            updateProjectSelect();
+            renderModalProjectsList('');
+            showToast('Exemplos de fábrica restaurados!');
+        }
     });
 
     // Keyboard Event Listener for `event_whenkeypressed`
@@ -344,7 +575,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (synthEngine) synthEngine.onKeyUp(e.code);
     });
 
-    // 7. Live 60 FPS Oscilloscope Display Render Loop
+    // 10. Live Oscilloscope Display Render Loop
     function renderLiveOscilloscopes() {
         if (workspace && synthEngine) {
             const scopeBlocks = workspace.getAllBlocks(false).filter(b => b.type === 'synth_scope');
@@ -357,10 +588,8 @@ window.addEventListener('DOMContentLoaded', () => {
                 const parentGroup = fieldSvgRoot.parentNode;
                 if (!parentGroup) continue;
 
-                // Hide the raw image placeholder
                 fieldSvgRoot.style.display = 'none';
 
-                // Calculate exact offset inside the block
                 let posX = 16;
                 let posY = 64;
                 try {
@@ -423,7 +652,6 @@ window.addEventListener('DOMContentLoaded', () => {
                     const head = state.histHead;
                     const len = 512;
 
-                    // Trigger zero-crossing
                     let start = (head - 256 + len) % len;
                     for (let i = 0; i < 96; i++) {
                         const idx1 = (head - 256 + i + len) % len;
@@ -457,4 +685,3 @@ window.addEventListener('DOMContentLoaded', () => {
 
     renderLiveOscilloscopes();
 });
-

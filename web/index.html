@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BRACK // Live-Scriptable Blackboard Modular Synth</title>
+    <title>BRACK // Modular Synth & Live DSP</title>
     <style>
         :root {
             --bg: #0c100e;
@@ -21,46 +21,47 @@
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; }
 
-        body {
+        html, body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
             background: var(--bg);
             color: var(--chalk-white);
             display: flex;
             flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-            padding: 10px 16px;
             user-select: none;
             -webkit-user-select: none;
-            overflow-x: hidden;
         }
 
         header {
             width: 100%;
-            max-width: 1400px;
+            height: 48px;
+            background: #111714;
+            border-bottom: 1px solid #283731;
+            padding: 0 14px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 8px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            flex-shrink: 0;
+            z-index: 10;
         }
 
         h1 {
-            font-size: 17px;
+            font-size: 15px;
             letter-spacing: 1.5px;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             color: var(--chalk-yellow);
             font-weight: 800;
         }
 
         h1 span {
-            font-size: 11px;
+            font-size: 10px;
             background: rgba(72, 219, 251, 0.15);
             color: var(--chalk-cyan);
             border: 1px solid var(--chalk-cyan);
-            padding: 2px 8px;
+            padding: 2px 6px;
             border-radius: 4px;
             letter-spacing: 0.5px;
         }
@@ -71,12 +72,12 @@
             gap: 8px;
         }
 
-        .scratch-controls {
+        .playback-controls {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
             background: #18201d;
-            padding: 4px 8px;
+            padding: 3px 6px;
             border-radius: 20px;
             border: 1px solid #283731;
         }
@@ -85,13 +86,14 @@
             background: #00b894;
             color: #fff;
             border: none;
-            width: 34px;
-            height: 34px;
+            width: 30px;
+            height: 30px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 16px;
+            font-size: 13px;
+            font-weight: bold;
             cursor: pointer;
             box-shadow: 0 2px 8px rgba(0, 184, 148, 0.4);
             transition: transform 0.1s ease, background 0.15s ease;
@@ -99,31 +101,31 @@
 
         .btn-flag:hover {
             background: #55efc4;
-            transform: scale(1.08);
+            transform: scale(1.06);
         }
 
         .btn-flag.running {
             background: #00cec9;
-            box-shadow: 0 0 14px #00cec9;
+            box-shadow: 0 0 12px #00cec9;
             animation: pulse-flag 1.2s infinite ease-in-out;
         }
 
         @keyframes pulse-flag {
             0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
+            50% { transform: scale(1.08); }
         }
 
         .btn-stop {
             background: #d63031;
             color: #fff;
             border: none;
-            width: 34px;
-            height: 34px;
+            width: 30px;
+            height: 30px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 16px;
+            font-size: 13px;
             cursor: pointer;
             box-shadow: 0 2px 8px rgba(214, 48, 49, 0.4);
             transition: transform 0.1s ease, background 0.15s ease;
@@ -131,20 +133,46 @@
 
         .btn-stop:hover {
             background: #ff7675;
-            transform: scale(1.08);
+            transform: scale(1.06);
+        }
+
+        .project-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: #151c19;
+            padding: 3px 6px;
+            border-radius: 6px;
+            border: 1px solid #283731;
+        }
+
+        #project-select {
+            background: #1e2723;
+            color: var(--chalk-yellow);
+            border: 1px solid #3d4f47;
+            padding: 5px 8px;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 11px;
+            outline: none;
+            max-width: 210px;
+            cursor: pointer;
         }
 
         button, select {
             background: #1e2723;
             color: var(--chalk-white);
             border: 1px solid #35433d;
-            padding: 6px 14px;
-            border-radius: 6px;
+            padding: 5px 10px;
+            border-radius: 4px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 700;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
             transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
         }
 
         button:hover, select:hover {
@@ -152,154 +180,86 @@
             color: var(--chalk-green);
         }
 
-        button.active {
+        button.btn-primary {
             background: #10ac84;
             color: #0b0c10;
             border-color: #1dd1a1;
         }
 
+        button.btn-primary:hover {
+            background: #1dd1a1;
+            color: #000;
+        }
+
+        button.btn-warn {
+            border-color: var(--chalk-orange);
+            color: var(--chalk-orange);
+        }
+
+        button.btn-danger {
+            border-color: var(--chalk-pink);
+            color: var(--chalk-pink);
+        }
+
+        button.btn-sm {
+            padding: 3px 6px;
+            font-size: 10px;
+        }
+
         .zoom-info {
-            font-size: 12px;
+            font-size: 11px;
             color: var(--chalk-yellow);
             background: #18201d;
-            padding: 5px 10px;
+            padding: 4px 8px;
             border-radius: 4px;
             border: 1px solid #283430;
+            min-width: 90px;
+            text-align: center;
         }
 
+        /* Workspace Grid Fullscreen */
         .workspace-grid {
-            width: 100%;
-            max-width: 1400px;
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 10px;
-            transition: all 0.3s ease;
-        }
-
-        .workspace-grid.editor-open {
-            grid-template-columns: 1fr 480px;
+            flex: 1;
+            width: 100vw;
+            height: calc(100vh - 48px - 26px);
+            display: flex;
+            position: relative;
+            background: #0c100e;
         }
 
         .board-container {
             width: 100%;
-            height: 700px;
-            background: #111714;
-            border: 2px solid #283731;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.9);
+            height: 100%;
+            background: #0c100e;
             position: relative;
+            overflow: hidden;
         }
 
-        canvas#chalk-canvas {
+        #blockly-div {
             width: 100%;
             height: 100%;
-            display: block;
-            cursor: default;
+            position: absolute;
+            top: 0;
+            left: 0;
         }
 
-        /* Live Code Editor Panel */
-        .editor-drawer {
-            display: none;
-            background: var(--editor-bg);
-            border: 1px solid #283731;
-            border-radius: 8px;
-            padding: 12px;
-            flex-direction: column;
-            gap: 8px;
-            height: 700px;
-            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.9);
+        /* Fixed Width Stable Toolbox Sidebar */
+        .blocklyToolboxDiv {
+            width: 210px !important;
+            min-width: 210px !important;
+            max-width: 210px !important;
+            background-color: #141c18 !important;
+            border-right: 1px solid #283731 !important;
+            box-sizing: border-box !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
         }
 
-        .workspace-grid.editor-open .editor-drawer {
-            display: flex;
-        }
-
-        .editor-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .editor-title {
-            font-size: 13px;
-            font-weight: 700;
-            color: var(--chalk-cyan);
-            letter-spacing: 0.5px;
-        }
-
-        .editor-status {
-            font-size: 10px;
-            padding: 2px 6px;
-            border-radius: 3px;
-            background: #162a22;
-            color: var(--chalk-green);
-            border: 1px solid var(--chalk-green);
-        }
-
-        .editor-status.error {
-            background: rgba(255, 107, 107, 0.2);
-            color: var(--chalk-pink);
-            border-color: var(--chalk-pink);
-        }
-
-        textarea#code-editor {
-            flex: 1;
-            background: #090d0b;
-            color: #55efc4;
-            border: 1px solid #283731;
-            border-radius: 4px;
-            padding: 10px;
-            font-family: "Fira Code", "Courier New", monospace;
-            font-size: 11px;
-            line-height: 1.5;
-            resize: none;
-            outline: none;
-            white-space: pre;
-            tab-size: 4;
-        }
-
-        textarea#code-editor:focus {
-            border-color: var(--chalk-cyan);
-        }
-
-        .editor-footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .cheat-sheet {
-            font-size: 10px;
-            color: var(--text-dim);
-        }
-
-        .cheat-sheet code {
-            color: var(--chalk-yellow);
-            background: #18201d;
-            padding: 2px 4px;
-            border-radius: 2px;
-        }
-
-        .chalk-footer {
-            width: 100%;
-            max-width: 1400px;
-            margin-top: 8px;
-            padding: 8px 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #111714;
-            border: 1px solid #202b26;
-            border-radius: 6px;
-            font-size: 11px;
-            color: var(--text-dim);
-        }
-
-        .help-pill {
-            display: flex;
-            gap: 12px;
-            align-items: center;
+        .blocklyTreeRow {
+            padding: 5px 8px !important;
+            margin: 2px 4px !important;
+            border-radius: 4px !important;
+            height: auto !important;
         }
 
         .blocklyTreeLabel {
@@ -308,25 +268,262 @@
             font-weight: 700 !important;
             color: #dcdde1 !important;
         }
+
         .blocklyFlyoutBackground {
             fill: #111714 !important;
-            fill-opacity: 0.95 !important;
+            fill-opacity: 0.96 !important;
         }
-        .blocklyToolboxDiv {
-            background-color: #16201c !important;
-            border-right: 1px solid #283731 !important;
-        }
+
         .blocklyMainBackground {
             fill: #0c100e !important;
         }
+
         .blocklySelected > .blocklyPath {
             stroke: #feca57 !important;
             stroke-width: 3px !important;
         }
-        .synth-pulse > .blocklyPath {
-            stroke: #55efc4 !important;
-            stroke-width: 4px !important;
-            filter: drop-shadow(0 0 8px #55efc4);
+
+        .chalk-footer {
+            width: 100%;
+            height: 26px;
+            padding: 0 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #111714;
+            border-top: 1px solid #202b26;
+            font-size: 11px;
+            color: var(--text-dim);
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        /* Modal Gerenciador de Projetos */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(4px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-dialog {
+            background: #141c18;
+            border: 2px solid #283731;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 780px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.95);
+            overflow: hidden;
+        }
+
+        .modal-header {
+            padding: 12px 16px;
+            background: #18221e;
+            border-bottom: 1px solid #283731;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            font-size: 15px;
+            color: var(--chalk-yellow);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .modal-close {
+            background: transparent;
+            border: none;
+            color: #8395a7;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 2px 6px;
+        }
+
+        .modal-close:hover {
+            color: var(--chalk-pink);
+        }
+
+        .modal-search-bar {
+            padding: 8px 16px;
+            background: #121815;
+            border-bottom: 1px solid #202b26;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .modal-search-bar input {
+            flex: 1;
+            min-width: 180px;
+            background: #090d0b;
+            border: 1px solid #283731;
+            border-radius: 4px;
+            color: var(--chalk-white);
+            padding: 6px 10px;
+            font-size: 11px;
+            outline: none;
+        }
+
+        .modal-search-bar input:focus {
+            border-color: var(--chalk-green);
+        }
+
+        .modal-body {
+            padding: 12px 16px;
+            overflow-y: auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .project-card {
+            background: #18221e;
+            border: 1px solid #283731;
+            border-radius: 6px;
+            padding: 10px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.15s ease;
+        }
+
+        .project-card:hover {
+            border-color: #3b5247;
+            background: #1c2723;
+        }
+
+        .project-card.active {
+            border-color: var(--chalk-green);
+            background: #162a22;
+        }
+
+        .project-info {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            flex: 1;
+        }
+
+        .project-title-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .project-name {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--chalk-white);
+        }
+
+        .badge {
+            font-size: 9px;
+            font-weight: 700;
+            padding: 2px 5px;
+            border-radius: 3px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .badge-example {
+            background: rgba(72, 219, 251, 0.15);
+            color: var(--chalk-cyan);
+            border: 1px solid var(--chalk-cyan);
+        }
+
+        .badge-user {
+            background: rgba(254, 202, 87, 0.15);
+            color: var(--chalk-yellow);
+            border: 1px solid var(--chalk-yellow);
+        }
+
+        .badge-active {
+            background: rgba(29, 209, 161, 0.2);
+            color: var(--chalk-green);
+            border: 1px solid var(--chalk-green);
+        }
+
+        .project-desc {
+            font-size: 11px;
+            color: var(--text-dim);
+            line-height: 1.3;
+        }
+
+        .project-date {
+            font-size: 10px;
+            color: #576574;
+        }
+
+        .project-actions {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        .modal-footer {
+            padding: 10px 16px;
+            background: #18221e;
+            border-top: 1px solid #283731;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-tip {
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+
+        /* Toast Feedback */
+        .toast {
+            position: fixed;
+            bottom: 34px;
+            right: 20px;
+            background: #10ac84;
+            color: #0c100e;
+            padding: 8px 16px;
+            border-radius: 5px;
+            font-weight: 700;
+            font-size: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            z-index: 2000;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast.toast-warn {
+            background: var(--chalk-yellow);
+        }
+
+        .toast.toast-error {
+            background: var(--chalk-pink);
+            color: #fff;
         }
     </style>
     <script src="vendor/blockly.min.js"></script>
@@ -334,34 +531,70 @@
 <body>
 
     <header>
-        <h1>
-            BRACK <span>SCRATCH MODULAR SYNTH</span>
-        </h1>
+        <h1>BRACK <span>MODULAR SYNTH</span></h1>
         <div class="actions">
-            <div class="scratch-controls">
-                <button class="btn-flag" id="btn-flag" title="Start Synthesis (Green Flag)">🚩</button>
-                <button class="btn-stop" id="btn-stop" title="Stop Synthesis (Red Stop)">🛑</button>
+            <div class="playback-controls">
+                <button class="btn-flag" id="btn-flag" title="Iniciar Síntese">▶</button>
+                <button class="btn-stop" id="btn-stop" title="Parar Síntese">■</button>
             </div>
-            <button id="btn-preset-default">⚡ Preset Patch</button>
-            <button id="btn-clear-workspace">Limpar</button>
-            <div class="zoom-info" id="status-label">🔊 Pronto</div>
+
+            <!-- Project Selector & Actions Toolbar -->
+            <div class="project-toolbar">
+                <select id="project-select" title="Carregar Exemplo ou Projeto Salvo"></select>
+                <button id="btn-save-project" class="btn-primary" title="Salvar alterações no projeto">Salvar</button>
+                <button id="btn-save-as-project" title="Salvar como novo projeto">Salvar Como</button>
+                <button id="btn-new-project" title="Criar projeto em branco">Novo</button>
+                <button id="btn-manage-projects" title="Gerenciador de Projetos e Exemplos">Projetos</button>
+                <button id="btn-export-project" title="Exportar para arquivo .json">Exportar</button>
+                <button id="btn-import-project" title="Importar arquivo .json">Importar</button>
+                <button id="btn-clear-workspace" title="Limpar todos os blocos">Limpar</button>
+                <input type="file" id="file-input-project" accept=".json,.brack.json" style="display: none;" />
+            </div>
+
+            <div class="zoom-info" id="status-label">Pronto</div>
         </div>
     </header>
 
     <div class="workspace-grid" id="workspace-grid">
         <div class="board-container">
-            <div id="blockly-div" style="width: 100%; height: 100%;"></div>
+            <div id="blockly-div"></div>
         </div>
     </div>
 
     <div class="chalk-footer">
-        <div class="help-pill"><b>Scratch Modular:</b> <span style="color:#FFAB19">🚩 Eventos</span> | <span style="color:#9966FF">〰️ Geradores</span> | <span style="color:#FF8C1A">🎛️ Filtros</span> | <span style="color:#59C059">📈 Moduladores</span> | <span style="color:#4C97FF">📼 Efeitos</span></div>
-        <div>Clique na Bandeira 🚩 para tocar | Conecte os blocos verticalmente como LEGO | DSP 48kHz em tempo real</div>
+        <div><b>BRACK Modular:</b> Conecte blocos em pilhas de áudio | DSP 48kHz em tempo real | Atalhos de teclado A-K</div>
+        <div>Pronto para tocar</div>
     </div>
 
-    <!-- Blockly Toolbox Definition (Scratch Categories) -->
+    <!-- Modal Gerenciador de Projetos e Exemplos -->
+    <div class="modal-overlay" id="projects-modal" style="display: none;">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h2>Gerenciador de Projetos & Exemplos</h2>
+                <button class="modal-close" id="btn-modal-close" title="Fechar">✕</button>
+            </div>
+            <div class="modal-search-bar">
+                <input type="text" id="modal-search-input" placeholder="Filtrar projetos ou exemplos..." />
+                <button id="btn-modal-new-proj" class="btn-sm">Novo Projeto</button>
+                <button id="btn-modal-import-proj" class="btn-sm">Importar JSON</button>
+                <button id="btn-modal-reset-examples" class="btn-sm btn-warn" title="Restaura todos os exemplos originais de fábrica">Restaurar Exemplos</button>
+            </div>
+            <div class="modal-body" id="modal-projects-list">
+                <!-- Project cards injected here -->
+            </div>
+            <div class="modal-footer">
+                <div class="modal-tip">Todos os exemplos começam salvos e prontos para tocar e modificar.</div>
+                <button id="btn-modal-done" class="btn-primary">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Toast Notification -->
+    <div class="toast" id="toast-notification">Notificação</div>
+
+    <!-- Blockly Toolbox Definition -->
     <xml id="toolbox" style="display: none">
-        <category name="📦 Variáveis & Listas" colour="#FF661A">
+        <category name="Variáveis & Listas" colour="#FF661A">
             <block type="synth_var_set"></block>
             <block type="synth_var_change"></block>
             <block type="synth_var_mult"></block>
@@ -369,22 +602,28 @@
             <block type="synth_var_get"></block>
             <block type="synth_list_set"></block>
             <block type="synth_list_add"></block>
+            <block type="synth_list_remove"></block>
+            <block type="synth_list_insert"></block>
+            <block type="synth_list_replace"></block>
             <block type="synth_list_clear"></block>
             <block type="synth_list_get_item"></block>
             <block type="synth_list_length"></block>
+            <block type="synth_list_contains"></block>
+            <block type="synth_list_find"></block>
         </category>
-        <category name="📡 Barramentos de Áudio" colour="#FF6680">
+        <category name="Barramentos de Áudio" colour="#FF6680">
             <block type="synth_send"></block>
             <block type="synth_recv"></block>
         </category>
-        <category name="🔀 Controle & Lógica" colour="#FFAB19">
+        <category name="Controle & Lógica" colour="#FFAB19">
             <block type="control_if_else"></block>
             <block type="logic_compare_cv"></block>
             <block type="logic_and"></block>
             <block type="logic_or"></block>
             <block type="logic_not"></block>
+            <block type="logic_xor"></block>
         </category>
-        <category name="🚩 Eventos & Clock" colour="#FFBF00">
+        <category name="Eventos & Clock" colour="#FFBF00">
             <block type="event_whenflagclicked"></block>
             <block type="event_every"></block>
             <block type="event_broadcast"></block>
@@ -395,38 +634,47 @@
             <block type="synth_clock_divider"></block>
             <block type="event_whenclockpulse"></block>
         </category>
-        <category name="〰️ Geradores" colour="#9966FF">
+        <category name="Geradores" colour="#9966FF">
             <block type="synth_vco"></block>
+            <block type="synth_noise"></block>
+            <block type="synth_sub_osc"></block>
             <block type="synth_bytebeat"></block>
         </category>
-        <category name="🎛️ Filtros & Dinâmica" colour="#FF8C1A">
+        <category name="Filtros & Dinâmica" colour="#FF8C1A">
             <block type="synth_vcf"></block>
+            <block type="synth_svf"></block>
             <block type="synth_vca"></block>
             <block type="synth_distortion"></block>
+            <block type="synth_ringmod"></block>
+            <block type="synth_compressor"></block>
             <block type="synth_mixer"></block>
+            <block type="synth_mixer4"></block>
         </category>
-        <category name="📈 Moduladores" colour="#59C059">
+        <category name="Moduladores" colour="#59C059">
             <block type="synth_seq"></block>
             <block type="seq_note"></block>
             <block type="seq_rest"></block>
             <block type="synth_adsr"></block>
             <block type="synth_lfo"></block>
             <block type="synth_sample_hold"></block>
+            <block type="synth_slew"></block>
+            <block type="synth_attenuverter"></block>
         </category>
-        <category name="➕ Operadores & Listas" colour="#40C057">
+        <category name="Operadores & Matemática" colour="#40C057">
             <block type="math_number"></block>
             <block type="math_arithmetic"></block>
             <block type="math_map"></block>
             <block type="math_single"></block>
             <block type="math_random"></block>
-            <block type="math_list_item"></block>
             <block type="math_note_name"></block>
             <block type="math_note_to_hz"></block>
             <block type="math_note_convert"></block>
+            <block type="math_transpose"></block>
         </category>
-        <category name="📼 Efeitos & Saída" colour="#4C97FF">
+        <category name="Efeitos & Saída" colour="#4C97FF">
             <block type="synth_scope"></block>
             <block type="synth_chorus"></block>
+            <block type="synth_reverb"></block>
             <block type="synth_delay"></block>
             <block type="synth_out"></block>
         </category>

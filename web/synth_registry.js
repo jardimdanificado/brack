@@ -1,25 +1,20 @@
 /**
  * =========================================================================
  * BRACK Unified Synthesizer Module Registry (web/synth_registry.js)
- * Single declarative source of truth for:
- * 1. Visual Block Faceplates (Blockly / Scratch UI)
- * 2. Inputs, Outputs & Type Specifications
- * 3. State Management
- * 4. Real-Time 48kHz DSP Algorithms
- * 5. Dynamic Toolbox Generator
+ * Clean Modular DSP Architecture (48kHz Real-Time Audio Engine)
  * =========================================================================
  */
 
 export const CATEGORIES = {
-    VARIABLES: { id: "VARIABLES", name: "📦 Variáveis & Listas", colour: "#FF661A" },
-    ROUTING: { id: "ROUTING", name: "📡 Barramentos de Áudio", colour: "#FF6680" },
-    CONTROL: { id: "CONTROL", name: "🔀 Controle & Lógica", colour: "#FFAB19" },
-    EVENTS: { id: "EVENTS", name: "🚩 Eventos & Clock", colour: "#FFBF00" },
-    GENERATORS: { id: "GENERATORS", name: "〰️ Geradores", colour: "#9966FF" },
-    FILTERS: { id: "FILTERS", name: "🎛️ Filtros & Dinâmica", colour: "#FF8C1A" },
-    MODULATORS: { id: "MODULATORS", name: "📈 Moduladores", colour: "#59C059" },
-    OPERATORS: { id: "OPERATORS", name: "➕ Operadores Scratch", colour: "#40C057" },
-    EFFECTS: { id: "EFFECTS", name: "📼 Efeitos & Saída", colour: "#4C97FF" }
+    VARIABLES: { id: "VARIABLES", name: "Variáveis & Listas", colour: "#FF661A" },
+    ROUTING: { id: "ROUTING", name: "Barramentos de Áudio", colour: "#FF6680" },
+    CONTROL: { id: "CONTROL", name: "Controle & Lógica", colour: "#FFAB19" },
+    EVENTS: { id: "EVENTS", name: "Eventos & Clock", colour: "#FFBF00" },
+    GENERATORS: { id: "GENERATORS", name: "Geradores", colour: "#9966FF" },
+    FILTERS: { id: "FILTERS", name: "Filtros & Dinâmica", colour: "#FF8C1A" },
+    MODULATORS: { id: "MODULATORS", name: "Moduladores", colour: "#59C059" },
+    OPERATORS: { id: "OPERATORS", name: "Operadores & Matemática", colour: "#40C057" },
+    EFFECTS: { id: "EFFECTS", name: "Efeitos & Saída", colour: "#4C97FF" }
 };
 
 export const MODULE_REGISTRY = new Map();
@@ -30,11 +25,14 @@ export function defineModule(spec) {
 }
 
 /* =========================================================================
- * DSP Mathematical & Synthesis Helpers (PolyBLEP, Moog, Waveshapers)
+ * DSP Mathematical & Synthesis Helpers (PolyBLEP, Moog, SVF, Reverb, Waveshapers)
  * ========================================================================= */
 export const dspHelpers = {
     clamp(v, min, max) {
         return Math.max(min, Math.min(max, v));
+    },
+    lerp(a, b, t) {
+        return a + (b - a) * t;
     },
     parseNoteToMidi(token) {
         if (typeof token === 'number') return token;
@@ -106,6 +104,10 @@ export const dspHelpers = {
     mtof(note) {
         return 440.0 * Math.pow(2.0, (note - 69.0) / 12.0);
     },
+    ftom(freq) {
+        if (freq <= 0) return 0;
+        return 69.0 + 12.0 * Math.log2(freq / 440.0);
+    },
     moogLadder(inSmp, cutoffHz, res, state, sampleRate = 48000) {
         const f = this.clamp((2.0 * cutoffHz) / sampleRate, 0.001, 0.98);
         const k = 3.6 * f - 1.6 * f * f - 1.0;
@@ -120,28 +122,41 @@ export const dspHelpers = {
         state[3] = this.tanh(state[3] + p * (state[2] - state[3]));
 
         return state[3];
+    },
+    svf(inSmp, cutoffHz, res, state, sampleRate = 48000) {
+        const normCutoff = this.clamp(cutoffHz / sampleRate, 0.0005, 0.49);
+        const f = 2.0 * Math.sin(Math.PI * normCutoff);
+        const q = 1.0 - this.clamp(res, 0.0, 0.98);
+
+        const hp = inSmp - state.lp - q * state.bp;
+        state.bp += f * hp;
+        state.lp += f * state.bp;
+        const notch = hp + state.lp;
+        const peak = state.lp - hp;
+
+        return { lp: state.lp, hp, bp: state.bp, notch, peak };
     }
 };
 
 /* =========================================================================
- * 1. GENERATORS (〰️)
+ * 1. GENERATORS
  * ========================================================================= */
 defineModule({
     id: 'synth_vco',
-    name: '〰️ Oscilador VCO',
+    name: 'Oscilador VCO',
     category: 'GENERATORS',
     shape: 'statement',
     inputs: [
-        { id: 'WAVE', label: 'Forma', type: 'dropdown', options: [
-            ['SAW (Dente de Serra)', 'saw'],
-            ['SQUARE (Quadrada)', 'sqr'],
-            ['TRIANGLE (Triangular)', 'tri'],
-            ['SINE (Senoidal)', 'sin'],
-            ['NOISE (Ruído)', 'noise']
+        { id: 'WAVE', label: 'Forma de Onda', type: 'dropdown', options: [
+            ['Dente de Serra (Saw)', 'saw'],
+            ['Quadrada (Square)', 'sqr'],
+            ['Triangular (Triangle)', 'tri'],
+            ['Senoidal (Sine)', 'sin'],
+            ['Ruído Branco (Noise)', 'noise']
         ], default: 'saw' },
-        { id: 'FREQ', label: 'Frequência (Hz)', type: 'val', default: 130.81 },
+        { id: 'FREQ', label: 'Frequência Base (Hz)', type: 'val', default: 130.81 },
         { id: 'FM', label: 'Modulação FM (CV)', type: 'val', default: 0 },
-        { id: 'PW', label: 'Largura Pulso (0..1)', type: 'val', default: 0.5 }
+        { id: 'PW', label: 'Largura Pulso PW (0..1)', type: 'val', default: 0.5 }
     ],
     state: () => ({ phase: 0, audioBuf: new Float32Array(128) }),
     process(inputs, state, dsp, numSamples) {
@@ -155,7 +170,7 @@ defineModule({
             const baseFreq = freqRes.audio ? freqRes.audio[s] : freqRes.val;
             const fm = fmRes ? (fmRes.audio ? fmRes.audio[s] : fmRes.val) : 0;
             const actualFreq = fm !== 0 ? dsp.voct(fm, baseFreq) : baseFreq;
-            const dt = actualFreq / 48000;
+            const dt = Math.max(0.0001, actualFreq) / 48000;
 
             let smp = 0;
             if (wave === 'saw') smp = dsp.saw(state.phase, dt);
@@ -170,12 +185,98 @@ defineModule({
         }
         return { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf };
     },
-    tooltip: 'Oscilador analógico PolyBLEP anti-aliased.'
+    tooltip: 'Oscilador analógico PolyBLEP anti-aliased com modulação FM contínua.'
+});
+
+defineModule({
+    id: 'synth_noise',
+    name: 'Gerador de Ruído',
+    category: 'GENERATORS',
+    shape: 'statement',
+    inputs: [
+        { id: 'IN', label: 'Áudio In (ou fluxo acima)', type: 'audio' },
+        { id: 'TYPE', label: 'Tipo de Ruído', type: 'dropdown', options: [
+            ['Branco (White)', 'white'],
+            ['Rosa (Pink)', 'pink'],
+            ['Marrom (Brown/Red)', 'brown']
+        ], default: 'white' },
+        { id: 'GAIN', label: 'Ganho / Volume', type: 'val', default: 1.0 }
+    ],
+    state: () => ({ b0: 0, b1: 0, b2: 0, b3: 0, b4: 0, b5: 0, b6: 0, brown: 0, audioBuf: new Float32Array(128) }),
+    process(inputs, state, dsp, numSamples) {
+        const inRes = inputs.IN;
+        const type = inputs.TYPE;
+        const gain = inputs.GAIN ? inputs.GAIN.val : 1.0;
+
+        for (let s = 0; s < numSamples; s++) {
+            const inSmp = inRes && inRes.audio ? inRes.audio[s] : 0;
+            const white = Math.random() * 2 - 1;
+            let smp = white;
+
+            if (type === 'pink') {
+                state.b0 = 0.99886 * state.b0 + white * 0.0555179;
+                state.b1 = 0.99332 * state.b1 + white * 0.0750759;
+                state.b2 = 0.96900 * state.b2 + white * 0.1538520;
+                state.b3 = 0.86650 * state.b3 + white * 0.3104856;
+                state.b4 = 0.55000 * state.b4 + white * 0.5329522;
+                state.b5 = -0.7616 * state.b5 - white * 0.0168980;
+                smp = (state.b0 + state.b1 + state.b2 + state.b3 + state.b4 + state.b5 + state.b6 + white * 0.5362) * 0.11;
+                state.b6 = white * 0.115926;
+            } else if (type === 'brown') {
+                state.brown = (state.brown + 0.04 * white) / 1.04;
+                smp = state.brown * 3.5;
+            }
+
+            state.audioBuf[s] = dsp.clamp(inSmp + smp * gain, -1, 1);
+        }
+        return { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf };
+    },
+    tooltip: 'Fonte de ruído branco, rosa (1/f) ou marrom/vermelho (1/f²).'
+});
+
+defineModule({
+    id: 'synth_sub_osc',
+    name: 'Sub-Oscilador',
+    category: 'GENERATORS',
+    shape: 'statement',
+    inputs: [
+        { id: 'IN', label: 'Áudio In (ou fluxo acima)', type: 'audio' },
+        { id: 'OCT', label: 'Sub-Oitava', type: 'dropdown', options: [
+            ['-1 Oitava (Square)', '-1_sqr'],
+            ['-1 Oitava (Sine)', '-1_sin'],
+            ['-2 Oitavas (Square)', '-2_sqr'],
+            ['-2 Oitavas (Sine)', '-2_sin']
+        ], default: '-1_sqr' },
+        { id: 'FREQ', label: 'Frequência Fundamental (Hz)', type: 'val', default: 130.81 },
+        { id: 'VOL', label: 'Nível (0..1)', type: 'val', default: 0.8 }
+    ],
+    state: () => ({ phase: 0, audioBuf: new Float32Array(128) }),
+    process(inputs, state, dsp, numSamples) {
+        const inRes = inputs.IN;
+        const oct = inputs.OCT;
+        const freqRes = inputs.FREQ;
+        const vol = inputs.VOL ? inputs.VOL.val : 0.8;
+        const div = oct.startsWith('-2') ? 4 : 2;
+        const isSine = oct.includes('sin');
+
+        for (let s = 0; s < numSamples; s++) {
+            const inSmp = inRes && inRes.audio ? inRes.audio[s] : 0;
+            const baseFreq = freqRes.audio ? freqRes.audio[s] : freqRes.val;
+            const actualFreq = Math.max(1, baseFreq / div);
+            const dt = actualFreq / 48000;
+
+            const smp = isSine ? Math.sin(state.phase * 2 * Math.PI) : (state.phase < 0.5 ? 1 : -1);
+            state.audioBuf[s] = inSmp + smp * vol;
+            state.phase = (state.phase + dt) % 1;
+        }
+        return { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf };
+    },
+    tooltip: 'Sub-oscilador para reforço de graves e peso analógico.'
 });
 
 defineModule({
     id: 'synth_bytebeat',
-    name: '👾 Bytebeat 8-Bit',
+    name: 'Bytebeat 8-Bit',
     category: 'GENERATORS',
     shape: 'statement',
     inputs: [
@@ -185,7 +286,7 @@ defineModule({
             ["(t*(t>>5|t>>8))>>(t>>16)", "2"],
             ["(t*5&t>>7)|(t*3&t>>10)", "3"]
         ], default: '0' },
-        { id: 'SPEED', label: 'Velocidade (Hz)', type: 'val', default: 8000 }
+        { id: 'SPEED', label: 'Taxa de Execução (Hz)', type: 'val', default: 8000 }
     ],
     state: () => ({ t: 0, phase: 0, audioBuf: new Float32Array(128) }),
     process(inputs, state, dsp, numSamples) {
@@ -210,20 +311,20 @@ defineModule({
         }
         return { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf };
     },
-    tooltip: 'Síntese algorítmica matemática 8-bit.'
+    tooltip: 'Síntese algorítmica matemática chiptune 8-bit.'
 });
 
 /* =========================================================================
- * 2. FILTERS & DYNAMICS (🎛️)
+ * 2. FILTERS & DYNAMICS
  * ========================================================================= */
 defineModule({
     id: 'synth_vcf',
-    name: '🎛️ Filtro Moog 24dB VCF',
+    name: 'Filtro Moog 24dB VCF',
     category: 'FILTERS',
     shape: 'statement',
     inputs: [
         { id: 'IN', label: 'Áudio In (ou fluxo acima)', type: 'audio' },
-        { id: 'CUTOFF', label: 'Corte (Hz ou CV)', type: 'val', default: 800 },
+        { id: 'CUTOFF', label: 'Corte Cutoff (Hz ou CV)', type: 'val', default: 800 },
         { id: 'RES', label: 'Ressonância (0..0.95)', type: 'val', default: 0.5 }
     ],
     state: () => ({ moog: [0, 0, 0, 0], audioBuf: new Float32Array(128) }),
@@ -245,16 +346,59 @@ defineModule({
         }
         return { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf };
     },
-    tooltip: 'Filtro transistor ladder 4-polos com saturação analógica.'
+    tooltip: 'Filtro transistor ladder 4-polos com saturação analógica e auto-oscilação.'
+});
+
+defineModule({
+    id: 'synth_svf',
+    name: 'Filtro Multimodo SVF 12dB',
+    category: 'FILTERS',
+    shape: 'statement',
+    inputs: [
+        { id: 'MODE', label: 'Modo de Resposta', type: 'dropdown', options: [
+            ['Passa-Baixas (Lowpass)', 'lp'],
+            ['Passa-Altas (Highpass)', 'hp'],
+            ['Passa-Faixa (Bandpass)', 'bp'],
+            ['Rejeita-Faixa (Notch)', 'notch']
+        ], default: 'lp' },
+        { id: 'IN', label: 'Áudio In (ou fluxo acima)', type: 'audio' },
+        { id: 'CUTOFF', label: 'Frequência de Corte (Hz)', type: 'val', default: 1200 },
+        { id: 'RES', label: 'Ressonância Q (0..0.95)', type: 'val', default: 0.5 }
+    ],
+    state: () => ({ lp: 0, bp: 0, audioBuf: new Float32Array(128) }),
+    process(inputs, state, dsp, numSamples) {
+        const inRes = inputs.IN;
+        const mode = inputs.MODE;
+        const cutoffRes = inputs.CUTOFF;
+        const resRes = inputs.RES;
+        const resVal = dsp.clamp(resRes ? resRes.val : 0.5, 0, 0.95);
+
+        if (!inRes || !inRes.audio) {
+            state.audioBuf.fill(0);
+            return { type: 'AUDIO', val: 0, audio: state.audioBuf };
+        }
+
+        for (let s = 0; s < numSamples; s++) {
+            const rawCutoff = cutoffRes.audio ? cutoffRes.audio[s] : cutoffRes.val;
+            const cutoffHz = rawCutoff < 12 ? dsp.voct(rawCutoff, 440) : rawCutoff;
+            const outSvf = dsp.svf(inRes.audio[s], cutoffHz, resVal, state, 48000);
+            state.audioBuf[s] = outSvf[mode] || outSvf.lp;
+        }
+        return { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf };
+    },
+    tooltip: 'Filtro State-Variable com 4 saídas de resposta de frequência simultâneas.'
 });
 
 defineModule({
     id: 'synth_vca',
-    name: '🔊 Amplificador VCA',
+    name: 'Amplificador VCA',
     category: 'FILTERS',
     shape: 'statement',
     inputs: [
-        { id: 'EXP', label: 'Curva', type: 'dropdown', options: [['EXPONENCIAL', '1'], ['LINEAR', '0']], default: '1' },
+        { id: 'EXP', label: 'Resposta de Curva', type: 'dropdown', options: [
+            ['Exponencial (Áudio)', '1'],
+            ['Linear (Modulação CV)', '0']
+        ], default: '1' },
         { id: 'IN', label: 'Áudio In (ou fluxo acima)', type: 'audio' },
         { id: 'GAIN', label: 'Ganho / Modulação (CV)', type: 'val', default: 1 }
     ],
@@ -281,15 +425,15 @@ defineModule({
 
 defineModule({
     id: 'synth_distortion',
-    name: '🔥 Distorção & Wavefolder',
+    name: 'Saturação & Distorção',
     category: 'FILTERS',
     shape: 'statement',
     inputs: [
-        { id: 'MODE', label: 'Modo', type: 'dropdown', options: [
-            ['TANH (Saturação Quente)', 'tanh'],
-            ['HARD CLIP (Digital)', 'hard'],
-            ['BITCRUSH (8-Bit Lo-Fi)', 'crush'],
-            ['WAVEFOLDER (Dobra Harmônica)', 'fold']
+        { id: 'MODE', label: 'Tipo de Distorção', type: 'dropdown', options: [
+            ['Saturação Analógica (Tanh)', 'tanh'],
+            ['Hard Clip (Ceifamento Digital)', 'hard'],
+            ['Bitcrusher Lo-Fi', 'crush'],
+            ['Wavefolder (Dobra Harmônica)', 'fold']
         ], default: 'tanh' },
         { id: 'IN', label: 'Áudio In (ou fluxo acima)', type: 'audio' },
         { id: 'DRIVE', label: 'Drive / Ganho (1..20)', type: 'val', default: 3 }
@@ -326,16 +470,89 @@ defineModule({
         }
         return { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf };
     },
-    tooltip: 'Efeito de distorção, saturação analógica e wavefolding harmônico.'
+    tooltip: 'Efeito de saturação valvulada, clipping, redução de bits ou dobra harmônica.'
+});
+
+defineModule({
+    id: 'synth_ringmod',
+    name: 'Ring Modulator',
+    category: 'FILTERS',
+    shape: 'statement',
+    inputs: [
+        { id: 'CARRIER', label: 'Portadora Carrier (ou fluxo acima)', type: 'audio' },
+        { id: 'MOD', label: 'Modulador Mod In', type: 'val', default: 1.0 },
+        { id: 'MIX', label: 'Mix Seco/Molhado (0..1)', type: 'val', default: 1.0 }
+    ],
+    state: () => ({ audioBuf: new Float32Array(128) }),
+    process(inputs, state, dsp, numSamples) {
+        const carRes = inputs.CARRIER;
+        const modRes = inputs.MOD;
+        const mix = inputs.MIX ? inputs.MIX.val : 1.0;
+
+        if (!carRes || !carRes.audio) {
+            state.audioBuf.fill(0);
+            return { type: 'AUDIO', val: 0, audio: state.audioBuf };
+        }
+
+        for (let s = 0; s < numSamples; s++) {
+            const car = carRes.audio[s];
+            const mod = modRes ? (modRes.audio ? modRes.audio[s] : (modRes.val !== undefined ? modRes.val : 1.0)) : 1.0;
+            const wet = car * mod;
+            state.audioBuf[s] = car * (1 - mix) + wet * mix;
+        }
+        return { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf };
+    },
+    tooltip: 'Multiplicação balanceada de 4 quadrantes para timbres metálicos e robóticos.'
+});
+
+defineModule({
+    id: 'synth_compressor',
+    name: 'Compressor Dinâmico',
+    category: 'FILTERS',
+    shape: 'statement',
+    inputs: [
+        { id: 'IN', label: 'Áudio In (ou fluxo acima)', type: 'audio' },
+        { id: 'THRESH', label: 'Limiar Threshold (0..1)', type: 'val', default: 0.5 },
+        { id: 'RATIO', label: 'Razão Ratio (1..20)', type: 'val', default: 4 },
+        { id: 'MAKEUP', label: 'Ganho Makeup', type: 'val', default: 1.2 }
+    ],
+    state: () => ({ env: 0, audioBuf: new Float32Array(128) }),
+    process(inputs, state, dsp, numSamples) {
+        const inRes = inputs.IN;
+        const thresh = inputs.THRESH ? inputs.THRESH.val : 0.5;
+        const ratio = Math.max(1, inputs.RATIO ? inputs.RATIO.val : 4);
+        const makeup = inputs.MAKEUP ? inputs.MAKEUP.val : 1.2;
+
+        if (!inRes || !inRes.audio) {
+            state.audioBuf.fill(0);
+            return { type: 'AUDIO', val: 0, audio: state.audioBuf };
+        }
+
+        for (let s = 0; s < numSamples; s++) {
+            const inSmp = inRes.audio[s];
+            const absSmp = Math.abs(inSmp);
+            state.env += (absSmp - state.env) * 0.05;
+
+            let gain = 1.0;
+            if (state.env > thresh) {
+                const over = state.env - thresh;
+                const compressed = thresh + over / ratio;
+                gain = compressed / (state.env + 0.0001);
+            }
+            state.audioBuf[s] = inSmp * gain * makeup;
+        }
+        return { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf };
+    },
+    tooltip: 'Controle de dinâmica para nivelamento, punch e limitação de picos.'
 });
 
 defineModule({
     id: 'synth_mixer',
-    name: '🎚️ Mixer 2 Canais',
+    name: 'Mixer 2 Canais',
     category: 'FILTERS',
     shape: 'statement',
     inputs: [
-        { id: 'IN1', label: 'Canal 1', type: 'val', default: 0 },
+        { id: 'IN1', label: 'Canal 1 (ou fluxo acima)', type: 'audio' },
         { id: 'VOL1', label: 'Volume 1 (0..2)', type: 'val', default: 1.0 },
         { id: 'IN2', label: 'Canal 2', type: 'val', default: 0 },
         { id: 'VOL2', label: 'Volume 2 (0..2)', type: 'val', default: 1.0 }
@@ -354,19 +571,53 @@ defineModule({
         }
         return { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf };
     },
-    tooltip: 'Soma e mistura 2 sinais de áudio ou voltagens de controle.'
+    tooltip: 'Soma e balanceia 2 sinais de áudio ou voltagens de controle.'
+});
+
+defineModule({
+    id: 'synth_mixer4',
+    name: 'Mixer 4 Canais',
+    category: 'FILTERS',
+    shape: 'statement',
+    inputs: [
+        { id: 'IN1', label: 'Canal 1 (ou fluxo acima)', type: 'audio' },
+        { id: 'VOL1', label: 'Vol 1', type: 'val', default: 1.0 },
+        { id: 'IN2', label: 'Canal 2', type: 'val', default: 0 },
+        { id: 'VOL2', label: 'Vol 2', type: 'val', default: 1.0 },
+        { id: 'IN3', label: 'Canal 3', type: 'val', default: 0 },
+        { id: 'VOL3', label: 'Vol 3', type: 'val', default: 1.0 },
+        { id: 'IN4', label: 'Canal 4', type: 'val', default: 0 },
+        { id: 'VOL4', label: 'Vol 4', type: 'val', default: 1.0 }
+    ],
+    state: () => ({ audioBuf: new Float32Array(128) }),
+    process(inputs, state, dsp, numSamples) {
+        const in1 = inputs.IN1, v1 = inputs.VOL1 ? inputs.VOL1.val : 1.0;
+        const in2 = inputs.IN2, v2 = inputs.VOL2 ? inputs.VOL2.val : 1.0;
+        const in3 = inputs.IN3, v3 = inputs.VOL3 ? inputs.VOL3.val : 1.0;
+        const in4 = inputs.IN4, v4 = inputs.VOL4 ? inputs.VOL4.val : 1.0;
+
+        for (let s = 0; s < numSamples; s++) {
+            const s1 = in1 ? (in1.audio ? in1.audio[s] : in1.val) : 0;
+            const s2 = in2 ? (in2.audio ? in2.audio[s] : in2.val) : 0;
+            const s3 = in3 ? (in3.audio ? in3.audio[s] : in3.val) : 0;
+            const s4 = in4 ? (in4.audio ? in4.audio[s] : in4.val) : 0;
+            state.audioBuf[s] = s1 * v1 + s2 * v2 + s3 * v3 + s4 * v4;
+        }
+        return { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf };
+    },
+    tooltip: 'Mixer e somador utilitário com 4 canais independentes.'
 });
 
 /* =========================================================================
- * 3. MODULATORS (📈)
+ * 3. MODULATORS & CONTROL
  * ========================================================================= */
 defineModule({
     id: 'synth_adsr',
-    name: '📈 Envelope ADSR',
+    name: 'Envelope ADSR',
     category: 'MODULATORS',
     shape: 'value',
     inputs: [
-        { id: 'GATE', label: 'Gate / Trigger', type: 'val', default: 0 },
+        { id: 'GATE', label: 'Gate / Disparo', type: 'val', default: 0 },
         { id: 'A', label: 'Ataque (s)', type: 'val', default: 0.02 },
         { id: 'D', label: 'Decaimento (s)', type: 'val', default: 0.15 },
         { id: 'S', label: 'Sustain (0..1)', type: 'val', default: 0.4 },
@@ -382,8 +633,8 @@ defineModule({
 
         for (let s = 0; s < numSamples; s++) {
             const gate = gateRes ? (gateRes.audio ? gateRes.audio[s] : gateRes.val) : 0;
-            if (gate > 0.5 && state.lastGate <= 0.5) state.stage = 1; // Attack
-            if (gate <= 0.5 && state.lastGate > 0.5) state.stage = 4; // Release
+            if (gate > 0.5 && state.lastGate <= 0.5) state.stage = 1;
+            if (gate <= 0.5 && state.lastGate > 0.5) state.stage = 4;
             state.lastGate = gate;
 
             if (state.stage === 1) {
@@ -402,21 +653,21 @@ defineModule({
         }
         return { type: 'AUDIO', val: state.level, audio: state.audioBuf };
     },
-    tooltip: 'Envelope ADSR analógico exponencial.'
+    tooltip: 'Envelope ADSR analógico exponencial para articulação e amplitude.'
 });
 
 defineModule({
     id: 'synth_lfo',
-    name: '〰️ LFO Modulador',
+    name: 'LFO Modulador',
     category: 'MODULATORS',
     shape: 'value',
     inputs: [
-        { id: 'WAVE', label: 'Forma', type: 'dropdown', options: [
-            ['TRIÂNGULO', 'tri'],
-            ['SENO', 'sin'],
-            ['QUADRADA', 'sqr'],
-            ['SAW (Dente de Serra)', 'saw'],
-            ['RANDOM (S&H)', 'rand']
+        { id: 'WAVE', label: 'Forma de Onda', type: 'dropdown', options: [
+            ['Triangular', 'tri'],
+            ['Senoidal', 'sin'],
+            ['Quadrada', 'sqr'],
+            ['Dente de Serra', 'saw'],
+            ['Aleatória (S&H)', 'rand']
         ], default: 'tri' },
         { id: 'FREQ', label: 'Frequência (Hz)', type: 'val', default: 2.0 },
         { id: 'DEPTH', label: 'Profundidade / Ganho', type: 'val', default: 1.0 }
@@ -446,17 +697,17 @@ defineModule({
         }
         return { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf };
     },
-    tooltip: 'Oscilador de Baixa Frequência (LFO) para modulação.'
+    tooltip: 'Oscilador de Baixa Frequência para vibrato, tremolo, sweeps e modulações.'
 });
 
 defineModule({
     id: 'synth_sample_hold',
-    name: '🎲 Sample & Hold',
+    name: 'Sample & Hold',
     category: 'MODULATORS',
     shape: 'value',
     inputs: [
         { id: 'SIG', label: 'Sinal In (ou Ruído)', type: 'val', default: 0 },
-        { id: 'TRIG', label: 'Trigger / Clock', type: 'val', default: 0 }
+        { id: 'TRIG', label: 'Disparo Trigger / Clock', type: 'val', default: 0 }
     ],
     state: () => ({ latchedVal: 0, lastTrig: 0, audioBuf: new Float32Array(128) }),
     process(inputs, state, dsp, numSamples) {
@@ -473,22 +724,149 @@ defineModule({
         }
         return { type: 'AUDIO', val: state.latchedVal, audio: state.audioBuf };
     },
-    tooltip: 'Congela a voltagem de entrada a cada pulso de subida do trigger.'
+    tooltip: 'Congela e mantém a voltagem de entrada a cada pulso de subida.'
+});
+
+defineModule({
+    id: 'synth_slew',
+    name: 'Slew Limiter (Portamento / Glide)',
+    category: 'MODULATORS',
+    shape: 'statement',
+    inputs: [
+        { id: 'IN', label: 'Sinal CV In', type: 'val', default: 0 },
+        { id: 'TIME', label: 'Tempo de Glide (s)', type: 'val', default: 0.1 }
+    ],
+    state: () => ({ currentVal: 0, audioBuf: new Float32Array(128) }),
+    process(inputs, state, dsp, numSamples) {
+        const inRes = inputs.IN;
+        const time = Math.max(0.001, inputs.TIME ? inputs.TIME.val : 0.1);
+        const coef = 1.0 - Math.exp(-1.0 / (time * 48000));
+
+        for (let s = 0; s < numSamples; s++) {
+            const target = inRes ? (inRes.audio ? inRes.audio[s] : inRes.val) : 0;
+            state.currentVal += (target - state.currentVal) * coef;
+            state.audioBuf[s] = state.currentVal;
+        }
+        return { type: 'AUDIO', val: state.currentVal, audio: state.audioBuf };
+    },
+    tooltip: 'Suaviza saltos abruptos de voltagem criando portamento entre notas.'
+});
+
+defineModule({
+    id: 'synth_attenuverter',
+    name: 'Atenuador & Offset CV',
+    category: 'MODULATORS',
+    shape: 'statement',
+    inputs: [
+        { id: 'IN', label: 'Sinal In', type: 'val', default: 0 },
+        { id: 'SCALE', label: 'Escala / Inversão (-2..2)', type: 'val', default: 1.0 },
+        { id: 'OFFSET', label: 'Deslocamento Offset (-5..5)', type: 'val', default: 0.0 }
+    ],
+    state: () => ({ audioBuf: new Float32Array(128) }),
+    process(inputs, state, dsp, numSamples) {
+        const inRes = inputs.IN;
+        const scale = inputs.SCALE ? inputs.SCALE.val : 1.0;
+        const offset = inputs.OFFSET ? inputs.OFFSET.val : 0.0;
+
+        for (let s = 0; s < numSamples; s++) {
+            const val = inRes ? (inRes.audio ? inRes.audio[s] : inRes.val) : 0;
+            state.audioBuf[s] = val * scale + offset;
+        }
+        return { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf };
+    },
+    tooltip: 'Multiplica, inverte de fase e adiciona offset de voltagem contínua.'
 });
 
 /* =========================================================================
- * 4. EFFECTS & MASTER OUT (📼)
+ * 4. EFFECTS & MASTER OUT
  * ========================================================================= */
 defineModule({
+    id: 'synth_reverb',
+    name: 'Reverb Espacial',
+    category: 'EFFECTS',
+    shape: 'statement',
+    inputs: [
+        { id: 'IN', label: 'Áudio In (ou fluxo acima)', type: 'audio' },
+        { id: 'SIZE', label: 'Tamanho da Sala (0..1)', type: 'val', default: 0.7 },
+        { id: 'DAMP', label: 'Amortecimento Damping', type: 'val', default: 0.4 },
+        { id: 'MIX', label: 'Mix Wet (0..1)', type: 'val', default: 0.35 }
+    ],
+    state: () => ({
+        c1: new Float32Array(1557), c1Head: 0, c1Filt: 0,
+        c2: new Float32Array(1617), c2Head: 0, c2Filt: 0,
+        c3: new Float32Array(1491), c3Head: 0, c3Filt: 0,
+        c4: new Float32Array(1422), c4Head: 0, c4Filt: 0,
+        ap1: new Float32Array(225), ap1Head: 0,
+        ap2: new Float32Array(556), ap2Head: 0,
+        audioBuf: new Float32Array(128)
+    }),
+    process(inputs, state, dsp, numSamples) {
+        const inRes = inputs.IN;
+        const size = dsp.clamp(inputs.SIZE ? inputs.SIZE.val : 0.7, 0.1, 0.95);
+        const damp = dsp.clamp(inputs.DAMP ? inputs.DAMP.val : 0.4, 0.05, 0.95);
+        const mix = dsp.clamp(inputs.MIX ? inputs.MIX.val : 0.35, 0, 1);
+
+        if (!inRes || !inRes.audio) {
+            state.audioBuf.fill(0);
+            return { type: 'AUDIO', val: 0, audio: state.audioBuf };
+        }
+
+        for (let s = 0; s < numSamples; s++) {
+            const inSmp = inRes.audio[s];
+
+            // 4 parallel feedback comb filters
+            const c1Out = state.c1[state.c1Head];
+            state.c1Filt = c1Out * (1 - damp) + state.c1Filt * damp;
+            state.c1[state.c1Head] = inSmp + state.c1Filt * size;
+            state.c1Head = (state.c1Head + 1) % 1557;
+
+            const c2Out = state.c2[state.c2Head];
+            state.c2Filt = c2Out * (1 - damp) + state.c2Filt * damp;
+            state.c2[state.c2Head] = inSmp + state.c2Filt * size;
+            state.c2Head = (state.c2Head + 1) % 1617;
+
+            const c3Out = state.c3[state.c3Head];
+            state.c3Filt = c3Out * (1 - damp) + state.c3Filt * damp;
+            state.c3[state.c3Head] = inSmp + state.c3Filt * size;
+            state.c3Head = (state.c3Head + 1) % 1491;
+
+            const c4Out = state.c4[state.c4Head];
+            state.c4Filt = c4Out * (1 - damp) + state.c4Filt * damp;
+            state.c4[state.c4Head] = inSmp + state.c4Filt * size;
+            state.c4Head = (state.c4Head + 1) % 1422;
+
+            let outComb = (c1Out + c2Out + c3Out + c4Out) * 0.25;
+
+            // 2 allpass diffusers
+            const ap1Del = state.ap1[state.ap1Head];
+            const ap1In = outComb + ap1Del * 0.5;
+            state.ap1[state.ap1Head] = ap1In;
+            outComb = -ap1In * 0.5 + ap1Del;
+            state.ap1Head = (state.ap1Head + 1) % 225;
+
+            const ap2Del = state.ap2[state.ap2Head];
+            const ap2In = outComb + ap2Del * 0.5;
+            state.ap2[state.ap2Head] = ap2In;
+            outComb = -ap2In * 0.5 + ap2Del;
+            state.ap2Head = (state.ap2Head + 1) % 556;
+
+            state.audioBuf[s] = inSmp * (1 - mix) + outComb * mix;
+        }
+        return { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf };
+    },
+    tooltip: 'Reverberador espacial estéreo com difusão acústica natural.'
+});
+
+defineModule({
     id: 'synth_chorus',
-    name: '🌊 Chorus Analógico',
+    name: 'Chorus Analógico',
     category: 'EFFECTS',
     shape: 'statement',
     inputs: [
         { id: 'IN', label: 'Áudio In (ou fluxo acima)', type: 'audio' },
         { id: 'RATE', label: 'Velocidade (Hz)', type: 'val', default: 1.2 },
         { id: 'DEPTH', label: 'Profundidade (0..1)', type: 'val', default: 0.6 },
-        { id: 'MIX', label: 'Mix (Wet)', type: 'val', default: 0.5 }
+        { id: 'MIX', label: 'Mix Wet', type: 'val', default: 0.5 }
     ],
     state: () => ({ buf: new Float32Array(4800), head: 0, lfoPhase: 0, audioBuf: new Float32Array(128) }),
     process(inputs, state, dsp, numSamples) {
@@ -523,7 +901,7 @@ defineModule({
 
 defineModule({
     id: 'synth_scope',
-    name: '📊 Osciloscópio Live',
+    name: 'Osciloscópio Live',
     category: 'EFFECTS',
     shape: 'statement',
     inputs: [
@@ -554,14 +932,14 @@ defineModule({
 
 defineModule({
     id: 'synth_delay',
-    name: '📼 Tape Delay Analógico',
+    name: 'Tape Delay Analógico',
     category: 'EFFECTS',
     shape: 'statement',
     inputs: [
         { id: 'IN', label: 'Áudio In (ou fluxo acima)', type: 'audio' },
         { id: 'TIME', label: 'Tempo (s)', type: 'val', default: 0.35 },
         { id: 'FEEDBACK', label: 'Feedback (0..0.95)', type: 'val', default: 0.45 },
-        { id: 'MIX', label: 'Mix (Wet)', type: 'val', default: 0.35 }
+        { id: 'MIX', label: 'Mix Wet', type: 'val', default: 0.35 }
     ],
     state: () => ({ buf: new Float32Array(96000), head: 0, lpf: 0, audioBuf: new Float32Array(128) }),
     process(inputs, state, dsp, numSamples) {
@@ -597,7 +975,7 @@ defineModule({
 
 defineModule({
     id: 'synth_out',
-    name: '🎚️ Saída Estéreo Master',
+    name: 'Saída Estéreo Master',
     category: 'EFFECTS',
     shape: 'statement_end',
     inputs: [
@@ -606,15 +984,15 @@ defineModule({
         { id: 'VOL', label: 'Volume Master (0..1.5)', type: 'val', default: 0.85 }
     ],
     state: () => ({ outL: new Float32Array(128), outR: new Float32Array(128) }),
-    tooltip: 'Saída final para os alto-falantes.'
+    tooltip: 'Saída final para os alto-falantes e fones de ouvido.'
 });
 
 /* =========================================================================
- * 5. EVENTS & CLOCKS (🚩)
+ * 5. EVENTS & CLOCKS
  * ========================================================================= */
 defineModule({
     id: 'synth_clock',
-    name: '⚡ Clock Mestre',
+    name: 'Clock Mestre',
     category: 'EVENTS',
     shape: 'statement',
     inputs: [
@@ -639,7 +1017,7 @@ defineModule({
 
 defineModule({
     id: 'synth_clock_divider',
-    name: '⏱️ Divisor de Clock',
+    name: 'Divisor de Clock',
     category: 'EVENTS',
     shape: 'statement',
     inputs: [

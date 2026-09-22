@@ -1,7 +1,8 @@
 /**
  * =========================================================================
  * BRACK Unified Real-Time 48kHz DSP Graph Engine (web/blockly_dsp_compiler.js)
- * Executes Unified Modules, Free-Text Buses, Event Triggers, Chained Sequencers & Math
+ * Executes Unified Modules, Free-Text Buses, Event Triggers, Chained Sequencers,
+ * Full List Manipulations & Audio-Rate Math Operators
  * =========================================================================
  */
 
@@ -108,7 +109,6 @@ export class BlocklySynthEngine {
         }
     }
 
-    // Helper: resolve incoming audio stream (from value socket or stacked previous block)
     getAudioSource(block, inputName = 'IN', visited = new Set()) {
         const valueTarget = block.getInputTargetBlock ? block.getInputTargetBlock(inputName) : null;
         if (valueTarget) {
@@ -121,7 +121,6 @@ export class BlocklySynthEngine {
         return null;
     }
 
-    // Helper: evaluate an input value or read default field
     getParamVal(block, inputName, defaultVal, visited = new Set()) {
         const target = block.getInputTargetBlock ? block.getInputTargetBlock(inputName) : null;
         if (target) {
@@ -135,7 +134,6 @@ export class BlocklySynthEngine {
         return { type: 'VAL', val: defaultVal, audio: null };
     }
 
-    // Evaluate single block recursively (memoized per 128-sample block)
     evalBlock(block, visited = new Set()) {
         if (!block || visited.has(block.id)) return { type: 'VAL', val: 0, audio: null };
         visited.add(block.id);
@@ -159,15 +157,15 @@ export class BlocklySynthEngine {
             return unified.process(inputs, state, dsp, numSamples);
         }
 
-        // 2. Specialized Block Logic (Routing, Sequencer, Logic, Events)
+        // 2. Specialized Block Logic (Routing, Lists, Sequencer, Logic, Events)
         switch (block.type) {
-            // 📡 Free-Text Broadcast Send Block
+            // Free-Text Broadcast Send Block
             case 'synth_send': {
                 const src = this.getAudioSource(block, 'IN', new Set(visited));
                 return src || { type: 'VAL', val: 0, audio: null };
             }
 
-            // 📻 Free-Text Broadcast Receive Pill
+            // Free-Text Broadcast Receive Pill
             case 'synth_recv': {
                 const ch = block.getFieldValue('CHANNEL') || 'meu_sinal';
                 if (this.busCache.has(ch)) {
@@ -203,7 +201,7 @@ export class BlocklySynthEngine {
                 return result;
             }
 
-            // 💾 Set Signal Variable
+            // Variables
             case 'synth_var_set': {
                 const varName = block.getFieldValue('VAR') || 'voltagem';
                 const valRes = this.getParamVal(block, 'VAL', 0, new Set(visited));
@@ -213,7 +211,6 @@ export class BlocklySynthEngine {
                 return valRes;
             }
 
-            // 💾 Change Signal Variable (Accumulator)
             case 'synth_var_change': {
                 const varName = block.getFieldValue('VAR') || 'voltagem';
                 const deltaRes = this.getParamVal(block, 'DELTA', 1, new Set(visited));
@@ -226,7 +223,6 @@ export class BlocklySynthEngine {
                 return updated;
             }
 
-            // 💾 Multiply Signal Variable
             case 'synth_var_mult': {
                 const varName = block.getFieldValue('VAR') || 'voltagem';
                 const factorRes = this.getParamVal(block, 'FACTOR', 1, new Set(visited));
@@ -239,7 +235,6 @@ export class BlocklySynthEngine {
                 return updated;
             }
 
-            // 💾 Reset Signal Variable
             case 'synth_var_reset': {
                 const varName = block.getFieldValue('VAR') || 'voltagem';
                 const zeroVal = { type: 'VAL', val: 0, audio: null };
@@ -249,13 +244,12 @@ export class BlocklySynthEngine {
                 return zeroVal;
             }
 
-            // 💾 Get Signal Variable
             case 'synth_var_get': {
                 const varName = block.getFieldValue('VAR') || 'voltagem';
                 return this.variables.get(varName) || { type: 'VAL', val: 0, audio: null };
             }
 
-            // 📋 Set List Items
+            // List Operations
             case 'synth_list_set': {
                 const listName = block.getFieldValue('LIST') || 'notas';
                 const itemsStr = block.getFieldValue('ITEMS') || '0';
@@ -267,7 +261,6 @@ export class BlocklySynthEngine {
                 return { type: 'VAL', val: items.length, audio: null };
             }
 
-            // 📋 Add Item to List
             case 'synth_list_add': {
                 const listName = block.getFieldValue('LIST') || 'notas';
                 const itemRes = this.getParamVal(block, 'ITEM', 0, new Set(visited));
@@ -279,7 +272,51 @@ export class BlocklySynthEngine {
                 return { type: 'VAL', val: val, audio: null };
             }
 
-            // 📋 Clear List
+            case 'synth_list_remove': {
+                const listName = block.getFieldValue('LIST') || 'notas';
+                const idxRes = this.getParamVal(block, 'INDEX', 0, new Set(visited));
+                if (this.lists.has(listName)) {
+                    const list = this.lists.get(listName);
+                    const idx = Math.floor(Math.abs(idxRes.val || 0));
+                    if (list.length > 0) {
+                        list.splice(idx % list.length, 1);
+                    }
+                }
+                const next = block.getNextBlock ? block.getNextBlock() : null;
+                if (next) this.evalBlock(next, visited);
+                return { type: 'VAL', val: 1, audio: null };
+            }
+
+            case 'synth_list_insert': {
+                const listName = block.getFieldValue('LIST') || 'notas';
+                const itemRes = this.getParamVal(block, 'ITEM', 0, new Set(visited));
+                const idxRes = this.getParamVal(block, 'INDEX', 0, new Set(visited));
+                const val = (typeof itemRes.val === 'string') ? dsp.parseNoteToMidi(itemRes.val) : itemRes.val;
+                if (!this.lists.has(listName)) this.lists.set(listName, []);
+                const list = this.lists.get(listName);
+                const idx = Math.min(list.length, Math.max(0, Math.floor(idxRes.val || 0)));
+                list.splice(idx, 0, val);
+                const next = block.getNextBlock ? block.getNextBlock() : null;
+                if (next) this.evalBlock(next, visited);
+                return { type: 'VAL', val: val, audio: null };
+            }
+
+            case 'synth_list_replace': {
+                const listName = block.getFieldValue('LIST') || 'notas';
+                const idxRes = this.getParamVal(block, 'INDEX', 0, new Set(visited));
+                const itemRes = this.getParamVal(block, 'ITEM', 0, new Set(visited));
+                const val = (typeof itemRes.val === 'string') ? dsp.parseNoteToMidi(itemRes.val) : itemRes.val;
+                if (!this.lists.has(listName)) this.lists.set(listName, []);
+                const list = this.lists.get(listName);
+                if (list.length > 0) {
+                    const idx = Math.floor(Math.abs(idxRes.val || 0)) % list.length;
+                    list[idx] = val;
+                }
+                const next = block.getNextBlock ? block.getNextBlock() : null;
+                if (next) this.evalBlock(next, visited);
+                return { type: 'VAL', val: val, audio: null };
+            }
+
             case 'synth_list_clear': {
                 const listName = block.getFieldValue('LIST') || 'notas';
                 this.lists.set(listName, []);
@@ -288,7 +325,6 @@ export class BlocklySynthEngine {
                 return { type: 'VAL', val: 0, audio: null };
             }
 
-            // 📋 Get Item of List
             case 'synth_list_get_item': {
                 const listName = block.getFieldValue('LIST') || 'notas';
                 const idxRes = this.getParamVal(block, 'INDEX', 0, new Set(visited));
@@ -305,14 +341,31 @@ export class BlocklySynthEngine {
                 return hasAudio ? { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf } : { type: 'VAL', val: state.audioBuf[0], audio: null };
             }
 
-            // 📋 Get Length of List
             case 'synth_list_length': {
                 const listName = block.getFieldValue('LIST') || 'notas';
                 const list = this.lists.get(listName) || [];
                 return { type: 'VAL', val: list.length, audio: null };
             }
 
-            // 📢 Broadcast Event
+            case 'synth_list_contains': {
+                const listName = block.getFieldValue('LIST') || 'notas';
+                const itemRes = this.getParamVal(block, 'ITEM', 0, new Set(visited));
+                const list = this.lists.get(listName) || [];
+                const target = itemRes.val;
+                const found = list.some(x => Math.abs(x - target) < 0.001) ? 1 : 0;
+                return { type: 'VAL', val: found, audio: null };
+            }
+
+            case 'synth_list_find': {
+                const listName = block.getFieldValue('LIST') || 'notas';
+                const itemRes = this.getParamVal(block, 'ITEM', 0, new Set(visited));
+                const list = this.lists.get(listName) || [];
+                const target = itemRes.val;
+                const idx = list.findIndex(x => Math.abs(x - target) < 0.001);
+                return { type: 'VAL', val: idx >= 0 ? idx : -1, audio: null };
+            }
+
+            // Events
             case 'event_broadcast': {
                 const evt = block.getFieldValue('EVENT') || 'virada';
                 this.activeBroadcasts.add(evt);
@@ -327,7 +380,6 @@ export class BlocklySynthEngine {
                 return { type: 'VAL', val: 1, audio: null };
             }
 
-            // 🚩 Hat Block Event Pass-Through
             case 'event_whenflagclicked':
             case 'event_every':
             case 'event_whenbroadcastreceived':
@@ -341,11 +393,10 @@ export class BlocklySynthEngine {
                 return { type: 'VAL', val: 0, audio: null };
             }
 
-            // 🎹 Dynamic Chained Note Sequencer
+            // Dynamic Chained Note Sequencer
             case 'synth_seq': {
                 const clkRes = this.getParamVal(block, 'CLK', 0, new Set(visited));
 
-                // Harvest connected note steps dynamically
                 const notes = [];
                 let currentStepBlock = block.getInputTargetBlock('STEPS');
                 while (currentStepBlock) {
@@ -378,7 +429,7 @@ export class BlocklySynthEngine {
                 return { type: 'AUDIO', val: state.voct, audio: state.audioBuf, gate: state.gate };
             }
 
-            // 🔀 Scratch If / Else Signal Selector (Multiplexer)
+            // Control & Logic
             case 'control_if_else': {
                 const condRes = this.getParamVal(block, 'COND', 0, new Set(visited));
                 const thenRes = this.getParamVal(block, 'THEN', 0, new Set(visited));
@@ -394,7 +445,6 @@ export class BlocklySynthEngine {
                 return hasAudio ? { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf } : { type: 'VAL', val: state.audioBuf[0], audio: null };
             }
 
-            // 🔀 Scratch Logic AND (A and B)
             case 'logic_and': {
                 const aRes = this.getParamVal(block, 'A', 0, new Set(visited));
                 const bRes = this.getParamVal(block, 'B', 0, new Set(visited));
@@ -407,7 +457,6 @@ export class BlocklySynthEngine {
                 return hasAudio ? { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf } : { type: 'VAL', val: state.audioBuf[0], audio: null };
             }
 
-            // 🔀 Scratch Logic OR (A or B)
             case 'logic_or': {
                 const aRes = this.getParamVal(block, 'A', 0, new Set(visited));
                 const bRes = this.getParamVal(block, 'B', 0, new Set(visited));
@@ -420,7 +469,6 @@ export class BlocklySynthEngine {
                 return hasAudio ? { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf } : { type: 'VAL', val: state.audioBuf[0], audio: null };
             }
 
-            // 🔀 Scratch Logic NOT (not A)
             case 'logic_not': {
                 const aRes = this.getParamVal(block, 'A', 0, new Set(visited));
                 const hasAudio = !!aRes.audio;
@@ -431,7 +479,19 @@ export class BlocklySynthEngine {
                 return hasAudio ? { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf } : { type: 'VAL', val: state.audioBuf[0], audio: null };
             }
 
-            // ➕ Scratch Math Arithmetic (+, -, *, /, mod)
+            case 'logic_xor': {
+                const aRes = this.getParamVal(block, 'A', 0, new Set(visited));
+                const bRes = this.getParamVal(block, 'B', 0, new Set(visited));
+                const hasAudio = !!(aRes.audio || bRes.audio);
+                for (let s = 0; s < numSamples; s++) {
+                    const a = (aRes.audio ? aRes.audio[s] : aRes.val) > 0.5;
+                    const b = (bRes.audio ? bRes.audio[s] : bRes.val) > 0.5;
+                    state.audioBuf[s] = (a ^ b) ? 1 : 0;
+                }
+                return hasAudio ? { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf } : { type: 'VAL', val: state.audioBuf[0], audio: null };
+            }
+
+            // Math Operations
             case 'math_arithmetic': {
                 const aRes = this.getParamVal(block, 'A', 0, new Set(visited));
                 const bRes = this.getParamVal(block, 'B', 0, new Set(visited));
@@ -447,12 +507,14 @@ export class BlocklySynthEngine {
                     else if (op === 'MULTIPLY') res = a * b;
                     else if (op === 'DIVIDE') res = b !== 0 ? a / b : 0;
                     else if (op === 'MOD') res = b !== 0 ? a % b : 0;
+                    else if (op === 'POW') res = Math.pow(Math.max(0, a), b);
+                    else if (op === 'MIN') res = Math.min(a, b);
+                    else if (op === 'MAX') res = Math.max(a, b);
                     state.audioBuf[s] = res;
                 }
                 return hasAudio ? { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf } : { type: 'VAL', val: state.audioBuf[0], audio: null };
             }
 
-            // ➕ Scratch Math Map Range
             case 'math_map': {
                 const valRes = this.getParamVal(block, 'VAL', 0, new Set(visited));
                 const inMin = Number(block.getFieldValue('IN_MIN')) || 0;
@@ -470,7 +532,6 @@ export class BlocklySynthEngine {
                 return hasAudio ? { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf } : { type: 'VAL', val: state.audioBuf[0], audio: null };
             }
 
-            // ➕ Scratch Math Single Function
             case 'math_single': {
                 const op = block.getFieldValue('OP') || 'SIN';
                 const numRes = this.getParamVal(block, 'NUM', 0, new Set(visited));
@@ -481,18 +542,20 @@ export class BlocklySynthEngine {
                     let res = n;
                     if (op === 'SIN') res = Math.sin(n);
                     else if (op === 'COS') res = Math.cos(n);
+                    else if (op === 'TAN') res = Math.tan(n);
                     else if (op === 'TANH') res = dsp.tanh(n);
                     else if (op === 'ABS') res = Math.abs(n);
                     else if (op === 'NEG') res = -n;
                     else if (op === 'SQRT') res = Math.sqrt(Math.max(0, n));
                     else if (op === 'ROUND') res = Math.round(n);
+                    else if (op === 'FLOOR') res = Math.floor(n);
+                    else if (op === 'CEIL') res = Math.ceil(n);
                     else if (op === 'CLAMP01') res = dsp.clamp(n, 0, 1);
                     state.audioBuf[s] = res;
                 }
                 return hasAudio ? { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf } : { type: 'VAL', val: state.audioBuf[0], audio: null };
             }
 
-            // ➕ Scratch Math Random
             case 'math_random': {
                 const from = Number(block.getFieldValue('FROM')) || 0;
                 const to = Number(block.getFieldValue('TO')) || 1;
@@ -500,7 +563,6 @@ export class BlocklySynthEngine {
                 return { type: 'VAL', val: rnd, audio: null };
             }
 
-            // ➕ Scratch Logic Compare (<, >, =, >=, <=)
             case 'logic_compare_cv': {
                 const resA = this.getParamVal(block, 'A', 0, new Set(visited));
                 const resB = this.getParamVal(block, 'B', 0, new Set(visited));
@@ -514,50 +576,30 @@ export class BlocklySynthEngine {
                 else if (op === 'EQ') boolVal = Math.abs(a - b) < 0.001;
                 else if (op === 'GTE') boolVal = a >= b;
                 else if (op === 'LTE') boolVal = a <= b;
+                else if (op === 'NEQ') boolVal = Math.abs(a - b) >= 0.001;
 
                 const gateVal = boolVal ? 1 : 0;
                 for (let s = 0; s < numSamples; s++) state.audioBuf[s] = gateVal;
                 return { type: 'VAL', val: gateVal, audio: state.audioBuf };
             }
 
-            // 📋 Scratch List Item Lookup
-            case 'math_list_item': {
-                const idxRes = this.getParamVal(block, 'INDEX', 0, new Set(visited));
-                const listRaw = block.getFieldValue('LIST') || '0';
-                const items = listRaw.split(/[,\s]+/).map(Number).filter(n => !isNaN(n));
-                const len = items.length > 0 ? items.length : 1;
-                const safeItems = items.length > 0 ? items : [0];
-
-                const hasAudio = !!idxRes.audio;
-                for (let s = 0; s < numSamples; s++) {
-                    const rawIdx = idxRes.audio ? idxRes.audio[s] : idxRes.val;
-                    const cleanIdx = Math.floor(Math.abs(rawIdx)) % len;
-                    state.audioBuf[s] = safeItems[cleanIdx];
-                }
-                return hasAudio ? { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf } : { type: 'VAL', val: state.audioBuf[0], audio: null };
-            }
-
-            // ➕ Constant Number Pill
             case 'math_number': {
                 const num = Number(block.getFieldValue('NUM')) || 0;
                 return { type: 'VAL', val: num, audio: null };
             }
 
-            // ➕ MIDI Note to Hz
             case 'math_note_to_hz': {
                 const noteRes = this.getParamVal(block, 'NOTE', 60, new Set(visited));
                 const hz = dsp.mtof(noteRes.val);
                 return { type: 'VAL', val: hz, audio: null };
             }
 
-            // 🎵 Musical Note Name / String to MIDI Number
             case 'math_note_name': {
                 const noteStr = block.getFieldValue('NOTE') || 'C4';
                 const midi = dsp.parseNoteToMidi(noteStr);
                 return { type: 'VAL', val: midi, audio: null };
             }
 
-            // 🔄 Note Converter (to Hz, MIDI, V/Oct)
             case 'math_note_convert': {
                 const noteRes = this.getParamVal(block, 'NOTE', 60, new Set(visited));
                 const target = block.getFieldValue('TARGET') || 'HZ';
@@ -573,12 +615,18 @@ export class BlocklySynthEngine {
                 return { type: 'VAL', val: converted, audio: null };
             }
 
+            case 'math_transpose': {
+                const noteRes = this.getParamVal(block, 'NOTE', 0, new Set(visited));
+                const semi = Number(block.getFieldValue('SEMITONES')) || 0;
+                const val = noteRes.val + (semi / 12.0);
+                return { type: 'VAL', val, audio: null };
+            }
+
             default:
                 return { type: 'VAL', val: 0, audio: null };
         }
     }
 
-    // Render 128 samples to speaker buffer
     processBlock(outL, outR, offset, numSamples = 128) {
         this.busCache.clear();
 
