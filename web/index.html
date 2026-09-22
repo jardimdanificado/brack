@@ -361,13 +361,21 @@
 
     <!-- Blockly Toolbox Definition (Scratch Categories) -->
     <xml id="toolbox" style="display: none">
-        <category name="📡 Barramentos & Variáveis" colour="#FF6680">
-            <block type="synth_send"></block>
-            <block type="synth_recv"></block>
+        <category name="📦 Variáveis & Listas" colour="#FF661A">
             <block type="synth_var_set"></block>
             <block type="synth_var_change"></block>
+            <block type="synth_var_mult"></block>
             <block type="synth_var_reset"></block>
             <block type="synth_var_get"></block>
+            <block type="synth_list_set"></block>
+            <block type="synth_list_add"></block>
+            <block type="synth_list_clear"></block>
+            <block type="synth_list_get_item"></block>
+            <block type="synth_list_length"></block>
+        </category>
+        <category name="📡 Barramentos de Áudio" colour="#FF6680">
+            <block type="synth_send"></block>
+            <block type="synth_recv"></block>
         </category>
         <category name="🔀 Controle & Lógica" colour="#FFAB19">
             <block type="control_if_else"></block>
@@ -378,6 +386,11 @@
         </category>
         <category name="🚩 Eventos & Clock" colour="#FFBF00">
             <block type="event_whenflagclicked"></block>
+            <block type="event_every"></block>
+            <block type="event_broadcast"></block>
+            <block type="event_whenbroadcastreceived"></block>
+            <block type="event_whenkeypressed"></block>
+            <block type="event_whencondition"></block>
             <block type="synth_clock"></block>
             <block type="synth_clock_divider"></block>
             <block type="event_whenclockpulse"></block>
@@ -407,9 +420,12 @@
             <block type="math_single"></block>
             <block type="math_random"></block>
             <block type="math_list_item"></block>
+            <block type="math_note_name"></block>
             <block type="math_note_to_hz"></block>
+            <block type="math_note_convert"></block>
         </category>
         <category name="📼 Efeitos & Saída" colour="#4C97FF">
+            <block type="synth_scope"></block>
             <block type="synth_chorus"></block>
             <block type="synth_delay"></block>
             <block type="synth_out"></block>

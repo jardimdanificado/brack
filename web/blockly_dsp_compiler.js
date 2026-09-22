@@ -1,7 +1,7 @@
 /**
  * =========================================================================
  * BRACK Unified Real-Time 48kHz DSP Graph Engine (web/blockly_dsp_compiler.js)
- * Executes Unified Modules, Free-Text Buses, Chained Sequencers & Math Operators
+ * Executes Unified Modules, Free-Text Buses, Event Triggers, Chained Sequencers & Math
  * =========================================================================
  */
 
@@ -15,14 +15,31 @@ export class BlocklySynthEngine {
         // Dynamic State Tables
         this.blockStates = new Map();
         this.sendBlocksByChannel = new Map();
+        this.broadcastListeners = new Map();
+        this.activeBroadcasts = new Set();
+        this.pressedKeys = new Set();
+        this.hatBlocks = [];
         this.busCache = new Map();
         this.variables = new Map();
+        this.lists = new Map();
         this.outBlock = null;
     }
 
     setWorkspace(workspace) {
         this.workspace = workspace;
         this.compile();
+    }
+
+    onKeyDown(code) {
+        this.pressedKeys.add(code);
+        this.pressedKeys.add('any');
+    }
+
+    onKeyUp(code) {
+        this.pressedKeys.delete(code);
+        if (this.pressedKeys.size === 1 && this.pressedKeys.has('any')) {
+            this.pressedKeys.delete('any');
+        }
     }
 
     compile() {
@@ -32,10 +49,23 @@ export class BlocklySynthEngine {
         this.outBlock = allBlocks.find(b => b.type === 'synth_out') || null;
 
         this.sendBlocksByChannel.clear();
+        this.broadcastListeners.clear();
+        this.hatBlocks = [];
 
         for (const block of allBlocks) {
             if (!this.blockStates.has(block.id)) {
                 this.blockStates.set(block.id, this.initBlockState(block.type));
+            }
+
+            if (block.type.startsWith('event_')) {
+                this.hatBlocks.push(block);
+                if (block.type === 'event_whenbroadcastreceived') {
+                    const evt = block.getFieldValue('EVENT') || 'virada';
+                    if (!this.broadcastListeners.has(evt)) {
+                        this.broadcastListeners.set(evt, []);
+                    }
+                    this.broadcastListeners.get(evt).push(block);
+                }
             }
 
             if (block.type === 'synth_send') {
@@ -60,6 +90,12 @@ export class BlocklySynthEngine {
         }
 
         switch (type) {
+            case 'event_every':
+                return { samplesRemaining: 0 };
+            case 'event_whencondition':
+                return { lastVal: 0 };
+            case 'event_whenkeypressed':
+                return { wasPressed: false };
             case 'synth_seq':
                 return { step: 0, last: 0, voct: 0, gate: 0, audioBuf: new Float32Array(128) };
             case 'math_arithmetic':
@@ -123,7 +159,7 @@ export class BlocklySynthEngine {
             return unified.process(inputs, state, dsp, numSamples);
         }
 
-        // 2. Specialized Block Logic (Routing, Sequencer, Math)
+        // 2. Specialized Block Logic (Routing, Sequencer, Logic, Events)
         switch (block.type) {
             // 📡 Free-Text Broadcast Send Block
             case 'synth_send': {
@@ -172,7 +208,45 @@ export class BlocklySynthEngine {
                 const varName = block.getFieldValue('VAR') || 'voltagem';
                 const valRes = this.getParamVal(block, 'VAL', 0, new Set(visited));
                 this.variables.set(varName, valRes);
+                const next = block.getNextBlock ? block.getNextBlock() : null;
+                if (next) this.evalBlock(next, visited);
                 return valRes;
+            }
+
+            // 💾 Change Signal Variable (Accumulator)
+            case 'synth_var_change': {
+                const varName = block.getFieldValue('VAR') || 'voltagem';
+                const deltaRes = this.getParamVal(block, 'DELTA', 1, new Set(visited));
+                const current = this.variables.get(varName) || { type: 'VAL', val: 0, audio: null };
+                const newVal = (current.val || 0) + (deltaRes.val || 0);
+                const updated = { type: 'VAL', val: newVal, audio: null };
+                this.variables.set(varName, updated);
+                const next = block.getNextBlock ? block.getNextBlock() : null;
+                if (next) this.evalBlock(next, visited);
+                return updated;
+            }
+
+            // 💾 Multiply Signal Variable
+            case 'synth_var_mult': {
+                const varName = block.getFieldValue('VAR') || 'voltagem';
+                const factorRes = this.getParamVal(block, 'FACTOR', 1, new Set(visited));
+                const current = this.variables.get(varName) || { type: 'VAL', val: 0, audio: null };
+                const newVal = (current.val || 0) * (factorRes.val !== undefined ? factorRes.val : 1);
+                const updated = { type: 'VAL', val: newVal, audio: null };
+                this.variables.set(varName, updated);
+                const next = block.getNextBlock ? block.getNextBlock() : null;
+                if (next) this.evalBlock(next, visited);
+                return updated;
+            }
+
+            // 💾 Reset Signal Variable
+            case 'synth_var_reset': {
+                const varName = block.getFieldValue('VAR') || 'voltagem';
+                const zeroVal = { type: 'VAL', val: 0, audio: null };
+                this.variables.set(varName, zeroVal);
+                const next = block.getNextBlock ? block.getNextBlock() : null;
+                if (next) this.evalBlock(next, visited);
+                return zeroVal;
             }
 
             // 💾 Get Signal Variable
@@ -181,8 +255,85 @@ export class BlocklySynthEngine {
                 return this.variables.get(varName) || { type: 'VAL', val: 0, audio: null };
             }
 
+            // 📋 Set List Items
+            case 'synth_list_set': {
+                const listName = block.getFieldValue('LIST') || 'notas';
+                const itemsStr = block.getFieldValue('ITEMS') || '0';
+                const tokens = itemsStr.split(/[,\s]+/).filter(Boolean);
+                const items = tokens.map(t => dsp.parseNoteToMidi(t));
+                this.lists.set(listName, items);
+                const next = block.getNextBlock ? block.getNextBlock() : null;
+                if (next) this.evalBlock(next, visited);
+                return { type: 'VAL', val: items.length, audio: null };
+            }
+
+            // 📋 Add Item to List
+            case 'synth_list_add': {
+                const listName = block.getFieldValue('LIST') || 'notas';
+                const itemRes = this.getParamVal(block, 'ITEM', 0, new Set(visited));
+                const val = (typeof itemRes.val === 'string') ? dsp.parseNoteToMidi(itemRes.val) : itemRes.val;
+                if (!this.lists.has(listName)) this.lists.set(listName, []);
+                this.lists.get(listName).push(val);
+                const next = block.getNextBlock ? block.getNextBlock() : null;
+                if (next) this.evalBlock(next, visited);
+                return { type: 'VAL', val: val, audio: null };
+            }
+
+            // 📋 Clear List
+            case 'synth_list_clear': {
+                const listName = block.getFieldValue('LIST') || 'notas';
+                this.lists.set(listName, []);
+                const next = block.getNextBlock ? block.getNextBlock() : null;
+                if (next) this.evalBlock(next, visited);
+                return { type: 'VAL', val: 0, audio: null };
+            }
+
+            // 📋 Get Item of List
+            case 'synth_list_get_item': {
+                const listName = block.getFieldValue('LIST') || 'notas';
+                const idxRes = this.getParamVal(block, 'INDEX', 0, new Set(visited));
+                const list = this.lists.get(listName) || [0];
+                const len = list.length > 0 ? list.length : 1;
+                const safeList = list.length > 0 ? list : [0];
+
+                const hasAudio = !!idxRes.audio;
+                for (let s = 0; s < numSamples; s++) {
+                    const rawIdx = idxRes.audio ? idxRes.audio[s] : idxRes.val;
+                    const cleanIdx = Math.floor(Math.abs(rawIdx)) % len;
+                    state.audioBuf[s] = safeList[cleanIdx];
+                }
+                return hasAudio ? { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf } : { type: 'VAL', val: state.audioBuf[0], audio: null };
+            }
+
+            // 📋 Get Length of List
+            case 'synth_list_length': {
+                const listName = block.getFieldValue('LIST') || 'notas';
+                const list = this.lists.get(listName) || [];
+                return { type: 'VAL', val: list.length, audio: null };
+            }
+
+            // 📢 Broadcast Event
+            case 'event_broadcast': {
+                const evt = block.getFieldValue('EVENT') || 'virada';
+                this.activeBroadcasts.add(evt);
+                if (this.broadcastListeners.has(evt)) {
+                    for (const listener of this.broadcastListeners.get(evt)) {
+                        const next = listener.getNextBlock ? listener.getNextBlock() : null;
+                        if (next) this.evalBlock(next, new Set(visited));
+                    }
+                }
+                const next = block.getNextBlock ? block.getNextBlock() : null;
+                if (next) this.evalBlock(next, visited);
+                return { type: 'VAL', val: 1, audio: null };
+            }
+
             // 🚩 Hat Block Event Pass-Through
-            case 'event_whenflagclicked': {
+            case 'event_whenflagclicked':
+            case 'event_every':
+            case 'event_whenbroadcastreceived':
+            case 'event_whenkeypressed':
+            case 'event_whencondition':
+            case 'event_whenclockpulse': {
                 const nextBlock = block.getNextBlock ? block.getNextBlock() : null;
                 if (nextBlock) {
                     return this.evalBlock(nextBlock, visited);
@@ -225,6 +376,59 @@ export class BlocklySynthEngine {
                     state.audioBuf[s] = state.voct;
                 }
                 return { type: 'AUDIO', val: state.voct, audio: state.audioBuf, gate: state.gate };
+            }
+
+            // 🔀 Scratch If / Else Signal Selector (Multiplexer)
+            case 'control_if_else': {
+                const condRes = this.getParamVal(block, 'COND', 0, new Set(visited));
+                const thenRes = this.getParamVal(block, 'THEN', 0, new Set(visited));
+                const elseRes = this.getParamVal(block, 'ELSE', 0, new Set(visited));
+
+                const hasAudio = !!(condRes.audio || thenRes.audio || elseRes.audio);
+                for (let s = 0; s < numSamples; s++) {
+                    const c = condRes.audio ? condRes.audio[s] : condRes.val;
+                    const t = thenRes.audio ? thenRes.audio[s] : thenRes.val;
+                    const e = elseRes.audio ? elseRes.audio[s] : elseRes.val;
+                    state.audioBuf[s] = (c > 0.5) ? t : e;
+                }
+                return hasAudio ? { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf } : { type: 'VAL', val: state.audioBuf[0], audio: null };
+            }
+
+            // 🔀 Scratch Logic AND (A and B)
+            case 'logic_and': {
+                const aRes = this.getParamVal(block, 'A', 0, new Set(visited));
+                const bRes = this.getParamVal(block, 'B', 0, new Set(visited));
+                const hasAudio = !!(aRes.audio || bRes.audio);
+                for (let s = 0; s < numSamples; s++) {
+                    const a = aRes.audio ? aRes.audio[s] : aRes.val;
+                    const b = bRes.audio ? bRes.audio[s] : bRes.val;
+                    state.audioBuf[s] = (a > 0.5 && b > 0.5) ? 1 : 0;
+                }
+                return hasAudio ? { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf } : { type: 'VAL', val: state.audioBuf[0], audio: null };
+            }
+
+            // 🔀 Scratch Logic OR (A or B)
+            case 'logic_or': {
+                const aRes = this.getParamVal(block, 'A', 0, new Set(visited));
+                const bRes = this.getParamVal(block, 'B', 0, new Set(visited));
+                const hasAudio = !!(aRes.audio || bRes.audio);
+                for (let s = 0; s < numSamples; s++) {
+                    const a = aRes.audio ? aRes.audio[s] : aRes.val;
+                    const b = bRes.audio ? bRes.audio[s] : bRes.val;
+                    state.audioBuf[s] = (a > 0.5 || b > 0.5) ? 1 : 0;
+                }
+                return hasAudio ? { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf } : { type: 'VAL', val: state.audioBuf[0], audio: null };
+            }
+
+            // 🔀 Scratch Logic NOT (not A)
+            case 'logic_not': {
+                const aRes = this.getParamVal(block, 'A', 0, new Set(visited));
+                const hasAudio = !!aRes.audio;
+                for (let s = 0; s < numSamples; s++) {
+                    const a = aRes.audio ? aRes.audio[s] : aRes.val;
+                    state.audioBuf[s] = (a <= 0.5) ? 1 : 0;
+                }
+                return hasAudio ? { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf } : { type: 'VAL', val: state.audioBuf[0], audio: null };
             }
 
             // ➕ Scratch Math Arithmetic (+, -, *, /, mod)
@@ -316,78 +520,6 @@ export class BlocklySynthEngine {
                 return { type: 'VAL', val: gateVal, audio: state.audioBuf };
             }
 
-            // 💾 Change Signal Variable (Accumulator)
-            case 'synth_var_change': {
-                const varName = block.getFieldValue('VAR') || 'voltagem';
-                const deltaRes = this.getParamVal(block, 'DELTA', 1, new Set(visited));
-                const current = this.variables.get(varName) || { type: 'VAL', val: 0, audio: null };
-                const newVal = (current.val || 0) + (deltaRes.val || 0);
-                const updated = { type: 'VAL', val: newVal, audio: null };
-                this.variables.set(varName, updated);
-                return updated;
-            }
-
-            // 💾 Reset Signal Variable
-            case 'synth_var_reset': {
-                const varName = block.getFieldValue('VAR') || 'voltagem';
-                const zeroVal = { type: 'VAL', val: 0, audio: null };
-                this.variables.set(varName, zeroVal);
-                return zeroVal;
-            }
-
-            // 🔀 Scratch If / Else Signal Selector (Multiplexer)
-            case 'control_if_else': {
-                const condRes = this.getParamVal(block, 'COND', 0, new Set(visited));
-                const thenRes = this.getParamVal(block, 'THEN', 0, new Set(visited));
-                const elseRes = this.getParamVal(block, 'ELSE', 0, new Set(visited));
-
-                const hasAudio = !!(condRes.audio || thenRes.audio || elseRes.audio);
-                for (let s = 0; s < numSamples; s++) {
-                    const c = condRes.audio ? condRes.audio[s] : condRes.val;
-                    const t = thenRes.audio ? thenRes.audio[s] : thenRes.val;
-                    const e = elseRes.audio ? elseRes.audio[s] : elseRes.val;
-                    state.audioBuf[s] = (c > 0.5) ? t : e;
-                }
-                return hasAudio ? { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf } : { type: 'VAL', val: state.audioBuf[0], audio: null };
-            }
-
-            // 🔀 Scratch Logic AND (A and B)
-            case 'logic_and': {
-                const aRes = this.getParamVal(block, 'A', 0, new Set(visited));
-                const bRes = this.getParamVal(block, 'B', 0, new Set(visited));
-                const hasAudio = !!(aRes.audio || bRes.audio);
-                for (let s = 0; s < numSamples; s++) {
-                    const a = aRes.audio ? aRes.audio[s] : aRes.val;
-                    const b = bRes.audio ? bRes.audio[s] : bRes.val;
-                    state.audioBuf[s] = (a > 0.5 && b > 0.5) ? 1 : 0;
-                }
-                return hasAudio ? { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf } : { type: 'VAL', val: state.audioBuf[0], audio: null };
-            }
-
-            // 🔀 Scratch Logic OR (A or B)
-            case 'logic_or': {
-                const aRes = this.getParamVal(block, 'A', 0, new Set(visited));
-                const bRes = this.getParamVal(block, 'B', 0, new Set(visited));
-                const hasAudio = !!(aRes.audio || bRes.audio);
-                for (let s = 0; s < numSamples; s++) {
-                    const a = aRes.audio ? aRes.audio[s] : aRes.val;
-                    const b = bRes.audio ? bRes.audio[s] : bRes.val;
-                    state.audioBuf[s] = (a > 0.5 || b > 0.5) ? 1 : 0;
-                }
-                return hasAudio ? { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf } : { type: 'VAL', val: state.audioBuf[0], audio: null };
-            }
-
-            // 🔀 Scratch Logic NOT (not A)
-            case 'logic_not': {
-                const aRes = this.getParamVal(block, 'A', 0, new Set(visited));
-                const hasAudio = !!aRes.audio;
-                for (let s = 0; s < numSamples; s++) {
-                    const a = aRes.audio ? aRes.audio[s] : aRes.val;
-                    state.audioBuf[s] = (a <= 0.5) ? 1 : 0;
-                }
-                return hasAudio ? { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf } : { type: 'VAL', val: state.audioBuf[0], audio: null };
-            }
-
             // 📋 Scratch List Item Lookup
             case 'math_list_item': {
                 const idxRes = this.getParamVal(block, 'INDEX', 0, new Set(visited));
@@ -418,6 +550,29 @@ export class BlocklySynthEngine {
                 return { type: 'VAL', val: hz, audio: null };
             }
 
+            // 🎵 Musical Note Name / String to MIDI Number
+            case 'math_note_name': {
+                const noteStr = block.getFieldValue('NOTE') || 'C4';
+                const midi = dsp.parseNoteToMidi(noteStr);
+                return { type: 'VAL', val: midi, audio: null };
+            }
+
+            // 🔄 Note Converter (to Hz, MIDI, V/Oct)
+            case 'math_note_convert': {
+                const noteRes = this.getParamVal(block, 'NOTE', 60, new Set(visited));
+                const target = block.getFieldValue('TARGET') || 'HZ';
+                const midi = (typeof noteRes.val === 'string') ? dsp.parseNoteToMidi(noteRes.val) : noteRes.val;
+                let converted = midi;
+                if (target === 'HZ') {
+                    converted = dsp.mtof(midi);
+                } else if (target === 'VOCT') {
+                    converted = (midi - 60) / 12.0;
+                } else {
+                    converted = midi;
+                }
+                return { type: 'VAL', val: converted, audio: null };
+            }
+
             default:
                 return { type: 'VAL', val: 0, audio: null };
         }
@@ -427,6 +582,46 @@ export class BlocklySynthEngine {
     processBlock(outL, outR, offset, numSamples = 128) {
         this.busCache.clear();
 
+        // 1. Execute Event Hat Triggers
+        for (const hat of this.hatBlocks) {
+            if (hat.type === 'event_every') {
+                const state = this.blockStates.get(hat.id) || this.initBlockState(hat.type);
+                const time = parseFloat(hat.getFieldValue('TIME')) || 500;
+                const unit = hat.getFieldValue('UNIT') || 'ms';
+                let period = 24000;
+                if (unit === 'ms') period = Math.max(1, (time / 1000) * 48000);
+                else if (unit === 's') period = Math.max(1, time * 48000);
+                else if (unit === 'beats') period = Math.max(1, (60 / 120) * time * 48000);
+                else if (unit === 'clocks') period = Math.max(1, (60 / 120 / 2) * time * 48000);
+
+                state.samplesRemaining -= numSamples;
+                if (state.samplesRemaining <= 0) {
+                    state.samplesRemaining = period;
+                    const next = hat.getNextBlock ? hat.getNextBlock() : null;
+                    if (next) this.evalBlock(next);
+                }
+            } else if (hat.type === 'event_whenkeypressed') {
+                const state = this.blockStates.get(hat.id) || this.initBlockState(hat.type);
+                const key = hat.getFieldValue('KEY') || 'Space';
+                const isDown = this.pressedKeys.has(key);
+                if (isDown && !state.wasPressed) {
+                    const next = hat.getNextBlock ? hat.getNextBlock() : null;
+                    if (next) this.evalBlock(next);
+                }
+                state.wasPressed = isDown;
+            } else if (hat.type === 'event_whencondition') {
+                const state = this.blockStates.get(hat.id) || this.initBlockState(hat.type);
+                const condRes = this.getParamVal(hat, 'COND', 0);
+                const currentVal = condRes.val;
+                if (currentVal > 0.5 && state.lastVal <= 0.5) {
+                    const next = hat.getNextBlock ? hat.getNextBlock() : null;
+                    if (next) this.evalBlock(next);
+                }
+                state.lastVal = currentVal;
+            }
+        }
+
+        // 2. Synthesize Master Audio
         if (!this.outBlock) {
             for (let s = 0; s < numSamples; s++) {
                 outL[offset + s] = 0;

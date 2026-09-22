@@ -11,12 +11,14 @@
  */
 
 export const CATEGORIES = {
-    ROUTING: { id: "ROUTING", name: "📡 Barramentos & Tags", colour: "#FF6680" },
-    EVENTS: { id: "EVENTS", name: "🚩 Eventos", colour: "#FFAB19" },
+    VARIABLES: { id: "VARIABLES", name: "📦 Variáveis & Listas", colour: "#FF661A" },
+    ROUTING: { id: "ROUTING", name: "📡 Barramentos de Áudio", colour: "#FF6680" },
+    CONTROL: { id: "CONTROL", name: "🔀 Controle & Lógica", colour: "#FFAB19" },
+    EVENTS: { id: "EVENTS", name: "🚩 Eventos & Clock", colour: "#FFBF00" },
     GENERATORS: { id: "GENERATORS", name: "〰️ Geradores", colour: "#9966FF" },
     FILTERS: { id: "FILTERS", name: "🎛️ Filtros & Dinâmica", colour: "#FF8C1A" },
     MODULATORS: { id: "MODULATORS", name: "📈 Moduladores", colour: "#59C059" },
-    OPERATORS: { id: "OPERATORS", name: "➕ Operadores Scratch", colour: "#59C059" },
+    OPERATORS: { id: "OPERATORS", name: "➕ Operadores Scratch", colour: "#40C057" },
     EFFECTS: { id: "EFFECTS", name: "📼 Efeitos & Saída", colour: "#4C97FF" }
 };
 
@@ -33,6 +35,40 @@ export function defineModule(spec) {
 export const dspHelpers = {
     clamp(v, min, max) {
         return Math.max(min, Math.min(max, v));
+    },
+    parseNoteToMidi(token) {
+        if (typeof token === 'number') return token;
+        const s = String(token).trim().toLowerCase();
+        if (!isNaN(Number(s))) return Number(s);
+
+        const NOTE_MAP = {
+            'c': 0, 'do': 0, 'dó': 0,
+            'c#': 1, 'db': 1, 'do#': 1, 'dó#': 1,
+            'd': 2, 're': 2, 'ré': 2,
+            'd#': 3, 'eb': 3, 're#': 3, 'ré#': 3,
+            'e': 4, 'mi': 4,
+            'f': 5, 'fa': 5, 'fá': 5,
+            'f#': 6, 'gb': 6, 'fa#': 6, 'fá#': 6,
+            'g': 7, 'sol': 7,
+            'g#': 8, 'ab': 8, 'sol#': 8,
+            'a': 9, 'la': 9, 'lá': 9,
+            'a#': 10, 'bb': 10, 'la#': 10, 'lá#': 10,
+            'b': 11, 'si': 11
+        };
+
+        const match = s.match(/^([a-g]|do|dó|re|ré|mi|fa|fá|sol|la|lá|si)(#|b|♯|♭)?(-?\d+)?$/i);
+        if (!match) return 0;
+
+        let key = match[1];
+        if (match[2]) {
+            const acc = match[2] === '♯' ? '#' : (match[2] === '♭' ? 'b' : match[2]);
+            key += acc;
+        }
+        const noteBase = NOTE_MAP[key];
+        if (noteBase === undefined) return 0;
+
+        const octave = match[3] !== undefined ? parseInt(match[3], 10) : 4;
+        return (octave + 1) * 12 + noteBase;
     },
     tanh(x) {
         if (x < -3) return -1;
@@ -486,6 +522,37 @@ defineModule({
 });
 
 defineModule({
+    id: 'synth_scope',
+    name: '📊 Osciloscópio Live',
+    category: 'EFFECTS',
+    shape: 'statement',
+    inputs: [
+        { id: 'IN', label: 'Áudio In (ou fluxo acima)', type: 'audio' }
+    ],
+    state: () => ({
+        audioBuf: new Float32Array(128),
+        history: new Float32Array(512),
+        histHead: 0
+    }),
+    process(inputs, state, dsp, numSamples) {
+        const inRes = inputs.IN;
+        if (!inRes || !inRes.audio) {
+            state.audioBuf.fill(0);
+            return { type: 'AUDIO', val: 0, audio: state.audioBuf };
+        }
+
+        for (let s = 0; s < numSamples; s++) {
+            const smp = inRes.audio[s];
+            state.audioBuf[s] = smp;
+            state.history[state.histHead] = smp;
+            state.histHead = (state.histHead + 1) % 512;
+        }
+        return { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf };
+    },
+    tooltip: 'Osciloscópio em tempo real que desenha a forma de onda do sinal de áudio.'
+});
+
+defineModule({
     id: 'synth_delay',
     name: '📼 Tape Delay Analógico',
     category: 'EFFECTS',
@@ -627,6 +694,12 @@ export function registerAllBlocksToBlockly(Blockly) {
                         const valIn = this.appendValueInput(inp.id).appendField(inp.label);
                         if (inp.check) valIn.setCheck(inp.check);
                     }
+                }
+
+                if (id === 'synth_scope') {
+                    const placeholderSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='60'></svg>";
+                    this.appendDummyInput('SCOPE_SLOT')
+                        .appendField(new Blockly.FieldImage(placeholderSvg, 180, 60, "*"), "SCOPE_IMG");
                 }
 
                 const cat = CATEGORIES[mod.category] || CATEGORIES.GENERATORS;

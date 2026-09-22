@@ -9,7 +9,149 @@ import { registerAllBlocksToBlockly } from './synth_registry.js';
 
 export function registerSynthBlocks(Blockly) {
     // -------------------------------------------------------------------------
-    // 📡 1. BARRAMENTOS & TAGS LIVRES (#FF6680)
+    // 📦 1. VARIÁVEIS & LISTAS (#FF661A)
+    // -------------------------------------------------------------------------
+    Blockly.Blocks['synth_var_set'] = {
+        init: function() {
+            this.appendValueInput("VAL")
+                .appendField("definir [")
+                .appendField(new Blockly.FieldTextInput("voltagem"), "VAR")
+                .appendField("] para");
+            this.setPreviousStatement(true);
+            this.setNextStatement(true);
+            this.setInputsInline(true);
+            this.setColour("#FF661A");
+            this.setTooltip("Armazena um sinal ou número na variável.");
+        }
+    };
+
+    Blockly.Blocks['synth_var_change'] = {
+        init: function() {
+            this.appendValueInput("DELTA")
+                .appendField("mudar [")
+                .appendField(new Blockly.FieldTextInput("voltagem"), "VAR")
+                .appendField("] por");
+            this.setPreviousStatement(true);
+            this.setNextStatement(true);
+            this.setInputsInline(true);
+            this.setColour("#FF661A");
+            this.setTooltip("Acumulador: soma o valor à variável a cada execução.");
+        }
+    };
+
+    Blockly.Blocks['synth_var_mult'] = {
+        init: function() {
+            this.appendValueInput("FACTOR")
+                .appendField("multiplicar [")
+                .appendField(new Blockly.FieldTextInput("voltagem"), "VAR")
+                .appendField("] por");
+            this.setPreviousStatement(true);
+            this.setNextStatement(true);
+            this.setInputsInline(true);
+            this.setColour("#FF661A");
+            this.setTooltip("Multiplica o valor da variável por um fator (ganho / atenuação).");
+        }
+    };
+
+    Blockly.Blocks['synth_var_reset'] = {
+        init: function() {
+            this.appendDummyInput()
+                .appendField("zerar [")
+                .appendField(new Blockly.FieldTextInput("voltagem"), "VAR")
+                .appendField("]");
+            this.setPreviousStatement(true);
+            this.setNextStatement(true);
+            this.setColour("#FF661A");
+            this.setTooltip("Zera o valor da variável.");
+        }
+    };
+
+    Blockly.Blocks['synth_var_get'] = {
+        init: function() {
+            this.appendDummyInput()
+                .appendField("(")
+                .appendField(new Blockly.FieldTextInput("voltagem"), "VAR")
+                .appendField(")");
+            this.setOutput(true);
+            this.setColour("#FF661A");
+            this.setTooltip("Pílula que lê o valor ou sinal da variável.");
+        }
+    };
+
+    // 📋 Listas / Vetores
+    Blockly.Blocks['synth_list_set'] = {
+        init: function() {
+            this.appendDummyInput()
+                .appendField("definir lista [")
+                .appendField(new Blockly.FieldTextInput("notas"), "LIST")
+                .appendField("] para [")
+                .appendField(new Blockly.FieldTextInput("0, 3, 7, 10, 12, 10, 7, 3"), "ITEMS")
+                .appendField("]");
+            this.setPreviousStatement(true);
+            this.setNextStatement(true);
+            this.setColour("#FF661A");
+            this.setTooltip("Define todos os itens numéricos de uma lista.");
+        }
+    };
+
+    Blockly.Blocks['synth_list_add'] = {
+        init: function() {
+            this.appendValueInput("ITEM")
+                .appendField("adicionar");
+            this.appendDummyInput()
+                .appendField("à lista [")
+                .appendField(new Blockly.FieldTextInput("notas"), "LIST")
+                .appendField("]");
+            this.setPreviousStatement(true);
+            this.setNextStatement(true);
+            this.setInputsInline(true);
+            this.setColour("#FF661A");
+            this.setTooltip("Adiciona um número ao final da lista.");
+        }
+    };
+
+    Blockly.Blocks['synth_list_clear'] = {
+        init: function() {
+            this.appendDummyInput()
+                .appendField("limpar lista [")
+                .appendField(new Blockly.FieldTextInput("notas"), "LIST")
+                .appendField("]");
+            this.setPreviousStatement(true);
+            this.setNextStatement(true);
+            this.setColour("#FF661A");
+            this.setTooltip("Apaga todos os itens da lista.");
+        }
+    };
+
+    Blockly.Blocks['synth_list_get_item'] = {
+        init: function() {
+            this.appendValueInput("INDEX")
+                .appendField("item");
+            this.appendDummyInput()
+                .appendField("de [")
+                .appendField(new Blockly.FieldTextInput("notas"), "LIST")
+                .appendField("]");
+            this.setOutput(true);
+            this.setInputsInline(true);
+            this.setColour("#FF661A");
+            this.setTooltip("Lê um item da lista pelo índice numérico (wrap circular automático).");
+        }
+    };
+
+    Blockly.Blocks['synth_list_length'] = {
+        init: function() {
+            this.appendDummyInput()
+                .appendField("tamanho de [")
+                .appendField(new Blockly.FieldTextInput("notas"), "LIST")
+                .appendField("]");
+            this.setOutput(true);
+            this.setColour("#FF661A");
+            this.setTooltip("Retorna a quantidade de itens na lista.");
+        }
+    };
+
+    // -------------------------------------------------------------------------
+    // 📡 2. BARRAMENTOS DE ÁUDIO LIVRES (#FF6680)
     // -------------------------------------------------------------------------
     Blockly.Blocks['synth_send'] = {
         init: function() {
@@ -39,69 +181,99 @@ export function registerSynthBlocks(Blockly) {
         }
     };
 
-    Blockly.Blocks['synth_var_set'] = {
-        init: function() {
-            this.appendValueInput("VAL")
-                .appendField("definir sinal [")
-                .appendField(new Blockly.FieldTextInput("voltagem"), "VAR")
-                .appendField("] para");
-            this.setPreviousStatement(true);
-            this.setNextStatement(true);
-            this.setInputsInline(true);
-            this.setColour("#FF6680");
-            this.setTooltip("Armazena um sinal ou voltagem em uma variável.");
-        }
-    };
-
-    Blockly.Blocks['synth_var_change'] = {
-        init: function() {
-            this.appendValueInput("DELTA")
-                .appendField("mudar sinal [")
-                .appendField(new Blockly.FieldTextInput("voltagem"), "VAR")
-                .appendField("] por");
-            this.setPreviousStatement(true);
-            this.setNextStatement(true);
-            this.setInputsInline(true);
-            this.setColour("#FF6680");
-            this.setTooltip("Acumulador: incrementa o valor da variável a cada execução.");
-        }
-    };
-
-    Blockly.Blocks['synth_var_reset'] = {
-        init: function() {
-            this.appendDummyInput()
-                .appendField("zerar sinal [")
-                .appendField(new Blockly.FieldTextInput("voltagem"), "VAR")
-                .appendField("]");
-            this.setPreviousStatement(true);
-            this.setNextStatement(true);
-            this.setColour("#FF6680");
-            this.setTooltip("Zera o valor acumulado da variável.");
-        }
-    };
-
-    Blockly.Blocks['synth_var_get'] = {
-        init: function() {
-            this.appendDummyInput()
-                .appendField("(")
-                .appendField(new Blockly.FieldTextInput("voltagem"), "VAR")
-                .appendField(")");
-            this.setOutput(true);
-            this.setColour("#FF6680");
-            this.setTooltip("Pílula que lê o valor da variável.");
-        }
-    };
-
     // -------------------------------------------------------------------------
-    // 🚩 2. EVENTOS & HAT BLOCKS (#FFAB19)
+    // 🚩 2. EVENTOS & HAT BLOCKS (#FFBF00)
     // -------------------------------------------------------------------------
     Blockly.Blocks['event_whenflagclicked'] = {
         init: function() {
             this.appendDummyInput()
                 .appendField("🚩 quando 🟢 for clicado");
             this.setNextStatement(true);
-            this.setColour("#FFAB19");
+            this.setColour("#FFBF00");
             this.setTooltip("Inicia o motor modular de áudio quando a bandeira verde for clicada.");
+        }
+    };
+
+    Blockly.Blocks['event_every'] = {
+        init: function() {
+            this.appendDummyInput()
+                .appendField("⏱️ a cada")
+                .appendField(new Blockly.FieldNumber(500, 1), "TIME")
+                .appendField(new Blockly.FieldDropdown([
+                    ["milissegundos (ms)", "ms"],
+                    ["segundos (s)", "s"],
+                    ["batidas (beats @ 120bpm)", "beats"],
+                    ["pulsos de clock", "clocks"]
+                ]), "UNIT");
+            this.setNextStatement(true);
+            this.setColour("#FFBF00");
+            this.setTooltip("Executa a pilha de blocos periodicamente a cada X tempo.");
+        }
+    };
+
+    Blockly.Blocks['event_broadcast'] = {
+        init: function() {
+            this.appendDummyInput()
+                .appendField("📢 transmitir evento [")
+                .appendField(new Blockly.FieldTextInput("virada"), "EVENT")
+                .appendField("]");
+            this.setPreviousStatement(true);
+            this.setNextStatement(true);
+            this.setColour("#FFBF00");
+            this.setTooltip("Dispara um evento nomeado para todos os blocos 'quando eu ouvir'.");
+        }
+    };
+
+    Blockly.Blocks['event_whenbroadcastreceived'] = {
+        init: function() {
+            this.appendDummyInput()
+                .appendField("👂 quando eu ouvir [")
+                .appendField(new Blockly.FieldTextInput("virada"), "EVENT")
+                .appendField("]");
+            this.setNextStatement(true);
+            this.setColour("#FFBF00");
+            this.setTooltip("Executa a pilha de blocos quando o evento for transmitido.");
+        }
+    };
+
+    Blockly.Blocks['event_whenkeypressed'] = {
+        init: function() {
+            this.appendDummyInput()
+                .appendField("⌨️ quando a tecla [")
+                .appendField(new Blockly.FieldDropdown([
+                    ["Espaço", "Space"],
+                    ["Enter", "Enter"],
+                    ["A (Dó / C)", "KeyA"],
+                    ["W (Dó# / C#)", "KeyW"],
+                    ["S (Ré / D)", "KeyS"],
+                    ["E (Ré# / D#)", "KeyE"],
+                    ["D (Mi / E)", "KeyD"],
+                    ["F (Fá / F)", "KeyF"],
+                    ["T (Fá# / F#)", "KeyT"],
+                    ["G (Sol / G)", "KeyG"],
+                    ["Y (Sol# / G#)", "KeyY"],
+                    ["H (Lá / A)", "KeyH"],
+                    ["U (Lá# / A#)", "KeyU"],
+                    ["J (Si / B)", "KeyJ"],
+                    ["K (Dó+1 / C5)", "KeyK"],
+                    ["Qualquer Tecla", "any"]
+                ]), "KEY")
+                .appendField("] for pressionada");
+            this.setNextStatement(true);
+            this.setColour("#FFBF00");
+            this.setTooltip("Dispara a pilha de blocos quando a tecla do teclado for pressionada.");
+        }
+    };
+
+    Blockly.Blocks['event_whencondition'] = {
+        init: function() {
+            this.appendValueInput("COND")
+                .appendField("🚩 quando");
+            this.appendDummyInput()
+                .appendField("se tornar verdadeiro");
+            this.setNextStatement(true);
+            this.setColour("#FFBF00");
+            this.setTooltip("Dispara a pilha quando a condição passar de falso para verdadeiro.");
         }
     };
 
@@ -112,7 +284,7 @@ export function registerSynthBlocks(Blockly) {
             this.appendValueInput("CLK")
                 .appendField("Sinal Clock");
             this.setNextStatement(true);
-            this.setColour("#FFAB19");
+            this.setColour("#FFBF00");
             this.setTooltip("Dispara eventos e modulações a cada pulso do clock.");
         }
     };
@@ -353,8 +525,38 @@ export function registerSynthBlocks(Blockly) {
                 .appendField("para Hz");
             this.setOutput(true);
             this.setInputsInline(true);
-            this.setColour("#59C059");
+            this.setColour("#40C057");
             this.setTooltip("Converte número de nota MIDI (ex: 60 = Dó4) em Hertz.");
+        }
+    };
+
+    Blockly.Blocks['math_note_name'] = {
+        init: function() {
+            this.appendDummyInput()
+                .appendField("nota musical [")
+                .appendField(new Blockly.FieldTextInput("C4"), "NOTE")
+                .appendField("]");
+            this.setOutput(true);
+            this.setColour("#40C057");
+            this.setTooltip("Nota musical (ex: C4, Eb3, F#4, Sol4). Converte para valor numérico MIDI.");
+        }
+    };
+
+    Blockly.Blocks['math_note_convert'] = {
+        init: function() {
+            this.appendValueInput("NOTE")
+                .appendField("converter nota");
+            this.appendDummyInput()
+                .appendField("para")
+                .appendField(new Blockly.FieldDropdown([
+                    ["Frequência (Hz)", "HZ"],
+                    ["Número MIDI (0..127)", "MIDI"],
+                    ["Volts V/Oct (1V/8va)", "VOCT"]
+                ]), "TARGET");
+            this.setOutput(true);
+            this.setInputsInline(true);
+            this.setColour("#40C057");
+            this.setTooltip("Converte notas musicais em Hertz, MIDI ou V/Oct para osciladores e filtros.");
         }
     };
 

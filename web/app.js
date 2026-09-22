@@ -212,6 +212,10 @@ function loadDefaultPatch() {
     recvEnv2.render();
     vcaBlock.getInput('GAIN').connection.connect(recvEnv2.outputConnection);
 
+    const scopeBlock = workspace.newBlock('synth_scope');
+    scopeBlock.initSvg();
+    scopeBlock.render();
+
     const delayBlock = workspace.newBlock('synth_delay');
     delayBlock.initSvg();
     delayBlock.render();
@@ -220,11 +224,12 @@ function loadDefaultPatch() {
     outBlock.initSvg();
     outBlock.render();
 
-    // Snap Vertical Scratch Audio Stack: Flag ➔ VCO ➔ VCF ➔ VCA ➔ Delay ➔ Out
+    // Snap Vertical Scratch Audio Stack: Flag ➔ VCO ➔ VCF ➔ VCA ➔ Scope ➔ Delay ➔ Out
     flagBlock.nextConnection.connect(vcoBlock.previousConnection);
     vcoBlock.nextConnection.connect(vcfBlock.previousConnection);
     vcfBlock.nextConnection.connect(vcaBlock.previousConnection);
-    vcaBlock.nextConnection.connect(delayBlock.previousConnection);
+    vcaBlock.nextConnection.connect(scopeBlock.previousConnection);
+    scopeBlock.nextConnection.connect(delayBlock.previousConnection);
     delayBlock.nextConnection.connect(outBlock.previousConnection);
 
     workspace.scrollCenter();
@@ -327,5 +332,129 @@ window.addEventListener('DOMContentLoaded', () => {
         workspace.clear();
         synthEngine.compile();
     });
+
+    // Keyboard Event Listener for `event_whenkeypressed`
+    window.addEventListener('keydown', (e) => {
+        if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+        if (synthEngine) synthEngine.onKeyDown(e.code);
+    });
+
+    window.addEventListener('keyup', (e) => {
+        if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+        if (synthEngine) synthEngine.onKeyUp(e.code);
+    });
+
+    // 7. Live 60 FPS Oscilloscope Display Render Loop
+    function renderLiveOscilloscopes() {
+        if (workspace && synthEngine) {
+            const scopeBlocks = workspace.getAllBlocks(false).filter(b => b.type === 'synth_scope');
+
+            for (const block of scopeBlocks) {
+                const fieldImg = block.getField('SCOPE_IMG');
+                if (!fieldImg) continue;
+                const fieldSvgRoot = fieldImg.getSvgRoot();
+                if (!fieldSvgRoot) continue;
+                const parentGroup = fieldSvgRoot.parentNode;
+                if (!parentGroup) continue;
+
+                // Hide the raw image placeholder
+                fieldSvgRoot.style.display = 'none';
+
+                // Calculate exact offset inside the block
+                let posX = 16;
+                let posY = 64;
+                try {
+                    const bbox = fieldSvgRoot.getBBox ? fieldSvgRoot.getBBox() : null;
+                    if (bbox && bbox.y > 10) {
+                        posX = bbox.x;
+                        posY = bbox.y;
+                    }
+                } catch (e) {
+                    // getBBox fallback
+                }
+
+                let scopeGroup = parentGroup.querySelector('.blockly-scope-display');
+                if (!scopeGroup) {
+                    scopeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                    scopeGroup.setAttribute('class', 'blockly-scope-display');
+                    scopeGroup.setAttribute('transform', `translate(${posX}, ${posY})`);
+
+                    const bgRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    bgRect.setAttribute('x', '0');
+                    bgRect.setAttribute('y', '0');
+                    bgRect.setAttribute('width', '180');
+                    bgRect.setAttribute('height', '60');
+                    bgRect.setAttribute('rx', '4');
+                    bgRect.setAttribute('fill', '#060a08');
+                    bgRect.setAttribute('stroke', '#1f3329');
+                    bgRect.setAttribute('stroke-width', '1.5');
+
+                    const centerLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    centerLine.setAttribute('x1', '0');
+                    centerLine.setAttribute('y1', '30');
+                    centerLine.setAttribute('x2', '180');
+                    centerLine.setAttribute('y2', '30');
+                    centerLine.setAttribute('stroke', '#121f18');
+                    centerLine.setAttribute('stroke-dasharray', '3,3');
+
+                    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    path.setAttribute('class', 'scope-waveform');
+                    path.setAttribute('d', 'M 0 30 L 180 30');
+                    path.setAttribute('stroke', '#55efc4');
+                    path.setAttribute('stroke-width', '2');
+                    path.setAttribute('fill', 'none');
+                    path.setAttribute('stroke-linecap', 'round');
+                    path.setAttribute('stroke-linejoin', 'round');
+
+                    scopeGroup.appendChild(bgRect);
+                    scopeGroup.appendChild(centerLine);
+                    scopeGroup.appendChild(path);
+                    parentGroup.appendChild(scopeGroup);
+                } else {
+                    scopeGroup.setAttribute('transform', `translate(${posX}, ${posY})`);
+                }
+
+                const state = synthEngine.blockStates.get(block.id);
+                const pathEl = scopeGroup.querySelector('.scope-waveform');
+                if (!pathEl) continue;
+
+                if (isPlaying && state && state.history) {
+                    const hist = state.history;
+                    const head = state.histHead;
+                    const len = 512;
+
+                    // Trigger zero-crossing
+                    let start = (head - 256 + len) % len;
+                    for (let i = 0; i < 96; i++) {
+                        const idx1 = (head - 256 + i + len) % len;
+                        const idx2 = (idx1 + 1) % len;
+                        if (hist[idx1] <= 0 && hist[idx2] > 0) {
+                            start = idx2;
+                            break;
+                        }
+                    }
+
+                    const width = 180;
+                    const midY = 30;
+                    const samplesToShow = 256;
+                    const points = [];
+
+                    for (let x = 0; x < width; x += 2) {
+                        const idx = (start + Math.floor(x * (samplesToShow / width))) % len;
+                        const smp = Math.max(-1.1, Math.min(1.1, hist[idx] || 0));
+                        const y = midY - smp * (midY - 4);
+                        points.push(`${x},${y.toFixed(1)}`);
+                    }
+
+                    pathEl.setAttribute('d', 'M ' + points.join(' L '));
+                } else {
+                    pathEl.setAttribute('d', 'M 0 30 L 180 30');
+                }
+            }
+        }
+        requestAnimationFrame(renderLiveOscilloscopes);
+    }
+
+    renderLiveOscilloscopes();
 });
 
