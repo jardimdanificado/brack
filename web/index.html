@@ -259,6 +259,45 @@
             box-sizing: border-box !important;
             overflow-y: auto !important;
             overflow-x: hidden !important;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+        }
+
+        /* Hide Toolbox State */
+        .toolbox-hidden .blocklyToolboxDiv {
+            display: none !important;
+        }
+
+        .toolbox-hidden .blocklyFlyout {
+            display: none !important;
+        }
+
+        @media (max-width: 768px) {
+            header {
+                height: auto;
+                padding: 6px 8px;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 6px;
+            }
+            .actions {
+                flex-wrap: wrap;
+                gap: 6px;
+            }
+            .project-toolbar {
+                flex-wrap: wrap;
+                width: 100%;
+                gap: 4px;
+            }
+            #project-select {
+                flex: 1;
+                min-width: 120px;
+                max-width: 100%;
+            }
+            .blocklyToolboxDiv {
+                width: 175px !important;
+                min-width: 175px !important;
+                max-width: 175px !important;
+            }
         }
 
         .blocklyTreeRow {
@@ -551,7 +590,13 @@
             <!-- Project Selector & Actions Toolbar -->
             <div class="project-toolbar">
                 <select id="project-select" title="Carregar Exemplo ou Projeto Salvo"></select>
-                <button id="btn-save-project" class="btn-primary" title="Salvar alterações no projeto">Salvar</button>
+                <button id="btn-toggle-toolbox" class="btn-primary" title="Mostrar/Ocultar Barra Lateral de Blocos (B)">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/>
+                    </svg>
+                    <span>Blocos</span>
+                </button>
+                <button id="btn-save-project" title="Salvar alterações no projeto">Salvar</button>
                 <button id="btn-save-as-project" title="Salvar como novo projeto">Salvar Como</button>
                 <button id="btn-new-project" title="Criar projeto em branco">Novo</button>
                 <button id="btn-manage-projects" title="Gerenciador de Projetos e Exemplos">Projetos</button>

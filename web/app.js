@@ -428,6 +428,55 @@ window.addEventListener('DOMContentLoaded', () => {
         btnPlayToggle.addEventListener('click', togglePlayback);
     }
 
+    // 7.5 Toolbox Toggle Controller (Header Bar Toggle & Shortcut)
+    let isToolboxVisible = true;
+    const blocklyDiv = document.getElementById('blockly-div');
+    const btnToggleToolbox = document.getElementById('btn-toggle-toolbox');
+
+    function toggleToolbox(forceState) {
+        if (forceState !== undefined) {
+            isToolboxVisible = forceState;
+        } else {
+            isToolboxVisible = !isToolboxVisible;
+        }
+
+        if (blocklyDiv) {
+            if (isToolboxVisible) {
+                blocklyDiv.classList.remove('toolbox-hidden');
+            } else {
+                blocklyDiv.classList.add('toolbox-hidden');
+                try {
+                    if (workspace && workspace.getFlyout()) {
+                        workspace.getFlyout().hide();
+                    }
+                    if (workspace && workspace.getToolbox() && typeof workspace.getToolbox().clearSelection === 'function') {
+                        workspace.getToolbox().clearSelection();
+                    }
+                } catch (err) {}
+            }
+        }
+
+        if (btnToggleToolbox) {
+            if (isToolboxVisible) {
+                btnToggleToolbox.classList.add('btn-primary');
+                btnToggleToolbox.classList.remove('btn-warn');
+                btnToggleToolbox.title = 'Ocultar Barra Lateral de Blocos (B)';
+            } else {
+                btnToggleToolbox.classList.remove('btn-primary');
+                btnToggleToolbox.classList.add('btn-warn');
+                btnToggleToolbox.title = 'Mostrar Barra Lateral de Blocos (B)';
+            }
+        }
+
+        if (workspace) {
+            Blockly.svgResize(workspace);
+        }
+    }
+
+    if (btnToggleToolbox) {
+        btnToggleToolbox.addEventListener('click', () => toggleToolbox());
+    }
+
     // 8. Project Toolbar Event Handlers
     const projectSelect = document.getElementById('project-select');
     const btnSaveProject = document.getElementById('btn-save-project');
@@ -568,9 +617,19 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Keyboard Event Listener for `event_whenkeypressed`
+    // Keyboard Event Listener for `event_whenkeypressed` & Shortcuts
     window.addEventListener('keydown', (e) => {
         if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+        if (e.code === 'KeyB' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+            e.preventDefault();
+            toggleToolbox();
+            return;
+        }
+        if (e.code === 'Space' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+            e.preventDefault();
+            togglePlayback();
+            return;
+        }
         if (synthEngine) synthEngine.onKeyDown(e.code);
     });
 
