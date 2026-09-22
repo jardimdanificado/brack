@@ -68,6 +68,72 @@ export function registerSynthBlocks(Blockly) {
         }
     };
 
+    Blockly.Blocks['module_io_slider'] = {
+        init: function() {
+            this.appendDummyInput()
+                .appendField("slider [")
+                .appendField(new Blockly.FieldTextInput("Volume"), "NAME")
+                .appendField("] min:")
+                .appendField(new Blockly.FieldNumber(0), "MIN")
+                .appendField("max:")
+                .appendField(new Blockly.FieldNumber(1), "MAX")
+                .appendField("padrao:")
+                .appendField(new Blockly.FieldNumber(0.5), "DEFAULT");
+            this.setOutput(true);
+            this.setInputsInline(true);
+            this.setColour(CATEGORIES.IO_PORTS ? CATEGORIES.IO_PORTS.colour : "#059669");
+            this.setTooltip("Cria um fader deslizante vertical na faceplate da caixa.");
+        }
+    };
+
+    Blockly.Blocks['module_io_switch'] = {
+        init: function() {
+            this.appendDummyInput()
+                .appendField("chave toggle [")
+                .appendField(new Blockly.FieldTextInput("Ativo"), "NAME")
+                .appendField("] padrao:")
+                .appendField(new Blockly.FieldDropdown([
+                    ["Ligado (1)", "1"],
+                    ["Desligado (0)", "0"]
+                ]), "DEFAULT");
+            this.setOutput(true);
+            this.setInputsInline(true);
+            this.setColour(CATEGORIES.IO_PORTS ? CATEGORIES.IO_PORTS.colour : "#059669");
+            this.setTooltip("Cria uma chave alavanca 3D liga/desliga na faceplate.");
+        }
+    };
+
+    Blockly.Blocks['module_io_xy'] = {
+        init: function() {
+            this.appendDummyInput()
+                .appendField("pad xy [")
+                .appendField(new Blockly.FieldTextInput("Joy"), "NAME")
+                .appendField("] eixo:")
+                .appendField(new Blockly.FieldDropdown([
+                    ["Eixo X (0..1)", "X"],
+                    ["Eixo Y (0..1)", "Y"]
+                ]), "AXIS");
+            this.setOutput(true);
+            this.setInputsInline(true);
+            this.setColour(CATEGORIES.IO_PORTS ? CATEGORIES.IO_PORTS.colour : "#059669");
+            this.setTooltip("Cria um Touch Pad XY vetorial 2D e lê a coordenada correspondente.");
+        }
+    };
+
+    Blockly.Blocks['module_io_wavedraw'] = {
+        init: function() {
+            this.appendDummyInput()
+                .appendField("onda desenhada [")
+                .appendField(new Blockly.FieldTextInput("Wave"), "NAME")
+                .appendField("] amostra:")
+                .appendField(new Blockly.FieldNumber(0), "INDEX");
+            this.setOutput(true);
+            this.setInputsInline(true);
+            this.setColour(CATEGORIES.IO_PORTS ? CATEGORIES.IO_PORTS.colour : "#059669");
+            this.setTooltip("Cria um pad tátil de desenho livre de forma de onda (128 amostras).");
+        }
+    };
+
     Blockly.Blocks['module_io_process'] = {
         init: function() {
             this.appendDummyInput()

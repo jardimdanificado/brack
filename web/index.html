@@ -7,26 +7,171 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Rajdhani:wght@600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Orbitron:wght@600;800;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --bg-chassis: #0b1118;
-            --metal-light: #485460;
-            --metal-mid: #2d3436;
-            --metal-dark: #1e272e;
-            --metal-highlight: #718093;
-            --neon-cyan: #00f2fe;
-            --neon-lime: #00ff88;
-            --neon-amber: #fed330;
-            --neon-pink: #ff3838;
-            --neon-magenta: #e056fd;
-            --lcd-bg: #03130c;
+        /* Base Theme (Cyber Titanium / Default) */
+        :root, :root[data-theme="cyber_titanium"] {
+            --bg-chassis: #060a0e;
+            --bg-header: linear-gradient(180deg, #3d4a54 0%, #222c34 45%, #151d23 50%, #202b33 100%);
+            --header-border-top: rgba(255, 255, 255, 0.45);
+            --header-border-bottom: #080c10;
+            --metal-faceplate: linear-gradient(180deg, #3d4a54 0%, #222c34 45%, #151d23 50%, #202b33 100%);
+            --metal-subpanel: linear-gradient(180deg, #18222b 0%, #0d141a 100%);
+            --metal-border: #485460;
+            --subpanel-border: #283743;
+            --screw-rail: linear-gradient(180deg, #2a343d 0%, #172027 100%);
+            --neon-accent: #00f2fe;
+            --neon-secondary: #00ff88;
+            --neon-tertiary: #fed330;
+            --lcd-bg: #020d09;
             --lcd-text: #00ff88;
+            --lcd-border: rgba(0, 255, 136, 0.4);
+            --lcd-shadow: 0 0 6px #00ff88;
             --text-main: #f5f6fa;
             --text-dim: #95a5a6;
+            --cable-audio: #00ff88;
+            --cable-gate: #fed330;
+            --cable-cv: #00f2fe;
+            --btn-gel: radial-gradient(circle at 35% 30%, #48ff98 0%, #00d26a 50%, #008744 100%);
+            --title-gradient: linear-gradient(180deg, #ffffff 0%, #b2bec3 50%, #dfe6e9 51%, #ffffff 100%);
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Rajdhani', sans-serif; }
+        /* Winamp 2.91 Classic */
+        :root[data-theme="winamp_classic"] {
+            --bg-chassis: #050608;
+            --bg-header: linear-gradient(180deg, #2c3238 0%, #1b1f23 45%, #101214 50%, #1c2024 100%);
+            --header-border-top: rgba(255, 215, 0, 0.4);
+            --header-border-bottom: #000000;
+            --metal-faceplate: linear-gradient(180deg, #252b30 0%, #181c20 45%, #0e1012 50%, #1a1e22 100%);
+            --metal-subpanel: linear-gradient(180deg, #0f1215 0%, #050607 100%);
+            --metal-border: #3d464d;
+            --subpanel-border: #22292f;
+            --screw-rail: linear-gradient(180deg, #1c2024 0%, #0b0d0e 100%);
+            --neon-accent: #00ff00;
+            --neon-secondary: #ffb700;
+            --neon-tertiary: #ff2a2a;
+            --lcd-bg: #001000;
+            --lcd-text: #00ff00;
+            --lcd-border: rgba(0, 255, 0, 0.6);
+            --lcd-shadow: 0 0 8px #00ff00;
+            --text-main: #00ff41;
+            --text-dim: #608066;
+            --cable-audio: #00ff00;
+            --cable-gate: #ffb700;
+            --cable-cv: #00e5ff;
+            --btn-gel: radial-gradient(circle at 35% 30%, #a6ff00 0%, #52b700 50%, #2b6300 100%);
+            --title-gradient: linear-gradient(180deg, #ffffff 0%, #00ff00 60%, #008f11 100%);
+        }
+
+        /* Frutiger Aero (Liquid Aqua & Lime) */
+        :root[data-theme="frutiger_aero"] {
+            --bg-chassis: #0a1c2a;
+            --bg-header: linear-gradient(180deg, #74b9ff 0%, #0984e3 45%, #0056b3 50%, #00cec9 100%);
+            --header-border-top: rgba(255, 255, 255, 0.85);
+            --header-border-bottom: #012b4d;
+            --metal-faceplate: linear-gradient(180deg, #dff9fb 0%, #c7ecee 40%, #7ed6df 60%, #22a6b3 100%);
+            --metal-subpanel: linear-gradient(180deg, #f0fdf4 0%, #dcfce7 100%);
+            --metal-border: #22a6b3;
+            --subpanel-border: #86efac;
+            --screw-rail: linear-gradient(180deg, #c7ecee 0%, #7ed6df 100%);
+            --neon-accent: #00cec9;
+            --neon-secondary: #2ed573;
+            --neon-tertiary: #ffa502;
+            --lcd-bg: #e0f2fe;
+            --lcd-text: #0369a1;
+            --lcd-border: #38bdf8;
+            --lcd-shadow: 0 0 4px #38bdf8;
+            --text-main: #0f172a;
+            --text-dim: #334155;
+            --cable-audio: #05c46b;
+            --cable-gate: #ff9f1a;
+            --cable-cv: #0fbcf9;
+            --btn-gel: radial-gradient(circle at 35% 30%, #70a1ff 0%, #1e90ff 50%, #0652dd 100%);
+            --title-gradient: linear-gradient(180deg, #ffffff 0%, #e0f2fe 50%, #0284c7 100%);
+        }
+
+        /* Vaporwave 1999 */
+        :root[data-theme="vaporwave_99"] {
+            --bg-chassis: #120924;
+            --bg-header: linear-gradient(180deg, #ff79c6 0%, #bd93f9 45%, #6272a4 50%, #ff79c6 100%);
+            --header-border-top: rgba(255, 255, 255, 0.7);
+            --header-border-bottom: #2b0938;
+            --metal-faceplate: linear-gradient(180deg, #442152 0%, #2c1236 45%, #1b0a22 50%, #381545 100%);
+            --metal-subpanel: linear-gradient(180deg, #220b2e 0%, #110517 100%);
+            --metal-border: #e056fd;
+            --subpanel-border: #be2edd;
+            --screw-rail: linear-gradient(180deg, #381545 0%, #190520 100%);
+            --neon-accent: #ff79c6;
+            --neon-secondary: #00f2fe;
+            --neon-tertiary: #fed330;
+            --lcd-bg: #1c0620;
+            --lcd-text: #ff79c6;
+            --lcd-border: rgba(255, 121, 198, 0.5);
+            --lcd-shadow: 0 0 8px #ff79c6;
+            --text-main: #f1f2f6;
+            --text-dim: #d8b4e2;
+            --cable-audio: #ff79c6;
+            --cable-gate: #fed330;
+            --cable-cv: #00f2fe;
+            --btn-gel: radial-gradient(circle at 35% 30%, #ff9ff3 0%, #f368e0 50%, #833471 100%);
+            --title-gradient: linear-gradient(180deg, #ffffff 0%, #ff9ff3 50%, #00d2d3 100%);
+        }
+
+        /* Atomic Purple (Translucent GameBoy Color) */
+        :root[data-theme="atomic_purple"] {
+            --bg-chassis: #180928;
+            --bg-header: linear-gradient(180deg, #8854d0 0%, #5758bb 45%, #3b3b98 50%, #6f1e51 100%);
+            --header-border-top: rgba(255, 255, 255, 0.6);
+            --header-border-bottom: #0d0417;
+            --metal-faceplate: linear-gradient(180deg, #4b2354dd 0%, #301438cc 50%, #431b4edd 100%);
+            --metal-subpanel: linear-gradient(180deg, #230c2bdd 0%, #110416ee 100%);
+            --metal-border: #a55eea;
+            --subpanel-border: #574b90;
+            --screw-rail: linear-gradient(180deg, #3b1942 0%, #1a0820 100%);
+            --neon-accent: #d980fa;
+            --neon-secondary: #26de81;
+            --neon-tertiary: #fd9644;
+            --lcd-bg: #1f0d26;
+            --lcd-text: #26de81;
+            --lcd-border: rgba(38, 222, 129, 0.5);
+            --lcd-shadow: 0 0 6px #26de81;
+            --text-main: #f5f6fa;
+            --text-dim: #b8a9c9;
+            --cable-audio: #26de81;
+            --cable-gate: #fd9644;
+            --cable-cv: #d980fa;
+            --btn-gel: radial-gradient(circle at 35% 30%, #e056fd 0%, #be2edd 50%, #4834d4 100%);
+            --title-gradient: linear-gradient(180deg, #ffffff 0%, #d980fa 50%, #26de81 100%);
+        }
+
+        /* Matrix Phosphor Terminal */
+        :root[data-theme="matrix_terminal"] {
+            --bg-chassis: #010803;
+            --bg-header: linear-gradient(180deg, #0d381e 0%, #062010 45%, #021207 50%, #0a2e16 100%);
+            --header-border-top: rgba(0, 255, 65, 0.5);
+            --header-border-bottom: #000000;
+            --metal-faceplate: linear-gradient(180deg, #092414 0%, #05180c 45%, #020c06 50%, #071e10 100%);
+            --metal-subpanel: linear-gradient(180deg, #041208 0%, #010603 100%);
+            --metal-border: #00ff41;
+            --subpanel-border: #008f11;
+            --screw-rail: linear-gradient(180deg, #061f0f 0%, #010a04 100%);
+            --neon-accent: #00ff41;
+            --neon-secondary: #a6ff00;
+            --neon-tertiary: #55efc4;
+            --lcd-bg: #010d05;
+            --lcd-text: #00ff41;
+            --lcd-border: #00ff41;
+            --lcd-shadow: 0 0 10px #00ff41;
+            --text-main: #00ff41;
+            --text-dim: #008f11;
+            --cable-audio: #00ff41;
+            --cable-gate: #a6ff00;
+            --cable-cv: #55efc4;
+            --btn-gel: radial-gradient(circle at 35% 30%, #55ff77 0%, #00ff41 50%, #005511 100%);
+            --title-gradient: linear-gradient(180deg, #ffffff 0%, #00ff41 50%, #003b00 100%);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Chakra Petch', 'Rajdhani', sans-serif; }
 
         html, body {
             width: 100vw;
@@ -44,9 +189,9 @@
         header {
             width: 100%;
             height: 52px;
-            background: linear-gradient(180deg, #3d4a54 0%, #222c34 45%, #151d23 50%, #202b33 100%);
-            border-bottom: 2px solid #080c10;
-            border-top: 1px solid rgba(255, 255, 255, 0.45);
+            background: var(--bg-header);
+            border-bottom: 2px solid var(--header-border-bottom, #080c10);
+            border-top: 1px solid var(--header-border-top, rgba(255, 255, 255, 0.45));
             padding: 0 16px;
             display: flex;
             justify-content: space-between;
@@ -69,24 +214,24 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            background: linear-gradient(180deg, #ffffff 0%, #b2bec3 50%, #dfe6e9 51%, #ffffff 100%);
+            background: var(--title-gradient);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             font-weight: 900;
-            filter: drop-shadow(0 0 8px rgba(0, 242, 254, 0.6));
+            filter: drop-shadow(0 0 8px var(--neon-accent, #00f2fe));
             text-transform: uppercase;
         }
 
         .brand-badge {
             font-family: 'Share Tech Mono', monospace;
             font-size: 10px;
-            color: #00f2fe;
-            background: rgba(0, 242, 254, 0.12);
-            border: 1px solid rgba(0, 242, 254, 0.4);
+            color: var(--neon-accent, #00f2fe);
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--neon-accent, #00f2fe);
             padding: 2px 6px;
             border-radius: 3px;
             letter-spacing: 1px;
-            box-shadow: 0 0 8px rgba(0, 242, 254, 0.3), inset 0 0 4px rgba(0, 242, 254, 0.2);
+            box-shadow: 0 0 8px var(--neon-accent, #00f2fe);
         }
 
         .actions {
@@ -97,9 +242,9 @@
 
         /* Y2K Glossy Gel Play Button */
         .btn-play-toggle {
-            background: radial-gradient(circle at 35% 30%, #48ff98 0%, #00d26a 50%, #008744 100%);
+            background: var(--btn-gel);
             color: #0c1810;
-            border: 2px solid #85ffbe;
+            border: 2px solid rgba(255, 255, 255, 0.7);
             width: 40px;
             height: 40px;
             border-radius: 50%;
@@ -107,7 +252,7 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            box-shadow: 0 0 16px rgba(0, 255, 136, 0.7), inset 0 2px 4px rgba(255, 255, 255, 0.8), 0 4px 10px rgba(0, 0, 0, 0.7);
+            box-shadow: 0 0 16px var(--neon-secondary, #00ff88), inset 0 2px 4px rgba(255, 255, 255, 0.8), 0 4px 10px rgba(0, 0, 0, 0.7);
             transition: all 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
@@ -139,19 +284,19 @@
             display: flex;
             align-items: center;
             gap: 6px;
-            background: linear-gradient(180deg, #1e262c 0%, #11171b 100%);
+            background: var(--metal-subpanel);
             padding: 4px 8px;
             border-radius: 6px;
-            border: 1px solid #3d4a54;
-            border-top-color: #576574;
-            border-bottom-color: #090d10;
+            border: 1px solid var(--subpanel-border, #3d4a54);
+            border-top-color: var(--header-border-top, #576574);
+            border-bottom-color: var(--header-border-bottom, #090d10);
             box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6), 0 1px 0 rgba(255, 255, 255, 0.1);
         }
 
         #project-select {
-            background: linear-gradient(180deg, #09131a 0%, #03080b 100%);
-            color: #00f2fe;
-            border: 1px solid #00f2fe;
+            background: var(--lcd-bg, #09131a);
+            color: var(--neon-accent, #00f2fe);
+            border: 1px solid var(--neon-accent, #00f2fe);
             padding: 6px 10px;
             border-radius: 4px;
             font-family: 'Share Tech Mono', monospace;
@@ -160,23 +305,23 @@
             outline: none;
             max-width: 240px;
             cursor: pointer;
-            box-shadow: inset 0 0 8px rgba(0, 242, 254, 0.25), 0 0 6px rgba(0, 242, 254, 0.3);
-            text-shadow: 0 0 6px #00f2fe;
+            box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.5), 0 0 6px var(--neon-accent, #00f2fe);
+            text-shadow: 0 0 6px var(--neon-accent, #00f2fe);
         }
 
         #project-select option {
-            background: #0d141a;
-            color: #00f2fe;
+            background: var(--bg-chassis, #0d141a);
+            color: var(--neon-accent, #00f2fe);
             font-family: 'Share Tech Mono', monospace;
         }
 
         /* Y2K Aqua / Metallic Glass Buttons */
         button, select {
-            background: linear-gradient(180deg, #4b5a66 0%, #28343c 48%, #182026 52%, #26333c 100%);
-            color: #ffffff;
-            border: 1px solid #485460;
-            border-top-color: #8395a7;
-            border-bottom-color: #0a0e11;
+            background: var(--metal-faceplate);
+            color: var(--text-main, #ffffff);
+            border: 1px solid var(--metal-border, #485460);
+            border-top-color: var(--header-border-top, #8395a7);
+            border-bottom-color: var(--header-border-bottom, #0a0e11);
             padding: 6px 12px;
             border-radius: 4px;
             cursor: pointer;
@@ -193,15 +338,14 @@
         }
 
         button:hover, select:hover {
-            background: linear-gradient(180deg, #5b6c7a 0%, #36444e 48%, #202b33 52%, #32434f 100%);
-            border-color: #00f2fe;
-            color: #00f2fe;
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 0 10px rgba(0, 242, 254, 0.4);
+            border-color: var(--neon-accent, #00f2fe);
+            color: var(--neon-accent, #00f2fe);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 0 10px var(--neon-accent, #00f2fe);
             transform: translateY(-1px);
         }
 
         button:active {
-            background: linear-gradient(180deg, #182026 0%, #28343c 100%);
+            background: var(--metal-subpanel);
             transform: translateY(1px);
             box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.8);
         }
@@ -223,18 +367,17 @@
         }
 
         button.btn-accent {
-            background: linear-gradient(180deg, #00f2fe 0%, #4facfe 48%, #0984e3 52%, #00cec9 100%);
+            background: linear-gradient(180deg, var(--neon-accent, #00f2fe) 0%, #0984e3 52%, var(--neon-secondary, #00cec9) 100%);
             color: #ffffff;
-            border-color: #81ecec;
+            border-color: rgba(255, 255, 255, 0.6);
             border-bottom-color: #0652dd;
             font-weight: 800;
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 0 12px rgba(0, 242, 254, 0.6);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 0 12px var(--neon-accent, #00f2fe);
             text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
         }
 
         button.btn-accent:hover {
-            background: linear-gradient(180deg, #81ecec 0%, #00f2fe 48%, #0984e3 52%, #74b9ff 100%);
-            box-shadow: inset 0 1px 0 #ffffff, 0 0 20px rgba(0, 242, 254, 0.9);
+            box-shadow: inset 0 1px 0 #ffffff, 0 0 20px var(--neon-accent, #00f2fe);
         }
 
         button.btn-warn {
@@ -262,7 +405,7 @@
             height: calc(100vh - 52px - 28px);
             display: flex;
             position: relative;
-            background: #070c10;
+            background: var(--bg-chassis, #070c10);
         }
 
         #rack-container {
@@ -281,10 +424,10 @@
             width: 65vw;
             min-width: 520px;
             height: calc(100vh - 52px - 28px);
-            background: rgba(10, 16, 22, 0.96);
+            background: var(--bg-chassis, #0a1016);
             backdrop-filter: blur(16px);
-            border-left: 3px solid #00f2fe;
-            box-shadow: -15px 0 50px rgba(0, 0, 0, 0.9), 0 0 20px rgba(0, 242, 254, 0.3);
+            border-left: 3px solid var(--neon-accent, #00f2fe);
+            box-shadow: -15px 0 50px rgba(0, 0, 0, 0.9), 0 0 20px var(--neon-accent, #00f2fe);
             display: flex;
             flex-direction: column;
             z-index: 500;
@@ -298,8 +441,8 @@
 
         .drawer-header {
             padding: 10px 18px;
-            background: linear-gradient(180deg, #2c3e50 0%, #1a252f 50%, #11181f 100%);
-            border-bottom: 2px solid #00f2fe;
+            background: var(--bg-header);
+            border-bottom: 2px solid var(--neon-accent, #00f2fe);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -309,12 +452,12 @@
         .drawer-header h2 {
             font-family: 'Orbitron', sans-serif;
             font-size: 14px;
-            color: #00f2fe;
+            color: var(--neon-accent, #00f2fe);
             display: flex;
             align-items: center;
             gap: 8px;
             letter-spacing: 1px;
-            text-shadow: 0 0 8px rgba(0, 242, 254, 0.6);
+            text-shadow: 0 0 8px var(--neon-accent, #00f2fe);
         }
 
         .drawer-body {
@@ -322,7 +465,7 @@
             position: relative;
             width: 100%;
             height: 100%;
-            background: #070c10;
+            background: var(--bg-chassis, #070c10);
         }
 
         #blockly-div {
@@ -383,7 +526,7 @@
             font-size: 12px !important;
             font-weight: 700 !important;
             color: #dcdde1 !important;
-            font-family: 'Rajdhani', sans-serif !important;
+            font-family: 'Chakra Petch', 'Rajdhani', sans-serif !important;
             letter-spacing: 0.5px !important;
         }
 
@@ -572,149 +715,77 @@
             justify-content: space-between;
             align-items: center;
         }
-            max-width: 780px;
-            max-height: 85vh;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.95);
-            overflow: hidden;
-        }
 
-        .modal-header {
-            padding: 12px 16px;
-            background: #18221e;
-            border-bottom: 1px solid #283731;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .modal-header h2 {
-            font-size: 15px;
-            color: var(--chalk-yellow);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .modal-close {
-            background: transparent;
-            border: none;
-            color: #8395a7;
-            font-size: 16px;
-            cursor: pointer;
-            padding: 2px 6px;
-        }
-
-        .modal-close:hover {
-            color: var(--chalk-pink);
-        }
-
-        .modal-search-bar {
-            padding: 8px 16px;
-            background: #121815;
-            border-bottom: 1px solid #202b26;
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .modal-search-bar input {
-            flex: 1;
-            min-width: 180px;
-            background: #090d0b;
-            border: 1px solid #283731;
-            border-radius: 4px;
-            color: var(--chalk-white);
+        /* -------------------------------------------------------------
+           Rich Y2K Controls: Sliders, ADSR Curve, WaveDraw, XY & Switches
+           ------------------------------------------------------------- */
+        #theme-select {
+            background: linear-gradient(180deg, #18222b 0%, #0d141a 100%);
+            color: var(--neon-secondary);
+            border: 1px solid var(--neon-secondary);
             padding: 6px 10px;
+            border-radius: 4px;
+            font-family: 'Share Tech Mono', monospace;
+            font-weight: 700;
             font-size: 11px;
             outline: none;
-        }
-
-        .modal-body {
-            padding: 12px 16px;
-            overflow-y: auto;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .modules-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 10px;
-        }
-
-        .module-pick-card {
-            background: #18221e;
-            border: 1px solid #283731;
-            border-radius: 6px;
-            padding: 10px 12px;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
             cursor: pointer;
-            transition: all 0.15s ease;
+            box-shadow: inset 0 0 8px rgba(0, 255, 136, 0.25), 0 0 6px rgba(0, 255, 136, 0.3);
+            text-shadow: 0 0 6px var(--neon-secondary);
         }
 
-        .module-pick-card:hover {
-            border-color: #55efc4;
-            transform: translateY(-2px);
-            background: #1f2d27;
+        #theme-select option {
+            background: #0d141a;
+            color: var(--neon-secondary);
+            font-family: 'Share Tech Mono', monospace;
         }
 
-        .project-card {
-            background: #18221e;
-            border: 1px solid #283731;
-            border-radius: 6px;
-            padding: 10px 14px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 10px;
-            transition: all 0.15s ease;
-        }
-
-        .project-card.active {
-            border-color: var(--chalk-green);
-            background: #162a22;
-        }
-
-        .project-info {
-            display: flex;
-            flex-direction: column;
-            gap: 3px;
-            flex: 1;
-        }
-
-        .project-title-row {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .badge {
-            font-size: 9px;
-            font-weight: 700;
-            padding: 2px 5px;
+        /* Sliders / Faders */
+        .rack-slider-track {
+            background: linear-gradient(90deg, #070c10 0%, #1a252f 50%, #070c10 100%);
+            border: 1px solid #2d3e4d;
             border-radius: 3px;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.9);
+            position: relative;
         }
 
-        .badge-example { background: rgba(72, 219, 251, 0.15); color: var(--chalk-cyan); border: 1px solid var(--chalk-cyan); }
-        .badge-user { background: rgba(254, 202, 87, 0.15); color: var(--chalk-yellow); border: 1px solid var(--chalk-yellow); }
-        .badge-active { background: rgba(29, 209, 161, 0.2); color: var(--chalk-green); border: 1px solid var(--chalk-green); }
+        .rack-slider-thumb {
+            background: linear-gradient(180deg, #8395a7 0%, #485460 45%, #2d3436 55%, #1e272e 100%);
+            border: 1px solid #c8d6e5;
+            border-top: 1px solid #ffffff;
+            border-bottom: 2px solid #000000;
+            border-radius: 3px;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.7);
+            cursor: ns-resize;
+        }
 
-        .modal-footer {
-            padding: 10px 16px;
-            background: #18221e;
-            border-top: 1px solid #283731;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        /* Interactive Canvas Panels (ADSR Curve, Wave Draw, XY Pad) */
+        .rack-interactive-canvas {
+            background: #020d09;
+            border: 1px solid var(--lcd-border);
+            border-radius: 4px;
+            box-shadow: inset 0 0 8px rgba(0,0,0,0.9), 0 0 6px var(--lcd-border);
+            cursor: crosshair;
+        }
+
+        /* 3D Rocker / Toggle Switches */
+        .rack-toggle-switch {
+            background: linear-gradient(180deg, #2d3436 0%, #1e272e 100%);
+            border: 2px solid #485460;
+            border-radius: 12px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.8);
+            cursor: pointer;
+            position: relative;
+            transition: all 0.15s ease;
+        }
+
+        .rack-toggle-lever {
+            background: radial-gradient(circle at 35% 35%, #ffffff 0%, #b2bec3 45%, #636e72 70%, #2d3436 100%);
+            border: 1px solid #1e272e;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.9), inset 0 1px 1px #ffffff;
+            position: absolute;
+            transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
         /* Toast Feedback */
@@ -760,6 +831,14 @@
 
             <!-- Project Selector & Actions Toolbar -->
             <div class="project-toolbar">
+                <select id="theme-select" title="Tema Visual Y2K">
+                    <option value="cyber_titanium">⚡ Cyber Titanium 2000</option>
+                    <option value="winamp_classic">📻 Winamp 2.91 Classic</option>
+                    <option value="frutiger_aero">🌊 Frutiger Aero Aqua</option>
+                    <option value="vaporwave_99">🌆 Vaporwave 1999</option>
+                    <option value="atomic_purple">🎮 Atomic Purple GBC</option>
+                    <option value="matrix_terminal">📟 Matrix Phosphor CRT</option>
+                </select>
                 <select id="project-select" title="Carregar Patch do Rack"></select>
                 <button id="btn-add-module" class="btn-accent" title="Adicionar novo módulo da biblioteca ao rack">+ Módulo</button>
                 <button id="btn-save-project" title="Salvar alterações no patch atual">Salvar</button>

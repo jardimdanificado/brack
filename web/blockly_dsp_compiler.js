@@ -205,14 +205,41 @@ export class BlocklySynthEngine {
                 return sigRes || { type: 'VAL', val: 0, audio: null };
             }
 
-            case 'module_io_knob': {
-                const knobName = block.getFieldValue('NAME') || 'Cutoff';
-                if (this.knobValues && this.knobValues.has(knobName)) {
-                    const val = this.knobValues.get(knobName);
+            case 'module_io_knob':
+            case 'module_io_slider':
+            case 'module_io_switch': {
+                const paramName = block.getFieldValue('NAME') || 'Cutoff';
+                if (this.knobValues && this.knobValues.has(paramName)) {
+                    const val = this.knobValues.get(paramName);
                     return { type: 'VAL', val: Number(val), audio: null };
                 }
                 const defVal = Number(block.getFieldValue('DEFAULT')) || 0;
                 return { type: 'VAL', val: defVal, audio: null };
+            }
+
+            case 'module_io_xy': {
+                const padName = block.getFieldValue('NAME') || 'Joy';
+                const axis = block.getFieldValue('AXIS') || 'X';
+                const key = `${padName}_${axis}`;
+                if (this.knobValues && this.knobValues.has(key)) {
+                    const val = this.knobValues.get(key);
+                    return { type: 'VAL', val: Number(val), audio: null };
+                }
+                return { type: 'VAL', val: 0.5, audio: null };
+            }
+
+            case 'module_io_wavedraw': {
+                const waveName = block.getFieldValue('NAME') || 'Wave';
+                const idxRes = this.getParamVal(block, 'INDEX', 0, new Set(visited));
+                const idx = Math.floor(Math.max(0, Math.min(127, idxRes.val)));
+                if (this.knobValues && this.knobValues.has(waveName)) {
+                    const waveTable = this.knobValues.get(waveName);
+                    if (Array.isArray(waveTable) || waveTable instanceof Float32Array) {
+                        return { type: 'VAL', val: Number(waveTable[idx] || 0), audio: null };
+                    }
+                }
+                // Default sine table lookup
+                return { type: 'VAL', val: Math.sin(idx / 128 * 2 * Math.PI), audio: null };
             }
 
             case 'module_io_process': {
@@ -856,7 +883,35 @@ export class BlocklySynthEngine {
                 const def = Number(block.getFieldValue('DEFAULT')) || 0.5;
                 if (!seenParam.has(name)) {
                     seenParam.add(name);
-                    params.push({ id: name, name, min, max, default: def, value: def });
+                    params.push({ id: name, name, type: 'KNOB', min, max, default: def, value: def });
+                }
+            } else if (block.type === 'module_io_slider') {
+                const name = block.getFieldValue('NAME') || 'Volume';
+                const min = Number(block.getFieldValue('MIN')) || 0;
+                const max = Number(block.getFieldValue('MAX')) || 1;
+                const def = Number(block.getFieldValue('DEFAULT')) || 0.5;
+                if (!seenParam.has(name)) {
+                    seenParam.add(name);
+                    params.push({ id: name, name, type: 'SLIDER', min, max, default: def, value: def });
+                }
+            } else if (block.type === 'module_io_switch') {
+                const name = block.getFieldValue('NAME') || 'Ativo';
+                const def = Number(block.getFieldValue('DEFAULT')) || 0;
+                if (!seenParam.has(name)) {
+                    seenParam.add(name);
+                    params.push({ id: name, name, type: 'SWITCH', min: 0, max: 1, default: def, value: def });
+                }
+            } else if (block.type === 'module_io_xy') {
+                const name = block.getFieldValue('NAME') || 'Joy';
+                if (!seenParam.has(name)) {
+                    seenParam.add(name);
+                    params.push({ id: name, name, type: 'XY_PAD', defaultX: 0.5, defaultY: 0.5, valX: 0.5, valY: 0.5 });
+                }
+            } else if (block.type === 'module_io_wavedraw') {
+                const name = block.getFieldValue('NAME') || 'Wave';
+                if (!seenParam.has(name)) {
+                    seenParam.add(name);
+                    params.push({ id: name, name, type: 'WAVE_DRAW', waveTable: new Float32Array(128) });
                 }
             }
         }

@@ -390,6 +390,10 @@ function closeScratchEditor() {
  * Application Initialization
  * ========================================================================= */
 window.addEventListener('DOMContentLoaded', () => {
+    // 0. Apply saved visual theme immediately
+    const savedTheme = localStorage.getItem('brack_y2k_theme') || 'cyber_titanium';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+
     // 1. Register All Synth & Module IO Blocks & Disable automatic orphan fading
     registerSynthBlocks(Blockly);
     if (Blockly.Events && typeof Blockly.Events.disableOrphans === 'function') {
@@ -432,6 +436,7 @@ window.addEventListener('DOMContentLoaded', () => {
         zoom: { controls: true, wheel: true, startScale: 0.85, maxScale: 2.0, minScale: 0.4, scaleSpeed: 1.1 },
         trashcan: true,
         disable: false,
+        sounds: false,
         theme: scratchTheme
     });
 
@@ -464,7 +469,22 @@ window.addEventListener('DOMContentLoaded', () => {
     projectsManager.loadProject(initialProjId);
     updateProjectSelect();
 
-    // 5. Header Action Buttons
+    // 5. Header Action Buttons & Theme Selector
+    const themeSelect = document.getElementById('theme-select');
+    if (themeSelect) {
+        const savedTheme = localStorage.getItem('brack_y2k_theme') || 'cyber_titanium';
+        themeSelect.value = savedTheme;
+        document.documentElement.setAttribute('data-theme', savedTheme);
+
+        themeSelect.addEventListener('change', () => {
+            const theme = themeSelect.value;
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('brack_y2k_theme', theme);
+            if (rackCanvas) rackCanvas.render();
+            showToast(`Tema visual alterado: ${themeSelect.options[themeSelect.selectedIndex].text}`);
+        });
+    }
+
     const btnPlayToggle = document.getElementById('btn-play-toggle');
     async function togglePlayback() {
         if (!isPlaying) {

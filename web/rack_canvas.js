@@ -37,7 +37,7 @@ export class RackCanvas {
         this.container.style.overflow = 'hidden';
         this.container.style.width = '100%';
         this.container.style.height = '100%';
-        this.container.style.background = '#060a0e';
+        this.container.style.background = 'var(--bg-chassis, #060a0e)';
         this.container.style.userSelect = 'none';
 
         // World Container that gets panned/zoomed
@@ -49,9 +49,9 @@ export class RackCanvas {
         this.world.style.height = '3000px';
         // Y2K Cyberdeck grid + aluminum mounting rails background
         this.world.style.backgroundImage = `
-            linear-gradient(to right, rgba(0, 242, 254, 0.05) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(0, 242, 254, 0.05) 1px, transparent 1px),
-            radial-gradient(circle at 50% 50%, rgba(13, 27, 42, 0.6) 0%, rgba(6, 10, 14, 0.95) 100%)
+            linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+            radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.02) 0%, rgba(0, 0, 0, 0.4) 100%)
         `;
         this.world.style.backgroundSize = '32px 32px, 32px 32px, 100% 100%';
 
@@ -142,10 +142,10 @@ export class RackCanvas {
             card.style.width = `${mod.width}px`;
             card.style.minHeight = `${mod.height}px`;
             // Exact Y2K Titanium / Brushed Chrome Chassis like Header
-            card.style.background = 'linear-gradient(180deg, #3d4a54 0%, #222c34 45%, #151d23 50%, #202b33 100%)';
-            card.style.border = '1px solid #485460';
-            card.style.borderTop = '1px solid rgba(255, 255, 255, 0.45)';
-            card.style.borderBottom = '2px solid #080c10';
+            card.style.background = 'var(--metal-faceplate)';
+            card.style.border = '1px solid var(--metal-border, #485460)';
+            card.style.borderTop = '1px solid var(--header-border-top, rgba(255, 255, 255, 0.45))';
+            card.style.borderBottom = '2px solid var(--header-border-bottom, #080c10)';
             card.style.borderRadius = '6px';
             card.style.boxShadow = '0 16px 40px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 -1px 0 rgba(0, 0, 0, 0.8)';
             card.style.display = 'flex';
@@ -155,10 +155,10 @@ export class RackCanvas {
             // Top screw rail with crosshead screws
             const screwHeader = document.createElement('div');
             screwHeader.style.height = '14px';
-            screwHeader.style.background = 'linear-gradient(180deg, #2a343d 0%, #172027 100%)';
+            screwHeader.style.background = 'var(--screw-rail)';
             screwHeader.style.borderTopLeftRadius = '5px';
             screwHeader.style.borderTopRightRadius = '5px';
-            screwHeader.style.borderBottom = '1px solid #080c10';
+            screwHeader.style.borderBottom = '1px solid var(--header-border-bottom, #080c10)';
             screwHeader.style.display = 'flex';
             screwHeader.style.justifyContent = 'space-between';
             screwHeader.style.alignItems = 'center';
@@ -179,14 +179,14 @@ export class RackCanvas {
             const header = document.createElement('div');
             header.className = 'module-header';
             header.style.padding = '6px 8px';
-            header.style.background = 'linear-gradient(180deg, #3d4a54 0%, #222c34 45%, #151d23 50%, #202b33 100%)';
-            header.style.borderTop = '1px solid rgba(255, 255, 255, 0.45)';
-            header.style.borderBottom = '2px solid #080c10';
+            header.style.background = 'var(--bg-header)';
+            header.style.borderTop = '1px solid var(--header-border-top, rgba(255, 255, 255, 0.45))';
+            header.style.borderBottom = '2px solid var(--header-border-bottom, #080c10)';
             header.style.display = 'flex';
             header.style.justifyContent = 'space-between';
             header.style.alignItems = 'center';
             header.style.cursor = 'grab';
-            header.style.boxShadow = '0 4px 10px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.35)';
+            header.style.boxShadow = '0 4px 10px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255, 255, 255, 0.35)';
 
             const titleLeft = document.createElement('div');
             titleLeft.style.display = 'flex';
@@ -198,8 +198,8 @@ export class RackCanvas {
             ledDot.style.width = '7px';
             ledDot.style.height = '7px';
             ledDot.style.borderRadius = '50%';
-            ledDot.style.background = mod.color || '#00f2fe';
-            ledDot.style.boxShadow = `0 0 8px ${mod.color || '#00f2fe'}, inset 0 1px 1px #ffffff`;
+            ledDot.style.background = mod.color || 'var(--neon-accent, #00f2fe)';
+            ledDot.style.boxShadow = `0 0 8px ${mod.color || 'var(--neon-accent, #00f2fe)'}, inset 0 1px 1px #ffffff`;
             ledDot.style.border = '1px solid rgba(255,255,255,0.6)';
             titleLeft.appendChild(ledDot);
 
@@ -211,10 +211,10 @@ export class RackCanvas {
             titleSpan.style.fontWeight = '900';
             titleSpan.style.fontSize = '11px';
             titleSpan.style.letterSpacing = '1.2px';
-            titleSpan.style.background = 'linear-gradient(180deg, #ffffff 0%, #b2bec3 50%, #dfe6e9 51%, #ffffff 100%)';
+            titleSpan.style.background = 'var(--title-gradient)';
             titleSpan.style.webkitBackgroundClip = 'text';
             titleSpan.style.webkitTextFillColor = 'transparent';
-            titleSpan.style.filter = 'drop-shadow(0 0 6px rgba(0, 242, 254, 0.5))';
+            titleSpan.style.filter = 'drop-shadow(0 0 6px var(--neon-accent, #00f2fe))';
             titleLeft.appendChild(titleSpan);
 
             header.appendChild(titleLeft);
@@ -227,14 +227,14 @@ export class RackCanvas {
             const btnCode = document.createElement('button');
             btnCode.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>`;
             btnCode.title = 'Editar Código Scratch deste módulo';
-            btnCode.style.background = 'linear-gradient(180deg, #00f2fe 0%, #4facfe 48%, #0984e3 52%, #00cec9 100%)';
-            btnCode.style.border = '1px solid #81ecec';
+            btnCode.style.background = 'linear-gradient(180deg, var(--neon-accent, #00f2fe) 0%, #0984e3 52%, var(--neon-secondary, #00cec9) 100%)';
+            btnCode.style.border = '1px solid rgba(255,255,255,0.6)';
             btnCode.style.borderBottom = '1px solid #0652dd';
             btnCode.style.padding = '2px 5px';
             btnCode.style.borderRadius = '3px';
             btnCode.style.cursor = 'pointer';
             btnCode.style.color = '#ffffff';
-            btnCode.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.8), 0 0 8px rgba(0, 242, 254, 0.4)';
+            btnCode.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.8), 0 0 8px var(--neon-accent, #00f2fe)';
             btnCode.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.onEditModule(mod);
@@ -281,10 +281,10 @@ export class RackCanvas {
             body.style.flex = '1';
             body.style.margin = '4px 6px 6px 6px';
             body.style.padding = '8px 6px';
-            body.style.background = 'linear-gradient(180deg, #18222b 0%, #0d141a 100%)';
-            body.style.border = '1px solid #283743';
-            body.style.borderTop = '1px solid #3d4f5c';
-            body.style.borderBottom = '1px solid #080c10';
+            body.style.background = 'var(--metal-subpanel)';
+            body.style.border = '1px solid var(--subpanel-border, #283743)';
+            body.style.borderTop = '1px solid var(--header-border-top, #3d4f5c)';
+            body.style.borderBottom = '1px solid var(--header-border-bottom, #080c10)';
             body.style.borderRadius = '4px';
             body.style.boxShadow = 'inset 0 2px 8px rgba(0,0,0,0.85), 0 1px 0 rgba(255,255,255,0.08)';
             body.style.display = 'flex';
@@ -303,7 +303,7 @@ export class RackCanvas {
             }
             body.appendChild(inputsCol);
 
-            // Center Column: Knobs
+            // Center Column: Controls (Knobs, Sliders, ADSR Curve, XY Pad, WaveDraw, Switches)
             const knobsCol = document.createElement('div');
             knobsCol.style.flex = '1';
             knobsCol.style.display = 'flex';
@@ -311,8 +311,37 @@ export class RackCanvas {
             knobsCol.style.alignItems = 'center';
             knobsCol.style.gap = '8px';
 
-            for (const param of mod.params) {
-                knobsCol.appendChild(this.createKnobElement(mod.id, param));
+            // Check if module is an ADSR envelope to render visual curve
+            const isAdsr = mod.type === 'adsr' || mod.params.some(p => p.name.toLowerCase() === 'attack') && mod.params.some(p => p.name.toLowerCase() === 'release');
+            if (isAdsr) {
+                knobsCol.appendChild(this.createAdsrCurveElement(mod.id, mod));
+            }
+
+            // Check if multiple sliders should be arranged horizontally (like Graphic EQ)
+            const allSliders = mod.params.length > 1 && mod.params.every(p => p.type === 'SLIDER');
+            if (allSliders) {
+                const sliderRow = document.createElement('div');
+                sliderRow.style.display = 'flex';
+                sliderRow.style.gap = '6px';
+                sliderRow.style.alignItems = 'flex-end';
+                for (const param of mod.params) {
+                    sliderRow.appendChild(this.createSliderElement(mod.id, param));
+                }
+                knobsCol.appendChild(sliderRow);
+            } else {
+                for (const param of mod.params) {
+                    if (param.type === 'SLIDER') {
+                        knobsCol.appendChild(this.createSliderElement(mod.id, param));
+                    } else if (param.type === 'SWITCH') {
+                        knobsCol.appendChild(this.createSwitchElement(mod.id, param));
+                    } else if (param.type === 'XY_PAD') {
+                        knobsCol.appendChild(this.createXyPadElement(mod.id, param));
+                    } else if (param.type === 'WAVE_DRAW') {
+                        knobsCol.appendChild(this.createWaveDrawElement(mod.id, param));
+                    } else {
+                        knobsCol.appendChild(this.createKnobElement(mod.id, param));
+                    }
+                }
             }
             body.appendChild(knobsCol);
 
@@ -334,10 +363,10 @@ export class RackCanvas {
             // Bottom screw rail with crosshead screws
             const screwFooter = document.createElement('div');
             screwFooter.style.height = '14px';
-            screwFooter.style.background = 'linear-gradient(180deg, #18222b 0%, #10161d 100%)';
+            screwFooter.style.background = 'var(--screw-rail)';
             screwFooter.style.borderBottomLeftRadius = '5px';
             screwFooter.style.borderBottomRightRadius = '5px';
-            screwFooter.style.borderTop = '1px solid #283743';
+            screwFooter.style.borderTop = '1px solid var(--subpanel-border, #283743)';
             screwFooter.style.display = 'flex';
             screwFooter.style.justifyContent = 'space-between';
             screwFooter.style.alignItems = 'center';
@@ -378,10 +407,10 @@ export class RackCanvas {
 
         const label = document.createElement('span');
         label.textContent = portName;
-        label.style.fontSize = '8.5px';
+        label.style.fontSize = '9px';
         label.style.fontFamily = "'Share Tech Mono', monospace";
         label.style.fontWeight = '700';
-        label.style.color = '#8395a7';
+        label.style.color = 'var(--text-dim, #a4b0be)';
         label.style.whiteSpace = 'nowrap';
         label.style.maxWidth = '55px';
         label.style.overflow = 'hidden';
@@ -414,7 +443,7 @@ export class RackCanvas {
         hole.style.width = '10px';
         hole.style.height = '10px';
         hole.style.borderRadius = '50%';
-        hole.style.background = '#060a0e';
+        hole.style.background = 'var(--bg-chassis, #060a0e)';
         hole.style.border = '1px solid #1e272e';
         hole.style.boxShadow = 'inset 0 2px 4px rgba(0,0,0,0.95)';
         jack.appendChild(hole);
@@ -470,29 +499,30 @@ export class RackCanvas {
         wrap.style.display = 'flex';
         wrap.style.flexDirection = 'column';
         wrap.style.alignItems = 'center';
-        wrap.style.gap = '2px';
+        wrap.style.gap = '3px';
 
         const label = document.createElement('span');
         label.textContent = param.name.toUpperCase();
-        label.style.fontSize = '8.5px';
-        label.style.fontFamily = "'Rajdhani', sans-serif";
+        label.style.fontSize = '9px';
+        label.style.fontFamily = "'Chakra Petch', 'Rajdhani', sans-serif";
         label.style.fontWeight = '700';
-        label.style.color = '#cad3df';
+        label.style.color = 'var(--text-main, #dfe4ea)';
         label.style.letterSpacing = '0.5px';
 
-        // Retro Cyber LCD readout
+        // High-Legibility Retro Cyber LCD readout
         const valDisplay = document.createElement('span');
-        valDisplay.textContent = this.formatKnobValue(param.value !== undefined ? param.value : param.default, param.unit);
-        valDisplay.style.fontSize = '8px';
-        valDisplay.style.color = '#00ff88';
+        valDisplay.textContent = this.formatKnobValue(param.value !== undefined ? param.value : param.default, param.unit, param.name);
+        valDisplay.style.fontSize = '9.5px';
+        valDisplay.style.fontWeight = '800';
+        valDisplay.style.color = 'var(--lcd-text, #00ff88)';
         valDisplay.style.fontFamily = "'Share Tech Mono', monospace";
-        valDisplay.style.background = '#020d09';
-        valDisplay.style.border = '1px solid rgba(0, 255, 136, 0.35)';
-        valDisplay.style.padding = '0.5px 4px';
-        valDisplay.style.borderRadius = '2px';
-        valDisplay.style.boxShadow = 'inset 0 0 4px rgba(0, 255, 136, 0.2)';
-        valDisplay.style.textShadow = '0 0 4px #00ff88';
-        valDisplay.style.minWidth = '36px';
+        valDisplay.style.background = 'var(--lcd-bg, #020d09)';
+        valDisplay.style.border = '1px solid var(--lcd-border, rgba(0, 255, 136, 0.45))';
+        valDisplay.style.padding = '1px 5px';
+        valDisplay.style.borderRadius = '3px';
+        valDisplay.style.boxShadow = 'inset 0 0 5px rgba(0,0,0,0.8), 0 0 6px var(--lcd-shadow, rgba(0, 255, 136, 0.3))';
+        valDisplay.style.textShadow = '0 0 5px var(--lcd-text, #00ff88)';
+        valDisplay.style.minWidth = '44px';
         valDisplay.style.textAlign = 'center';
 
         // 3D Lathe-turned metallic rotary dial
@@ -526,8 +556,8 @@ export class RackCanvas {
         indicator.style.left = 'calc(50% - 1.5px)';
         indicator.style.width = '3px';
         indicator.style.height = '10px';
-        indicator.style.background = '#00f2fe';
-        indicator.style.boxShadow = '0 0 8px #00f2fe, 0 0 2px #ffffff';
+        indicator.style.background = 'var(--neon-accent, #00f2fe)';
+        indicator.style.boxShadow = '0 0 8px var(--neon-accent, #00f2fe), 0 0 2px #ffffff';
         indicator.style.borderRadius = '2px';
         indicator.style.transformOrigin = 'center 15px';
 
@@ -562,7 +592,7 @@ export class RackCanvas {
             e.stopPropagation();
             param.value = param.default;
             this.engine.setModuleKnob(moduleId, param.name, param.default);
-            valDisplay.textContent = this.formatKnobValue(param.default, param.unit);
+            valDisplay.textContent = this.formatKnobValue(param.default, param.unit, param.name);
             const defNorm = (param.default - min) / (max - min || 1);
             indicator.style.transform = `rotate(${-135 + defNorm * 270}deg)`;
             this.onModuleChange();
@@ -574,21 +604,434 @@ export class RackCanvas {
         return wrap;
     }
 
-    formatKnobValue(val, unit) {
+    createSliderElement(moduleId, param) {
+        const wrap = document.createElement('div');
+        wrap.className = 'rack-slider-wrap';
+        wrap.style.display = 'flex';
+        wrap.style.flexDirection = 'column';
+        wrap.style.alignItems = 'center';
+        wrap.style.gap = '3px';
+
+        const label = document.createElement('span');
+        label.textContent = param.name.toUpperCase();
+        label.style.fontSize = '8.5px';
+        label.style.fontFamily = "'Chakra Petch', 'Rajdhani', sans-serif";
+        label.style.fontWeight = '700';
+        label.style.color = 'var(--text-main, #dfe4ea)';
+
+        // Track container
+        const track = document.createElement('div');
+        track.className = 'rack-slider-track';
+        track.style.width = '10px';
+        track.style.height = '64px';
+        track.style.borderRadius = '5px';
+        track.style.position = 'relative';
+        track.style.cursor = 'ns-resize';
+
+        const min = param.min !== undefined ? param.min : 0;
+        const max = param.max !== undefined ? param.max : 1;
+        const curVal = param.value !== undefined ? param.value : param.default;
+        const norm = (curVal - min) / (max - min || 1);
+
+        // Fader Thumb
+        const thumb = document.createElement('div');
+        thumb.className = 'rack-slider-thumb';
+        thumb.style.position = 'absolute';
+        thumb.style.left = '-7px';
+        thumb.style.width = '24px';
+        thumb.style.height = '12px';
+        thumb.style.borderRadius = '3px';
+        thumb.style.bottom = `${norm * 52}px`;
+        thumb.style.display = 'flex';
+        thumb.style.alignItems = 'center';
+        thumb.style.justifyContent = 'center';
+        thumb.innerHTML = `<div style="width: 14px; height: 2px; background: var(--neon-accent, #00f2fe); box-shadow: 0 0 4px var(--neon-accent, #00f2fe);"></div>`;
+        track.appendChild(thumb);
+
+        // LCD readout
+        const valDisplay = document.createElement('span');
+        valDisplay.textContent = this.formatKnobValue(curVal, param.unit, param.name);
+        valDisplay.style.fontSize = '9px';
+        valDisplay.style.fontWeight = '800';
+        valDisplay.style.color = 'var(--lcd-text, #00ff88)';
+        valDisplay.style.fontFamily = "'Share Tech Mono', monospace";
+        valDisplay.style.background = 'var(--lcd-bg, #020d09)';
+        valDisplay.style.border = '1px solid var(--lcd-border, rgba(0, 255, 136, 0.45))';
+        valDisplay.style.padding = '1px 3px';
+        valDisplay.style.borderRadius = '2px';
+        valDisplay.style.minWidth = '38px';
+        valDisplay.style.textAlign = 'center';
+
+        const onSliderDrag = (e) => {
+            if (e.button !== 0) return;
+            e.stopPropagation();
+            this.draggedSlider = {
+                moduleId,
+                param,
+                min,
+                max,
+                trackEl: track,
+                thumbEl: thumb,
+                valDisplayEl: valDisplay
+            };
+            this.sliderStartY = e.clientY;
+            this.sliderStartVal = param.value !== undefined ? param.value : param.default;
+        };
+
+        track.addEventListener('mousedown', onSliderDrag);
+        thumb.addEventListener('mousedown', onSliderDrag);
+
+        wrap.appendChild(label);
+        wrap.appendChild(track);
+        wrap.appendChild(valDisplay);
+        return wrap;
+    }
+
+    createSwitchElement(moduleId, param) {
+        const wrap = document.createElement('div');
+        wrap.className = 'rack-switch-wrap';
+        wrap.style.display = 'flex';
+        wrap.style.flexDirection = 'column';
+        wrap.style.alignItems = 'center';
+        wrap.style.gap = '3px';
+
+        const label = document.createElement('span');
+        label.textContent = param.name.toUpperCase();
+        label.style.fontSize = '8.5px';
+        label.style.fontFamily = "'Chakra Petch', 'Rajdhani', sans-serif";
+        label.style.fontWeight = '700';
+        label.style.color = 'var(--text-main, #dfe4ea)';
+
+        const isAct = (param.value !== undefined ? param.value : param.default) > 0.5;
+
+        const sw = document.createElement('div');
+        sw.className = 'rack-toggle-switch';
+        sw.style.width = '32px';
+        sw.style.height = '18px';
+        sw.style.background = isAct ? 'linear-gradient(180deg, #10ac84 0%, #006266 100%)' : 'linear-gradient(180deg, #2d3436 0%, #1e272e 100%)';
+        sw.style.border = isAct ? '1px solid var(--neon-secondary, #00ff88)' : '1px solid #485460';
+        sw.style.boxShadow = isAct ? '0 0 8px var(--neon-secondary, #00ff88)' : 'inset 0 1px 3px rgba(0,0,0,0.8)';
+
+        const lever = document.createElement('div');
+        lever.className = 'rack-toggle-lever';
+        lever.style.width = '14px';
+        lever.style.height = '14px';
+        lever.style.top = '1px';
+        lever.style.left = isAct ? '15px' : '1px';
+        sw.appendChild(lever);
+
+        sw.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const newVal = (param.value > 0.5) ? 0 : 1;
+            param.value = newVal;
+            this.engine.setModuleKnob(moduleId, param.name, newVal);
+            this.render();
+            this.onModuleChange();
+        });
+
+        const stateLabel = document.createElement('span');
+        stateLabel.textContent = isAct ? 'ON' : 'OFF';
+        stateLabel.style.fontSize = '9px';
+        stateLabel.style.fontWeight = '800';
+        stateLabel.style.color = isAct ? 'var(--neon-secondary, #00ff88)' : 'var(--text-dim, #8395a7)';
+        stateLabel.style.fontFamily = "'Share Tech Mono', monospace";
+
+        wrap.appendChild(label);
+        wrap.appendChild(sw);
+        wrap.appendChild(stateLabel);
+        return wrap;
+    }
+
+    createXyPadElement(moduleId, param) {
+        const wrap = document.createElement('div');
+        wrap.className = 'rack-xy-wrap';
+        wrap.style.display = 'flex';
+        wrap.style.flexDirection = 'column';
+        wrap.style.alignItems = 'center';
+        wrap.style.gap = '3px';
+
+        const label = document.createElement('span');
+        label.textContent = (param.name || 'XY PAD').toUpperCase();
+        label.style.fontSize = '9px';
+        label.style.fontFamily = "'Chakra Petch', 'Rajdhani', sans-serif";
+        label.style.fontWeight = '700';
+        label.style.color = 'var(--text-main, #dfe4ea)';
+
+        const canvas = document.createElement('canvas');
+        canvas.className = 'rack-interactive-canvas';
+        canvas.width = 90;
+        canvas.height = 70;
+        canvas.style.width = '90px';
+        canvas.style.height = '70px';
+
+        let curX = param.valX !== undefined ? param.valX : 0.5;
+        let curY = param.valY !== undefined ? param.valY : 0.5;
+
+        const drawPad = () => {
+            const ctx = canvas.getContext('2d');
+            const bg = this.getThemeColor('--lcd-bg', '#020d09');
+            const neonAcc = this.getThemeColor('--neon-accent', '#00f2fe');
+            const neonSec = this.getThemeColor('--neon-secondary', '#00ff88');
+
+            ctx.fillStyle = bg;
+            ctx.fillRect(0, 0, 90, 70);
+
+            // Grid
+            ctx.strokeStyle = neonSec + '33';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(45, 0); ctx.lineTo(45, 70);
+            ctx.moveTo(0, 35); ctx.lineTo(90, 35);
+            ctx.stroke();
+
+            // Puck
+            const px = curX * 90;
+            const py = (1 - curY) * 70;
+            ctx.fillStyle = neonAcc;
+            ctx.shadowColor = neonAcc;
+            ctx.shadowBlur = 8;
+            ctx.beginPath();
+            ctx.arc(px, py, 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        };
+
+        drawPad();
+
+        const updateXyFromEvent = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            curX = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+            curY = Math.max(0, Math.min(1, 1 - (e.clientY - rect.top) / rect.height));
+            param.valX = curX;
+            param.valY = curY;
+            this.engine.setModuleKnob(moduleId, `${param.name}_X`, curX);
+            this.engine.setModuleKnob(moduleId, `${param.name}_Y`, curY);
+            drawPad();
+            this.onModuleChange();
+        };
+
+        canvas.addEventListener('mousedown', (e) => {
+            if (e.button !== 0) return;
+            e.stopPropagation();
+            this.draggedXyPad = { moduleId, param, updateFn: updateXyFromEvent };
+            updateXyFromEvent(e);
+        });
+
+        wrap.appendChild(label);
+        wrap.appendChild(canvas);
+        return wrap;
+    }
+
+    createWaveDrawElement(moduleId, param) {
+        const wrap = document.createElement('div');
+        wrap.className = 'rack-wavedraw-wrap';
+        wrap.style.display = 'flex';
+        wrap.style.flexDirection = 'column';
+        wrap.style.alignItems = 'center';
+        wrap.style.gap = '3px';
+
+        const label = document.createElement('span');
+        label.textContent = (param.name || 'WAVE DRAW').toUpperCase();
+        label.style.fontSize = '9px';
+        label.style.fontFamily = "'Chakra Petch', 'Rajdhani', sans-serif";
+        label.style.fontWeight = '700';
+        label.style.color = 'var(--text-main, #dfe4ea)';
+
+        const canvas = document.createElement('canvas');
+        canvas.className = 'rack-interactive-canvas';
+        canvas.width = 110;
+        canvas.height = 60;
+        canvas.style.width = '110px';
+        canvas.style.height = '60px';
+
+        if (!param.waveTable) {
+            param.waveTable = new Float32Array(128);
+            for (let i = 0; i < 128; i++) param.waveTable[i] = Math.sin(i / 128 * 2 * Math.PI);
+        }
+
+        const drawWave = () => {
+            const ctx = canvas.getContext('2d');
+            const bg = this.getThemeColor('--lcd-bg', '#020d09');
+            const neonSec = this.getThemeColor('--neon-secondary', '#00ff88');
+
+            ctx.fillStyle = bg;
+            ctx.fillRect(0, 0, 110, 60);
+
+            // Center zero axis
+            ctx.strokeStyle = neonSec + '33';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, 30); ctx.lineTo(110, 30);
+            ctx.stroke();
+
+            // Waveform spline
+            ctx.strokeStyle = neonSec;
+            ctx.lineWidth = 2;
+            ctx.shadowColor = neonSec;
+            ctx.shadowBlur = 6;
+            ctx.beginPath();
+
+            for (let i = 0; i < 128; i++) {
+                const x = (i / 127) * 110;
+                const y = 30 - param.waveTable[i] * 26;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+        };
+
+        drawWave();
+
+        const updateWaveFromEvent = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = Math.max(0, Math.min(109, e.clientX - rect.left));
+            const mouseY = Math.max(0, Math.min(59, e.clientY - rect.top));
+
+            const idx = Math.floor((mouseX / 110) * 128);
+            const val = Math.max(-1, Math.min(1, (30 - mouseY) / 26));
+
+            param.waveTable[idx] = val;
+            if (idx > 0 && Math.abs(param.waveTable[idx - 1] - val) > 0.2) {
+                param.waveTable[idx - 1] = (param.waveTable[idx - 1] + val) * 0.5;
+            }
+            if (idx < 127 && Math.abs(param.waveTable[idx + 1] - val) > 0.2) {
+                param.waveTable[idx + 1] = (param.waveTable[idx + 1] + val) * 0.5;
+            }
+
+            this.engine.setModuleKnob(moduleId, param.name, param.waveTable);
+            drawWave();
+            this.onModuleChange();
+        };
+
+        canvas.addEventListener('mousedown', (e) => {
+            if (e.button !== 0) return;
+            e.stopPropagation();
+            this.drawingWave = { updateFn: updateWaveFromEvent };
+            updateWaveFromEvent(e);
+        });
+
+        wrap.appendChild(label);
+        wrap.appendChild(canvas);
+        return wrap;
+    }
+
+    createAdsrCurveElement(moduleId, mod) {
+        const wrap = document.createElement('div');
+        wrap.className = 'rack-adsr-wrap';
+        wrap.style.display = 'flex';
+        wrap.style.flexDirection = 'column';
+        wrap.style.alignItems = 'center';
+        wrap.style.gap = '2px';
+        wrap.style.marginBottom = '4px';
+
+        const canvas = document.createElement('canvas');
+        canvas.className = 'rack-interactive-canvas';
+        canvas.width = 100;
+        canvas.height = 45;
+        canvas.style.width = '100px';
+        canvas.style.height = '45px';
+
+        const drawCurve = () => {
+            const ctx = canvas.getContext('2d');
+            const bg = this.getThemeColor('--lcd-bg', '#020d09');
+            const neonSec = this.getThemeColor('--neon-secondary', '#00ff88');
+
+            ctx.fillStyle = bg;
+            ctx.fillRect(0, 0, 100, 45);
+
+            const getVal = (name, def) => {
+                const p = mod.params.find(x => x.name.toLowerCase() === name.toLowerCase());
+                return p && p.value !== undefined ? p.value : def;
+            };
+
+            const a = Math.max(0.01, getVal('Attack', 0.05));
+            const d = Math.max(0.01, getVal('Decay', 0.2));
+            const s = Math.max(0.0, Math.min(1.0, getVal('Sustain', 0.5)));
+            const r = Math.max(0.01, getVal('Release', 0.2));
+
+            const total = a + d + 0.3 + r;
+            const xA = (a / total) * 90 + 5;
+            const xD = xA + (d / total) * 90;
+            const xS = xD + (0.3 / total) * 90;
+            const xR = 95;
+
+            const yTop = 8;
+            const ySus = 40 - s * 32;
+            const yBot = 40;
+
+            // Envelope Fill
+            ctx.fillStyle = neonSec + '26';
+            ctx.beginPath();
+            ctx.moveTo(5, yBot);
+            ctx.lineTo(xA, yTop);
+            ctx.lineTo(xD, ySus);
+            ctx.lineTo(xS, ySus);
+            ctx.lineTo(xR, yBot);
+            ctx.closePath();
+            ctx.fill();
+
+            // Outline
+            ctx.strokeStyle = neonSec;
+            ctx.lineWidth = 2;
+            ctx.shadowColor = neonSec;
+            ctx.shadowBlur = 6;
+            ctx.beginPath();
+            ctx.moveTo(5, yBot);
+            ctx.lineTo(xA, yTop);
+            ctx.lineTo(xD, ySus);
+            ctx.lineTo(xS, ySus);
+            ctx.lineTo(xR, yBot);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+        };
+
+        drawCurve();
+        wrap.appendChild(canvas);
+        return wrap;
+    }
+
+    formatKnobValue(val, unit, name = '') {
         if (typeof val !== 'number') return '0';
         let str = '';
+        const nLower = (name || '').toLowerCase();
+
+        if (nLower.includes('bpm')) {
+            return `${Math.round(val)} BPM`;
+        }
+        if (nLower.includes('freq') || nLower.includes('cutoff')) {
+            if (val >= 1000) return `${(val / 1000).toFixed(1)}k Hz`;
+            return `${Math.round(val)} Hz`;
+        }
+        if (nLower.includes('time') || nLower.includes('attack') || nLower.includes('decay') || nLower.includes('release')) {
+            if (val < 1.0) return `${Math.round(val * 1000)} ms`;
+            return `${val.toFixed(2)} s`;
+        }
+        if (nLower.includes('gain') || nLower.includes('vol') || nLower.includes('mix') || nLower.includes('res') || nLower.includes('pw') || nLower.includes('feedback')) {
+            return `${Math.round(val * 100)}%`;
+        }
+
         if (Math.abs(val) >= 1000) str = (val / 1000).toFixed(1) + 'k';
         else if (Math.abs(val) >= 10) str = val.toFixed(0);
         else if (Math.abs(val) >= 1) str = val.toFixed(1);
         else str = val.toFixed(2);
-        return unit ? `${str}${unit}` : str;
+        return unit ? `${str} ${unit}` : str;
+    }
+
+    getThemeColor(varName, fallback = '') {
+        try {
+            const val = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+            return val || fallback;
+        } catch (e) {
+            return fallback;
+        }
     }
 
     getPortColor(type) {
         switch (type) {
-            case 'AUDIO': return '#00ff88'; // Y2K Neon Lime
-            case 'GATE': return '#fed330';  // Y2K Electric Amber
-            case 'VAL': default: return '#00f2fe'; // Y2K Cyber Cyan
+            case 'AUDIO': return this.getThemeColor('--cable-audio', '#00ff88');
+            case 'GATE': return this.getThemeColor('--cable-gate', '#fed330');
+            case 'VAL': default: return this.getThemeColor('--cable-cv', '#00f2fe');
         }
     }
 
@@ -602,7 +1045,10 @@ export class RackCanvas {
         for (const cable of this.engine.cables) {
             const start = this.getJackPosition(cable.fromModuleId, cable.fromPort, true);
             const end = this.getJackPosition(cable.toModuleId, cable.toPort, false);
-            const cableColor = cable.color || '#00ff88';
+            const fromMod = this.engine.getModule(cable.fromModuleId);
+            const outPort = fromMod?.outputs?.find(o => o.name === cable.fromPort);
+            const portType = cable.type || outPort?.type || 'AUDIO';
+            const cableColor = this.getPortColor(portType);
 
             const pathD = this.computeCablePath(start.x, start.y, end.x, end.y);
             const pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -733,7 +1179,36 @@ export class RackCanvas {
                 const norm = (newVal - this.draggedKnob.min) / (range || 1);
                 const deg = -135 + norm * 270;
                 this.draggedKnob.indicatorEl.style.transform = `rotate(${deg}deg)`;
-                this.draggedKnob.valDisplayEl.textContent = this.formatKnobValue(newVal, this.draggedKnob.param.unit);
+                this.draggedKnob.valDisplayEl.textContent = this.formatKnobValue(newVal, this.draggedKnob.param.unit, this.draggedKnob.param.name);
+                return;
+            }
+
+            // Dragging Slider
+            if (this.draggedSlider) {
+                const deltaY = this.sliderStartY - e.clientY;
+                const range = this.draggedSlider.max - this.draggedSlider.min;
+                const step = range / 52;
+                let newVal = this.sliderStartVal + deltaY * step;
+                newVal = Math.max(this.draggedSlider.min, Math.min(this.draggedSlider.max, newVal));
+
+                this.draggedSlider.param.value = newVal;
+                this.engine.setModuleKnob(this.draggedSlider.moduleId, this.draggedSlider.param.name, newVal);
+
+                const norm = (newVal - this.draggedSlider.min) / (range || 1);
+                this.draggedSlider.thumbEl.style.bottom = `${norm * 52}px`;
+                this.draggedSlider.valDisplayEl.textContent = this.formatKnobValue(newVal, this.draggedSlider.param.unit, this.draggedSlider.param.name);
+                return;
+            }
+
+            // Dragging XY Pad
+            if (this.draggedXyPad) {
+                this.draggedXyPad.updateFn(e);
+                return;
+            }
+
+            // Drawing Custom Wave
+            if (this.drawingWave) {
+                this.drawingWave.updateFn(e);
                 return;
             }
 
@@ -765,6 +1240,21 @@ export class RackCanvas {
 
             if (this.draggedKnob) {
                 this.draggedKnob = null;
+                this.onModuleChange();
+            }
+
+            if (this.draggedSlider) {
+                this.draggedSlider = null;
+                this.onModuleChange();
+            }
+
+            if (this.draggedXyPad) {
+                this.draggedXyPad = null;
+                this.onModuleChange();
+            }
+
+            if (this.drawingWave) {
+                this.drawingWave = null;
                 this.onModuleChange();
             }
 
