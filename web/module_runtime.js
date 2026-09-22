@@ -55,24 +55,68 @@ export class ScriptableModule {
                 cleanCode = 'return ' + cleanCode;
             }
 
-            const factory = new Function('dsp', cleanCode);
-            const modObj = factory(dsp);
+            const factory = new Function(
+                'dsp', 'saw', 'sqr', 'tri', 'sin', 'noise', 'clamp', 'lerp', 'tanh', 'moog', 'svf', 'voct', 'mtof',
+                cleanCode
+            );
+            const modObj = factory(
+                dsp, dsp.saw, dsp.sqr, dsp.tri, dsp.sin, dsp.noise, dsp.clamp, dsp.lerp, dsp.tanh, dsp.moog, dsp.svf, dsp.voct, dsp.mtof
+            );
 
             if (!modObj || typeof modObj.process !== 'function') {
-                throw new Error('Module must return an object with a process(inputs, outputs, sampleRate, dsp) function');
+                throw new Error('Module must return an object with a process(in, out, dsp) function');
             }
 
             this.compiledModule = modObj;
             this.code = codeString;
-            this.paramDefs = modObj.params || [];
-            this.outputDefs = modObj.outputs || [{ type: 'AUDIO', name: 'OUT' }];
 
-            // Initialize param defaults if not set
+            // Normalize Param Definitions (supports both Object & Array schemas)
+            this.paramDefs = [];
+            this.paramKeyMap = {};
+
+            if (Array.isArray(modObj.params)) {
+                this.paramDefs = modObj.params.map((p, idx) => ({
+                    id: p.id !== undefined ? p.id : idx,
+                    name: p.name || `Param${idx}`,
+                    key: p.key || p.name || `param${idx}`,
+                    default: p.default !== undefined ? p.default : 0.5,
+                    min: p.min !== undefined ? p.min : 0,
+                    max: p.max !== undefined ? p.max : 1,
+                    unit: p.unit || ''
+                }));
+            } else if (modObj.params && typeof modObj.params === 'object') {
+                let pIdx = 0;
+                for (const [k, v] of Object.entries(modObj.params)) {
+                    const defVal = Array.isArray(v) ? v[0] : (typeof v === 'number' ? v : 0.5);
+                    const minVal = Array.isArray(v) && v[1] !== undefined ? v[1] : 0;
+                    const maxVal = Array.isArray(v) && v[2] !== undefined ? v[2] : (minVal > 0 ? minVal * 10 : 1);
+                    const unitStr = Array.isArray(v) && v[3] !== undefined ? v[3] : '';
+
+                    this.paramDefs.push({
+                        id: pIdx,
+                        name: k,
+                        key: k,
+                        default: defVal,
+                        min: minVal,
+                        max: maxVal,
+                        unit: unitStr
+                    });
+                    pIdx++;
+                }
+            }
+
+            // Create Smart Param Proxy on instance
+            this.paramsProxy = [];
             this.paramDefs.forEach((p, idx) => {
                 if (this.params[idx] === undefined) {
-                    this.params[idx] = p.default !== undefined ? p.default : 0.0;
+                    this.params[idx] = p.default;
                 }
+                this.paramsProxy[idx] = this.params[idx];
+                this.paramsProxy[p.key] = this.params[idx];
+                this.paramsProxy[p.name] = this.params[idx];
             });
+
+            this.outputDefs = modObj.outputs || [{ type: 'AUDIO', name: 'OUT' }];
 
             // Initialize module state
             if (typeof modObj.init === 'function') {
@@ -90,15 +134,22 @@ export class ScriptableModule {
 
     setParam(paramId, value) {
         this.params[paramId] = value;
+        if (this.paramDefs[paramId]) {
+            const p = this.paramDefs[paramId];
+            if (this.paramsProxy) {
+                this.paramsProxy[paramId] = value;
+                this.paramsProxy[p.key] = value;
+                this.paramsProxy[p.name] = value;
+            }
+        }
     }
 
     getParam(paramId) {
         return this.params[paramId] !== undefined ? this.params[paramId] : 0.0;
     }
 
-    process(inputs, numSamples) {
+    process(rawInputs, numSamples) {
         if (!this.compiledModule || this.error) {
-            // Fill outputs with silence
             for (let o = 0; o < this.audioOutputs.length; o++) {
                 this.audioOutputs[o].fill(0);
                 this.midiOutputs[o].length = 0;
@@ -107,25 +158,162 @@ export class ScriptableModule {
             return;
         }
 
-        // Reset out buffers
+        // Reset output audio & midi buffers
         for (let o = 0; o < this.audioOutputs.length; o++) {
             this.audioOutputs[o].fill(0);
             this.midiOutputs[o].length = 0;
         }
 
+        // Build Smart In Object
+        const inAudioSum = new Float32Array(numSamples);
+        const inAudios = [];
+        const inVals = [];
+        let inValSum = 0.0;
+        let hasAudio = false;
+        let hasVal = false;
+        const inMidi = [];
+
+        for (let i = 0; i < rawInputs.length; i++) {
+            const link = rawInputs[i];
+            if (link.type === 'audio' && link.audio) {
+                hasAudio = true;
+                inAudios.push(link.audio);
+                for (let s = 0; s < numSamples; s++) {
+                    inAudioSum[s] += link.audio[s] * (link.gain !== undefined ? link.gain : 1.0);
+                }
+            } else if (link.type === 'val' && link.val !== undefined) {
+                hasVal = true;
+                inVals.push(link.val);
+                inValSum += link.val;
+            } else if (link.type === 'midi' && link.events) {
+                for (const ev of link.events) inMidi.push(ev);
+            }
+        }
+
+        const inHelper = Object.assign(rawInputs, {
+            audio: inAudioSum,
+            audios: inAudios,
+            val: inValSum,
+            vals: inVals,
+            hasAudio,
+            hasVal,
+            hasMidi: inMidi.length > 0,
+            midi: inMidi,
+            events: inMidi
+        });
+
+        // Build Smart Out Object
+        const outHelper = {
+            audio: (arg1, arg2) => {
+                if (typeof arg1 === 'function') {
+                    // One-liner loop over default out 0
+                    const buf = this.audioOutputs[0];
+                    for (let s = 0; s < numSamples; s++) buf[s] = arg1(s);
+                    return buf;
+                } else if (typeof arg1 === 'number' && typeof arg2 === 'function') {
+                    // Loop over specific out channel
+                    const buf = this.audioOutputs[arg1];
+                    for (let s = 0; s < numSamples; s++) buf[s] = arg2(s);
+                    return buf;
+                } else if (arg1 instanceof Float32Array) {
+                    this.audioOutputs[0].set(arg1);
+                    return this.audioOutputs[0];
+                }
+                return this.audioOutputs[arg1 || 0];
+            },
+            val: (arg1, arg2) => {
+                if (typeof arg1 === 'number' && arg2 === undefined) {
+                    this.valOutputs[0] = arg1;
+                } else if (typeof arg1 === 'number' && typeof arg2 === 'number') {
+                    this.valOutputs[arg1] = arg2;
+                }
+                return this.valOutputs[arg1 || 0];
+            },
+            midi: (arg1, arg2) => {
+                if (arg2 === undefined && arg1) {
+                    this.midiOutputs[0].push(arg1);
+                } else if (arg2) {
+                    this.midiOutputs[arg1].push(arg2);
+                }
+                return this.midiOutputs[arg1 || 0];
+            },
+            0: this.audioOutputs[0],
+            1: this.audioOutputs[1]
+        };
+
         try {
-            this.state.params = this.params;
-            this.compiledModule.params = this.params;
+            this.state.params = this.paramsProxy || this.params;
+            this.compiledModule.params = this.paramsProxy || this.params;
             this.compiledModule.process.call(
                 this.state,
-                inputs,
-                this.outputsHelper,
-                this.sampleRate,
-                dsp
+                inHelper,
+                outHelper,
+                dsp,
+                this.sampleRate
             );
         } catch (err) {
             this.error = err.message;
             console.error(`[Module ${this.id} Runtime Error]:`, err);
+        }
+    }
+
+    draw(quadroChalk, writeWasmString) {
+        if (!this.compiledModule || typeof this.compiledModule.draw !== 'function' || this.error) return;
+
+        const ptrX = 1040;
+        const ptrY = 1044;
+        const ptrW = 1048;
+        const ptrH = 1052;
+
+        const ok = quadroChalk.quadro_chalk_get_node_rect(this.id, ptrX, ptrY, ptrW, ptrH);
+        if (!ok) return;
+
+        const i32 = new Int32Array(quadroChalk.memory.buffer);
+        const nodeX = i32[ptrX >> 2];
+        const nodeY = i32[ptrY >> 2];
+        const nodeW = i32[ptrW >> 2];
+        const nodeH = i32[ptrH >> 2];
+
+        // Scoped GFX object with local coordinates relative to the module box
+        const gfx = {
+            width: nodeW,
+            height: nodeH,
+            fillRect: (x, y, w, h, color) => {
+                quadroChalk.quadro_chalk_draw_rect(nodeX + x, nodeY + y, w, h, color);
+            },
+            strokeLine: (x0, y0, x1, y1, width, color) => {
+                quadroChalk.quadro_chalk_draw_line(nodeX + x0, nodeY + y0, nodeX + x1, nodeY + y1, width, color);
+            },
+            drawCircle: (cx, cy, radius, color, filled = true) => {
+                quadroChalk.quadro_chalk_draw_circle(nodeX + cx, nodeY + cy, radius, color, filled ? 1 : 0);
+            },
+            text: (x, y, str, color = 0xFFffffff, scale = 1) => {
+                const sPtr = writeWasmString(str);
+                quadroChalk.quadro_chalk_draw_text_cmd(nodeX + x, nodeY + y, sPtr, color, scale);
+            },
+            pixel: (x, y, color) => {
+                quadroChalk.quadro_chalk_draw_pixel(nodeX + x, nodeY + y, color);
+            },
+            scope: (x, y, w, h, samples, color = 0xFF1dd1a1) => {
+                if (!samples || samples.length === 0) return;
+                const midY = nodeY + y + Math.floor(h / 2);
+                let prevX = nodeX + x;
+                let prevY = midY;
+                const count = Math.min(samples.length, w);
+                for (let s = 0; s < count; s++) {
+                    const px = nodeX + x + Math.floor((s * w) / count);
+                    const py = midY - Math.floor(samples[s] * (h / 2 - 2));
+                    quadroChalk.quadro_chalk_draw_line(prevX, prevY, px, py, 1, color);
+                    prevX = px;
+                    prevY = py;
+                }
+            }
+        };
+
+        try {
+            this.compiledModule.draw.call(this.state, gfx);
+        } catch (err) {
+            console.warn(`[Module ${this.id} Draw Error]:`, err);
         }
     }
 }

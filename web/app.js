@@ -31,7 +31,6 @@ const camera = {
 // Live Nodes & Modules State
 const activeModules = []; // array of ScriptableModule
 const activeNodes = [];   // metadata for blackboard rendering
-const activeLinks = [];   // [{ srcNode, srcOutIdx, dstNode, type, gain }]
 
 let selectedModuleIdx = 0;
 
@@ -157,8 +156,28 @@ function createModuleNode(templateKey, x, y) {
     return idx;
 }
 
+function getActiveGraphLinks() {
+    const ptrSrc = 2048;
+    const ptrSrcOut = 2048 + 4 * 128;
+    const ptrDst = 2048 + 8 * 128;
+    const ptrType = 2048 + 12 * 128;
+
+    const count = quadroChalk.quadro_chalk_get_active_links(ptrSrc, ptrSrcOut, ptrDst, ptrType);
+    const i32 = new Int32Array(quadroChalk.memory.buffer);
+    const links = [];
+
+    for (let i = 0; i < count; i++) {
+        const srcNode = i32[(ptrSrc >> 2) + i];
+        const srcOutIdx = i32[(ptrSrcOut >> 2) + i];
+        const dstNode = i32[(ptrDst >> 2) + i];
+        const type = i32[(ptrType >> 2) + i];
+        const gain = (srcNode === 1 && dstNode === 2) ? 2.5 : 1.0;
+        links.push({ srcNode, srcOutIdx, dstNode, type, gain });
+    }
+    return links;
+}
+
 function addLink(srcNode, srcOutIdx, dstNode, type, gain = 1.0) {
-    activeLinks.push({ srcNode, srcOutIdx, dstNode, type, gain });
     quadroChalk.quadro_chalk_connect(srcNode, srcOutIdx, dstNode, type, gain);
 }
 
@@ -229,6 +248,9 @@ async function startAudio() {
             const outL = e.outputBuffer.getChannelData(0);
             const outR = e.outputBuffer.getChannelData(1);
 
+            // Fetch live active links directly from C blackboard state
+            const currentLinks = getActiveGraphLinks();
+
             for (let offset = 0; offset < bufferSize; offset += BLOCK_SIZE) {
                 // Execute each scriptable module
                 for (let i = 0; i < activeModules.length; i++) {
@@ -236,8 +258,8 @@ async function startAudio() {
 
                     // Gather incoming dynamic links for this module
                     const inLinks = [];
-                    for (const link of activeLinks) {
-                        if (link.dstNode === i) {
+                    for (const link of currentLinks) {
+                        if (link.dstNode === i && link.srcNode < activeModules.length) {
                             const srcMod = activeModules[link.srcNode];
                             if (link.type === LINK_AUDIO) {
                                 inLinks.push({
@@ -267,17 +289,21 @@ async function startAudio() {
                     mod.process(inLinks, BLOCK_SIZE);
                 }
 
-                // Copy Master Output (Out Module) to Audio Buffer
+                // Copy Master Output (ONLY from OUT Module) to Audio Buffer
                 const outNodeIdx = activeNodes.findIndex(n => n.templateKey === 'out');
-                const outMod = (outNodeIdx >= 0 && activeModules[outNodeIdx]) ? activeModules[outNodeIdx] : activeModules[activeModules.length - 1];
-
-                if (outMod) {
+                if (outNodeIdx >= 0 && activeModules[outNodeIdx]) {
+                    const outMod = activeModules[outNodeIdx];
                     const finalL = outMod.audioOutputs[0];
                     const finalR = outMod.audioOutputs[1] || outMod.audioOutputs[0];
 
                     for (let s = 0; s < BLOCK_SIZE; s++) {
                         outL[offset + s] = finalL[s];
                         outR[offset + s] = finalR[s];
+                    }
+                } else {
+                    for (let s = 0; s < BLOCK_SIZE; s++) {
+                        outL[offset + s] = 0.0;
+                        outR[offset + s] = 0.0;
                     }
                 }
             }
@@ -304,33 +330,30 @@ window.addEventListener('DOMContentLoaded', async () => {
     const zoomLabel = document.getElementById('zoom-label');
     const workspaceGrid = document.getElementById('workspace-grid');
 
-    function updateZoomLabel() {
-        zoomLabel.textContent = `🔍 ${Math.round(camera.zoom * 100)}%`;
-        quadroChalk.quadro_chalk_set_camera(camera.x, camera.y, camera.zoom);
-    }
-
-    // Zoom on Mouse Wheel
+    // Zoom on Mouse Wheel (Preserving live camera panning)
     canvas.addEventListener('wheel', (e) => {
         e.preventDefault();
         const rect = canvas.getBoundingClientRect();
         const mouseX = (e.clientX - rect.left) * (CANVAS_W / rect.width);
         const mouseY = (e.clientY - rect.top) * (CANVAS_H / rect.height);
 
+        const curCamX = quadroChalk.quadro_chalk_get_cam_x();
+        const curCamY = quadroChalk.quadro_chalk_get_cam_y();
+        const curZoom = quadroChalk.quadro_chalk_get_zoom();
+
         const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
-        const newZoom = Math.max(0.4, Math.min(2.5, camera.zoom * zoomFactor));
+        const newZoom = Math.max(0.4, Math.min(2.5, curZoom * zoomFactor));
 
-        camera.x = mouseX - (mouseX - camera.x) * (newZoom / camera.zoom);
-        camera.y = mouseY - (mouseY - camera.y) * (newZoom / camera.zoom);
-        camera.zoom = newZoom;
+        const newCamX = mouseX - (mouseX - curCamX) * (newZoom / curZoom);
+        const newCamY = mouseY - (mouseY - curCamY) * (newZoom / curZoom);
 
-        updateZoomLabel();
+        quadroChalk.quadro_chalk_set_camera(newCamX, newCamY, newZoom);
+        zoomLabel.textContent = `🔍 ${Math.round(newZoom * 100)}%`;
     }, { passive: false });
 
     document.getElementById('btn-reset-view').addEventListener('click', () => {
-        camera.x = 0;
-        camera.y = 0;
-        camera.zoom = 1.0;
-        updateZoomLabel();
+        quadroChalk.quadro_chalk_set_camera(0, 0, 1.0);
+        zoomLabel.textContent = `🔍 100%`;
     });
 
     const btnPower = document.getElementById('btn-power');
@@ -380,7 +403,6 @@ window.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('btn-reset').addEventListener('click', () => {
         quadroChalk.quadro_chalk_clear();
-        activeLinks.length = 0;
     });
 
     function getCanvasPos(e) {
@@ -436,13 +458,7 @@ window.addEventListener('DOMContentLoaded', async () => {
         const connected = quadroChalk.quadro_chalk_mouse_up(pos.x, pos.y, ptrSrcSlot, ptrSrcOut, ptrDstSlot, ptrLinkType);
 
         if (connected) {
-            const i32 = new Int32Array(quadroChalk.memory.buffer);
-            const srcSlot = i32[ptrSrcSlot >> 2];
-            const srcOut  = i32[ptrSrcOut >> 2];
-            const dstSlot = i32[ptrDstSlot >> 2];
-            const linkType= i32[ptrLinkType >> 2];
-            const gain = (srcSlot === 1 && dstSlot === 2) ? 2.5 : 1.0;
-            activeLinks.push({ srcNode: srcSlot, srcOutIdx: srcOut, dstNode: dstSlot, type: linkType, gain });
+            // Link is registered directly into C Quadro Chalkboard
         }
         
         // Sync selected module text box with editor
@@ -480,6 +496,11 @@ window.addEventListener('DOMContentLoaded', async () => {
 
         // Render full chalkboard in C via Quadro
         quadroChalk.quadro_chalk_render();
+
+        // Allow scriptable modules with custom draw(gfx) to render visuals on their card
+        for (let i = 0; i < activeModules.length; i++) {
+            activeModules[i].draw(quadroChalk, writeWasmString);
+        }
 
         // Blit C framebuffer to Canvas
         const fbPtr = quadroChalk.quadro_chalk_get_framebuffer();

@@ -127,12 +127,16 @@ W_EXPORT void     quadro_chalk_init(int32_t width, int32_t height);
 W_EXPORT uint32_t* quadro_chalk_get_framebuffer(void);
 W_EXPORT void     quadro_chalk_resize(int32_t width, int32_t height);
 W_EXPORT void     quadro_chalk_set_camera(float cam_x, float cam_y, float zoom);
+W_EXPORT float    quadro_chalk_get_cam_x(void);
+W_EXPORT float    quadro_chalk_get_cam_y(void);
+W_EXPORT float    quadro_chalk_get_zoom(void);
 W_EXPORT int32_t  quadro_chalk_add_node(int32_t slot_id, const char *name, const char *category, uint32_t color, float x, float y, float w, float h);
 W_EXPORT void     quadro_chalk_add_node_output(int32_t node_id, uint8_t type, const char *out_name);
 W_EXPORT int32_t  quadro_chalk_add_slider(int32_t node_id, int32_t param_id, const char *name, const char *unit, float def_v, float min_v, float max_v);
 W_EXPORT void     quadro_chalk_update_slider_str(int32_t node_id, int32_t slider_idx, const char *str);
 W_EXPORT int32_t  quadro_chalk_connect(int32_t src_node, int32_t src_out_idx, int32_t dst_node, uint8_t link_type, float gain);
 W_EXPORT void     quadro_chalk_disconnect(int32_t src_node, int32_t dst_node);
+W_EXPORT int32_t  quadro_chalk_get_active_links(int32_t *out_src, int32_t *out_src_out, int32_t *out_dst, int32_t *out_type);
 W_EXPORT void     quadro_chalk_clear(void);
 W_EXPORT void     quadro_chalk_feed_scope(int32_t node_id, const float *samples, uint32_t count);
 W_EXPORT void     quadro_chalk_set_node_code(int32_t node_id, const char *code_text);
@@ -142,8 +146,14 @@ W_EXPORT char*    quadro_chalk_get_string_pool(void);
 
 W_EXPORT void     quadro_chalk_mouse_down(float screen_x, float screen_y, int32_t button);
 W_EXPORT int32_t  quadro_chalk_mouse_move(float screen_x, float screen_y, int32_t *out_slot, int32_t *out_param, float *out_val);
-W_EXPORT int32_t  quadro_chalk_mouse_up(float screen_x, float screen_y, int32_t *out_src_slot, int32_t *out_src_out_idx, int32_t *out_dst_slot, int32_t *out_link_type);
-
 W_EXPORT void     quadro_chalk_render(void);
+
+/* Public GFX Drawing API for JS Modules */
+W_EXPORT void     quadro_chalk_draw_rect(int32_t x, int32_t y, int32_t w, int32_t h, uint32_t color);
+W_EXPORT void     quadro_chalk_draw_line(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t thickness, uint32_t color);
+W_EXPORT void     quadro_chalk_draw_circle(int32_t cx, int32_t cy, int32_t radius, uint32_t color, int32_t filled);
+W_EXPORT void     quadro_chalk_draw_text_cmd(int32_t x, int32_t y, const char *str, uint32_t color, int32_t scale);
+W_EXPORT void     quadro_chalk_draw_pixel(int32_t x, int32_t y, uint32_t color);
+W_EXPORT int32_t  quadro_chalk_get_node_rect(int32_t node_id, int32_t *out_x, int32_t *out_y, int32_t *out_w, int32_t *out_h);
 
 #endif /* QUADRO_CHALK_H */

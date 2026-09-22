@@ -12,36 +12,19 @@ export const MODULE_CATALOG = {
         color: 0xFFfeca57,
         code: `// --- SCRIPTABLE CLOCK ---
 export default {
-    params: [
-        { id: 0, name: "BPM", min: 40, max: 240, default: 120, unit: "BPM" },
-        { id: 1, name: "PW",  min: 0.1, max: 0.9, default: 0.5, unit: "%" }
-    ],
+    params: { bpm: [120, 40, 240, 'BPM'], pw: [0.5, 0.1, 0.9, '%'] },
+    outputs: [{ type: "VAL", name: "GATE" }, { type: "AUDIO", name: "PULSE" }],
 
-    outputs: [
-        { type: "VAL",   name: "GATE" },
-        { type: "AUDIO", name: "PULSE" }
-    ],
+    init() { this.phase = 0; this.gate = 0; },
 
-    init(sampleRate) {
-        this.phase = 0.0;
-        this.gate = 0.0;
-    },
-
-    process(inputs, outputs, sampleRate, dsp) {
-        const bpm = this.params[0] || 120;
-        const pw  = this.params[1] || 0.5;
-        const freq = (bpm / 60.0) * 2.0;
-        const dt = freq / sampleRate;
-
-        const outAudio = outputs.audio(1);
-
-        for (let s = 0; s < outAudio.length; s++) {
-            this.phase = (this.phase + dt) % 1.0;
-            this.gate = (this.phase < pw) ? 1.0 : 0.0;
-            outAudio[s] = this.gate;
-        }
-
-        outputs.val(0, this.gate);
+    process(inp, out) {
+        const dt = (this.params.bpm / 60 * 2) / 48000;
+        out.audio(1, s => {
+            this.phase = (this.phase + dt) % 1;
+            this.gate = (this.phase < this.params.pw) ? 1 : 0;
+            return this.gate;
+        });
+        out.val(0, this.gate);
     }
 };`
     },
@@ -52,39 +35,31 @@ export default {
         color: 0xFF1dd1a1,
         code: `// --- SCRIPTABLE 8-STEP SEQ ---
 export default {
-    params: [
-        { id: 0, name: "Root", min: -2, max: 2, default: 0, unit: "oct" }
-    ],
+    params: { root: [0, -2, 2, 'oct'] },
+    outputs: [{ type: "VAL", name: "PITCH" }, { type: "VAL", name: "GATE" }],
 
-    outputs: [
-        { type: "VAL",   name: "PITCH" },
-        { type: "VAL",   name: "GATE" }
-    ],
-
-    init(sampleRate) {
+    init() {
         this.step = 0;
-        this.lastClock = 0.0;
+        this.last = 0;
         this.notes = [0, 3, 7, 10, 12, 10, 7, 3];
-        this.voct = 0.0;
+        this.voct = 0;
     },
 
-    process(inputs, outputs, sampleRate, dsp) {
-        let clockTrigger = false;
-
-        for (const link of inputs) {
-            if (link.type === 'val' && link.val > 0.5 && this.lastClock <= 0.5) {
-                clockTrigger = true;
-            }
-            if (link.type === 'val') this.lastClock = link.val;
-        }
-
-        if (clockTrigger) {
+    process(inp, out) {
+        if (inp.val > 0.5 && this.last <= 0.5) {
             this.step = (this.step + 1) % this.notes.length;
-            this.voct = (this.notes[this.step] / 12.0) + (this.params[0] || 0);
+            this.voct = (this.notes[this.step] / 12) + this.params.root;
         }
+        this.last = inp.val;
+        out.val(0, this.voct);
+        out.val(1, this.last > 0.5 ? 1 : 0);
+    },
 
-        outputs.val(0, this.voct);
-        outputs.val(1, this.lastClock > 0.5 ? 1.0 : 0.0);
+    draw(gfx) {
+        const y = gfx.height - 18;
+        for (let i = 0; i < 8; i++) {
+            gfx.drawCircle(22 + i * 18, y, (this.step === i) ? 4 : 3, (this.step === i) ? 0xFF1dd1a1 : 0xFF283832, true);
+        }
     }
 };`
     },
@@ -95,69 +70,23 @@ export default {
         color: 0xFF48dbfb,
         code: `// --- SCRIPTABLE VCO ---
 export default {
-    params: [
-        { id: 0, name: "BaseFreq", min: 20, max: 800, default: 130.81, unit: "Hz" },
-        { id: 1, name: "Wave",     min: 0,  max: 3,   default: 0,      unit: "sel" },
-        { id: 2, name: "PW",       min: 0.05, max: 0.95, default: 0.5, unit: "%" },
-        { id: 3, name: "FM Depth", min: 0,  max: 1,   default: 0,      unit: "%" }
-    ],
+    params: { freq: [130.81, 20, 800, 'Hz'], wave: [0, 0, 3], pw: [0.5, 0.05, 0.95] },
+    outputs: [{ type: "AUDIO", name: "OUT" }],
 
-    outputs: [
-        { type: "AUDIO", name: "OUT" }
-    ],
+    init() { this.phase = 0; },
 
-    init(sampleRate) {
-        this.phase = 0.0;
-        this.currentVoct = 0.0;
-    },
+    process(inp, out, dsp) {
+        const f = inp.hasVal ? dsp.voct(inp.val, this.params.freq) : this.params.freq;
+        const dt = f / 48000;
+        const w = this.params.wave;
 
-    process(inputs, outputs, sampleRate, dsp) {
-        let voctMod = 0.0;
-        let fmAudio = null;
-
-        // Inspect all dynamic input links
-        for (const link of inputs) {
-            if (link.type === 'midi' && link.events) {
-                for (const ev of link.events) {
-                    if (ev.status === 0x90 && ev.velocity > 0) {
-                        this.currentVoct = (ev.note - 60) / 12.0;
-                    }
-                }
-            } else if (link.type === 'val') {
-                voctMod += link.val;
-            } else if (link.type === 'audio') {
-                fmAudio = link.audio;
-            }
-        }
-
-        const baseFreq = this.params[0] || 130.81;
-        const waveSel  = this.params[1] || 0;
-        const pw       = this.params[2] || 0.5;
-        const fmDepth  = this.params[3] || 0;
-
-        const targetFreq = dsp.voctToFreq(this.currentVoct + voctMod, baseFreq);
-        const out = outputs.audio(0);
-
-        for (let s = 0; s < out.length; s++) {
-            let freq = targetFreq;
-            if (fmAudio) freq += fmAudio[s] * fmDepth * 1000.0;
-            freq = dsp.clamp(freq, 1.0, sampleRate * 0.48);
-            const dt = freq / sampleRate;
-
-            let sample = 0;
-            if (waveSel < 0.5) {
-                sample = dsp.sawPolyblep(this.phase, dt);
-            } else if (waveSel < 1.5) {
-                sample = dsp.sqrPolyblep(this.phase, pw, dt);
-            } else if (waveSel < 2.5) {
-                sample = 2.0 * Math.abs(2.0 * this.phase - 1.0) - 1.0; // Triangle
-            } else {
-                sample = Math.sin(this.phase * 2.0 * Math.PI); // Sine
-            }
-
-            out[s] = sample;
-            this.phase = (this.phase + dt) % 1.0;
-        }
+        out.audio(s => {
+            let smp = (w < 0.5) ? dsp.saw(this.phase, dt) :
+                      (w < 1.5) ? dsp.sqr(this.phase, this.params.pw, dt) :
+                      (w < 2.5) ? dsp.tri(this.phase) : dsp.sin(this.phase);
+            this.phase = (this.phase + dt) % 1;
+            return smp;
+        });
     }
 };`
     },
@@ -168,46 +97,14 @@ export default {
         color: 0xFFff9f43,
         code: `// --- SCRIPTABLE 24dB LADDER VCF ---
 export default {
-    params: [
-        { id: 0, name: "Cutoff",    min: 30, max: 12000, default: 800, unit: "Hz" },
-        { id: 1, name: "Resonance", min: 0,  max: 0.98,  default: 0.7, unit: "%" },
-        { id: 2, name: "Drive",     min: 1,  max: 4,     default: 1.5, unit: "x" }
-    ],
+    params: { cutoff: [800, 30, 12000, 'Hz'], res: [0.7, 0, 0.95], drive: [1.2, 1, 4] },
+    outputs: [{ type: "AUDIO", name: "OUT" }],
 
-    outputs: [
-        { type: "AUDIO", name: "OUT" }
-    ],
+    init() { this.moog = [0, 0, 0, 0]; },
 
-    init(sampleRate) {
-        this.moogState = new Float32Array(4);
-    },
-
-    process(inputs, outputs, sampleRate, dsp) {
-        let cvMod = 0.0;
-        for (const link of inputs) {
-            if (link.type === 'val') {
-                cvMod += link.val;
-            }
-        }
-
-        const baseCutoff = this.params[0] || 800;
-        const resonance  = this.params[1] || 0.7;
-        const drive      = this.params[2] || 1.5;
-
-        const cutoff = dsp.clamp(baseCutoff * Math.pow(2.0, cvMod), 20, sampleRate * 0.45);
-        const out = outputs.audio(0);
-
-        for (let s = 0; s < out.length; s++) {
-            // Sum all incoming audio links
-            let inSample = 0.0;
-            for (const link of inputs) {
-                if (link.type === 'audio' && link.audio) {
-                    inSample += link.audio[s];
-                }
-            }
-
-            out[s] = dsp.moogStep(this.moogState, inSample, cutoff, resonance, drive, sampleRate);
-        }
+    process(inp, out, dsp) {
+        const fc = dsp.clamp(this.params.cutoff * (inp.hasVal ? Math.pow(2, inp.val) : 1), 20, 20000);
+        out.audio(s => dsp.moog(this.moog, inp.audio[s], fc, this.params.res, this.params.drive));
     }
 };`
     },
@@ -216,71 +113,41 @@ export default {
         name: "ADSR",
         category: "MODULATOR",
         color: 0xFFa29bfe,
-        code: `// --- SCRIPTABLE ADSR ENVELOPE ---
+        code: `// --- SCRIPTABLE ADSR ---
 export default {
-    params: [
-        { id: 0, name: "Attack",  min: 0.001, max: 2.0, default: 0.01, unit: "s" },
-        { id: 1, name: "Decay",   min: 0.001, max: 2.0, default: 0.20, unit: "s" },
-        { id: 2, name: "Sustain", min: 0.0,   max: 1.0, default: 0.25, unit: "%" },
-        { id: 3, name: "Release", min: 0.001, max: 4.0, default: 0.20, unit: "s" }
-    ],
+    params: { attack: [0.01, 0.001, 2, 's'], decay: [0.20, 0.001, 2, 's'], sustain: [0.25, 0, 1, '%'], release: [0.20, 0.001, 4, 's'] },
+    outputs: [{ type: "VAL", name: "ENV" }, { type: "AUDIO", name: "CV" }],
 
-    outputs: [
-        { type: "VAL",   name: "ENV" },
-        { type: "AUDIO", name: "CV" }
-    ],
+    init() { this.level = 0; this.stage = 0; this.lastGate = 0; },
 
-    init(sampleRate) {
-        this.level = 0.0;
-        this.stage = 0; // 0=IDLE, 1=ATTACK, 2=DECAY, 3=SUSTAIN, 4=RELEASE
-        this.lastGate = 0.0;
-    },
-
-    process(inputs, outputs, sampleRate, dsp) {
-        let gate = 0.0;
-
-        for (const link of inputs) {
-            if (link.type === 'midi' && link.events) {
-                for (const ev of link.events) {
-                    if (ev.status === 0x90 && ev.velocity > 0) gate = 1.0;
-                    else if (ev.status === 0x80 || (ev.status === 0x90 && ev.velocity === 0)) gate = 0.0;
-                }
-            } else if (link.type === 'val' && link.val > 0.1) {
-                gate = 1.0;
-            }
-        }
-
-        const aRate = 1.0 / (Math.max(0.001, this.params[0] || 0.01) * sampleRate);
-        const dRate = 1.0 / (Math.max(0.001, this.params[1] || 0.20) * sampleRate);
-        const sLvl  = dsp.clamp(this.params[2] !== undefined ? this.params[2] : 0.25, 0, 1);
-        const rRate = 1.0 / (Math.max(0.001, this.params[3] || 0.20) * sampleRate);
-
-        if (gate > 0.5 && this.lastGate <= 0.5) this.stage = 1; // Attack
-        else if (gate <= 0.5 && this.lastGate > 0.5) this.stage = 4; // Release
+    process(inp, out) {
+        const gate = inp.val > 0.1 ? 1 : 0;
+        if (gate && !this.lastGate) this.stage = 1;
+        if (!gate && this.lastGate) this.stage = 4;
         this.lastGate = gate;
 
-        const outAudio = outputs.audio(1);
+        const aRate = 1 / (this.params.attack * 48000);
+        const dRate = 1 / (this.params.decay * 48000);
+        const rRate = 1 / (this.params.release * 48000);
+        const sLvl  = this.params.sustain;
 
-        for (let s = 0; s < outAudio.length; s++) {
-            if (this.stage === 1) { // Attack
+        out.audio(1, s => {
+            if (this.stage === 1) {
                 this.level += aRate * (1.2 - this.level);
-                if (this.level >= 1.0) { this.level = 1.0; this.stage = 2; }
-            } else if (this.stage === 2) { // Decay
+                if (this.level >= 1) { this.level = 1; this.stage = 2; }
+            } else if (this.stage === 2) {
                 this.level -= dRate * (this.level - sLvl);
                 if (this.level <= sLvl + 0.001) { this.level = sLvl; this.stage = 3; }
-            } else if (this.stage === 3) { // Sustain
+            } else if (this.stage === 3) {
                 this.level = sLvl;
-            } else if (this.stage === 4) { // Release
+            } else if (this.stage === 4) {
                 this.level -= rRate * this.level;
-                if (this.level <= 0.0001) { this.level = 0.0; this.stage = 0; }
-            } else {
-                this.level = 0.0;
+                if (this.level <= 0.0001) { this.level = 0; this.stage = 0; }
             }
+            return this.level;
+        });
 
-            outAudio[s] = this.level;
-        }
-
-        outputs.val(0, this.level);
+        out.val(0, this.level);
     }
 };`
     },
@@ -289,50 +156,16 @@ export default {
         name: "VCA",
         category: "AMP",
         color: 0xFFff6b6b,
-        code: `// --- SCRIPTABLE DUAL VCA ---
+        code: `// --- SCRIPTABLE VCA ---
 export default {
-    params: [
-        { id: 0, name: "Initial Gain", min: 0, max: 1, default: 0, unit: "%" },
-        { id: 1, name: "Exponential",  min: 0, max: 1, default: 1, unit: "bin" }
-    ],
+    params: { gain: [0.0, 0, 1, '%'], exp: [1, 0, 1, 'bin'] },
+    outputs: [{ type: "AUDIO", name: "OUT" }],
 
-    outputs: [
-        { type: "AUDIO", name: "OUT" }
-    ],
-
-    init(sampleRate) {},
-
-    process(inputs, outputs, sampleRate, dsp) {
-        let cvGain = 0.0;
-        let hasCv = false;
-
-        for (const link of inputs) {
-            if (link.type === 'val') {
-                cvGain += link.val;
-                hasCv = true;
-            }
-        }
-
-        const initGain = this.params[0] || 0;
-        const isExp    = (this.params[1] !== undefined ? this.params[1] : 1) > 0.5;
-
-        let totalGain = initGain + (hasCv ? cvGain : 1.0);
-        totalGain = dsp.clamp(totalGain, 0.0, 2.0);
-        if (isExp && totalGain > 0.0001) {
-            totalGain = totalGain * totalGain * totalGain;
-        }
-
-        const out = outputs.audio(0);
-
-        for (let s = 0; s < out.length; s++) {
-            let inSample = 0.0;
-            for (const link of inputs) {
-                if (link.type === 'audio' && link.audio) {
-                    inSample += link.audio[s];
-                }
-            }
-            out[s] = inSample * totalGain;
-        }
+    process(inp, out, dsp) {
+        let g = this.params.gain + (inp.hasVal ? inp.val : 1.0);
+        g = dsp.clamp(g, 0, 2);
+        if (this.params.exp) g = g * g * g;
+        out.audio(s => inp.audio[s] * g);
     }
 };`
     },
@@ -341,54 +174,26 @@ export default {
         name: "BYTEBEAT",
         category: "MATH",
         color: 0xFFe056fd,
-        code: `// --- SCRIPTABLE 8-BIT BYTEBEAT GENERATOR ---
+        code: `// --- SCRIPTABLE 8-BIT BYTEBEAT ---
 export default {
-    params: [
-        { id: 0, name: "Speed", min: 1000, max: 32000, default: 8000, unit: "Hz" },
-        { id: 1, name: "Formula", min: 0, max: 3, default: 0, unit: "sel" }
-    ],
+    params: { speed: [8000, 1000, 32000, 'Hz'], formula: [0, 0, 3] },
+    outputs: [{ type: "AUDIO", name: "OUT" }],
 
-    outputs: [
-        { type: "AUDIO", name: "OUT" }
-    ],
+    init() { this.t = 0; this.phase = 0; },
 
-    init(sampleRate) {
-        this.t = 0;
-        this.phase = 0.0;
-    },
+    process(inp, out) {
+        const dt = this.params.speed / 48000;
+        const f = Math.floor(this.params.formula);
 
-    process(inputs, outputs, sampleRate, dsp) {
-        const speed = this.params[0] || 8000;
-        const formula = Math.floor(this.params[1] || 0);
-        const dt = speed / sampleRate;
-        const out = outputs.audio(0);
-
-        for (let s = 0; s < out.length; s++) {
+        out.audio(s => {
             this.phase += dt;
-            if (this.phase >= 1.0) {
-                this.phase -= 1.0;
-                this.t = (this.t + 1) >>> 0;
-            }
-
+            if (this.phase >= 1) { this.phase -= 1; this.t++; }
             const t = this.t;
-            let val = 0;
-
-            if (formula === 0) {
-                // Classic: t * ((t>>12|t>>8)&63&t>>4)
-                val = (t * ((t >> 12 | t >> 8) & 63 & t >> 4)) & 255;
-            } else if (formula === 1) {
-                // Melody: (t>>7|t|t>>6)*10+4*(t&t>>13|t>>6)
-                val = ((t >> 7 | t | t >> 6) * 10 + 4 * (t & (t >> 13) | t >> 6)) & 255;
-            } else if (formula === 2) {
-                // Acid Arp: (t*(t>>5|t>>8))>>(t>>16)
-                val = ((t * (t >> 5 | t >> 8)) >> (t >> 16)) & 255;
-            } else {
-                // Noise Rhythms: ((t*5&t>>7)|(t*3&t>>10))
-                val = ((t * 5 & t >> 7) | (t * 3 & t >> 10)) & 255;
-            }
-
-            out[s] = (val / 127.5) - 1.0;
-        }
+            let v = (f === 0) ? (t * ((t>>12|t>>8)&63&t>>4)) :
+                    (f === 1) ? ((t>>7|t|t>>6)*10+4*(t&t>>13|t>>6)) :
+                    (f === 2) ? ((t*(t>>5|t>>8))>>(t>>16)) : ((t*5&t>>7)|(t*3&t>>10));
+            return ((v & 255) / 127.5) - 1.0;
+        });
     }
 };`
     },
@@ -397,55 +202,31 @@ export default {
         name: "DELAY",
         category: "EFFECT",
         color: 0xFF1dd1a1,
-        code: `// --- SCRIPTABLE TAPE DELAY ---
+        code: `// --- SCRIPTABLE DELAY ---
 export default {
-    params: [
-        { id: 0, name: "Time",     min: 0.02, max: 1.5, default: 0.25, unit: "s" },
-        { id: 1, name: "Feedback", min: 0.0,  max: 0.95, default: 0.50, unit: "%" },
-        { id: 2, name: "Damp",     min: 0.0,  max: 0.90, default: 0.40, unit: "%" },
-        { id: 3, name: "Mix",      min: 0.0,  max: 1.0,  default: 0.35, unit: "%" }
-    ],
+    params: { time: [0.25, 0.02, 1.5, 's'], fb: [0.50, 0, 0.95, '%'], mix: [0.35, 0, 1, '%'] },
+    outputs: [{ type: "AUDIO", name: "OUT" }],
 
-    outputs: [
-        { type: "AUDIO", name: "OUT" }
-    ],
-
-    init(sampleRate) {
-        this.maxSamples = Math.floor(sampleRate * 2.0);
-        this.buffer = new Float32Array(this.maxSamples);
+    init() {
+        this.buf = new Float32Array(96000);
         this.head = 0;
-        this.lpf = 0.0;
+        this.lpf = 0;
     },
 
-    process(inputs, outputs, sampleRate, dsp) {
-        const time = dsp.clamp(this.params[0] || 0.25, 0.005, 1.9);
-        const fb   = dsp.clamp(this.params[1] || 0.50, 0, 0.95);
-        const damp = dsp.clamp(this.params[2] || 0.40, 0, 0.9);
-        const mix  = dsp.clamp(this.params[3] || 0.35, 0, 1.0);
+    process(inp, out, dsp) {
+        const delaySamples = Math.floor(this.params.time * 48000);
+        const fb = this.params.fb;
+        const mix = this.params.mix;
 
-        const delaySamples = time * sampleRate;
-        const out = outputs.audio(0);
-
-        for (let s = 0; s < out.length; s++) {
-            let inSample = 0.0;
-            for (const link of inputs) {
-                if (link.type === 'audio' && link.audio) inSample += link.audio[s];
-            }
-
-            let rPos = this.head - delaySamples;
-            if (rPos < 0) rPos += this.maxSamples;
-            const rIdx1 = Math.floor(rPos) % this.maxSamples;
-            const rIdx2 = (rIdx1 + 1) % this.maxSamples;
-            const frac = rPos - Math.floor(rPos);
-
-            const delayed = dsp.lerp(this.buffer[rIdx1], this.buffer[rIdx2], frac);
-            this.lpf = delayed * (1.0 - damp) + this.lpf * damp;
-
-            this.buffer[this.head] = inSample + dsp.tanh(this.lpf * fb);
-            this.head = (this.head + 1) % this.maxSamples;
-
-            out[s] = dsp.lerp(inSample, delayed, mix);
-        }
+        out.audio(s => {
+            let r = this.head - delaySamples;
+            if (r < 0) r += 96000;
+            const delayed = this.buf[r];
+            this.lpf = delayed * 0.6 + this.lpf * 0.4;
+            this.buf[this.head] = inp.audio[s] + dsp.tanh(this.lpf * fb);
+            this.head = (this.head + 1) % 96000;
+            return dsp.lerp(inp.audio[s], delayed, mix);
+        });
     }
 };`
     },
@@ -454,36 +235,15 @@ export default {
         name: "OUT",
         category: "OUTPUT",
         color: 0xFFf5f6fa,
-        code: `// --- SCRIPTABLE MASTER OUTPUT ---
+        code: `// --- SCRIPTABLE MASTER OUT ---
 export default {
-    params: [
-        { id: 0, name: "Master Vol", min: 0, max: 1.5, default: 0.85, unit: "%" }
-    ],
+    params: { volume: [0.85, 0, 1.5, '%'] },
+    outputs: [{ type: "AUDIO", name: "OUT L" }, { type: "AUDIO", name: "OUT R" }],
 
-    outputs: [
-        { type: "AUDIO", name: "OUT L" },
-        { type: "AUDIO", name: "OUT R" }
-    ],
-
-    init(sampleRate) {},
-
-    process(inputs, outputs, sampleRate, dsp) {
-        const vol = this.params[0] !== undefined ? this.params[0] : 0.85;
-        const outL = outputs.audio(0);
-        const outR = outputs.audio(1);
-
-        for (let s = 0; s < outL.length; s++) {
-            let sum = 0.0;
-            for (const link of inputs) {
-                if (link.type === 'audio' && link.audio) {
-                    sum += link.audio[s];
-                }
-            }
-
-            const saturated = dsp.tanh(sum * vol);
-            outL[s] = saturated;
-            outR[s] = saturated;
-        }
+    process(inp, out, dsp) {
+        const vol = this.params.volume;
+        out.audio(0, s => dsp.tanh(inp.audio[s] * vol));
+        out.audio(1, s => dsp.tanh(inp.audio[s] * vol));
     }
 };`
     }

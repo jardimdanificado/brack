@@ -287,26 +287,25 @@ W_EXPORT void quadro_chalk_set_camera(float cam_x, float cam_y, float zoom) {
     if (zoom >= 0.3f && zoom <= 3.0f) g_board.zoom = zoom;
 }
 
-static void update_node_bounds(chalk_module_node_t *n) {
-    int max_chars = 20;
-    for (int l = 0; l < n->code_line_count; l++) {
-        int len = 0;
-        while (n->code_lines[l][len]) len++;
-        if (len > max_chars) max_chars = len;
-    }
-    float required_w = 26.0f + (max_chars * 8.0f) + 24.0f;
-    if (required_w < 260.0f) required_w = 260.0f;
-    if (required_w > 400.0f) required_w = 400.0f;
-    n->w = required_w;
+W_EXPORT float quadro_chalk_get_cam_x(void) {
+    return g_board.cam_x;
+}
 
-    int lines = (n->code_line_count > 0) ? n->code_line_count : 2;
-    if (lines > MAX_CODE_LINES) lines = MAX_CODE_LINES;
-    float code_h = lines * 11.0f + 8.0f;
+W_EXPORT float quadro_chalk_get_cam_y(void) {
+    return g_board.cam_y;
+}
+
+W_EXPORT float quadro_chalk_get_zoom(void) {
+    return g_board.zoom;
+}
+
+static void update_node_bounds(chalk_module_node_t *n) {
     float inputs_h = (n->input_count > 0) ? (n->input_count * 18.0f + 6.0f) : 18.0f;
     float sliders_h = n->slider_count * 24.0f;
-    float min_h = 24.0f + inputs_h + code_h + sliders_h + 22.0f;
-    if (min_h < 150.0f) min_h = 150.0f;
+    float min_h = 24.0f + 32.0f + inputs_h + sliders_h + 20.0f;
+    if (min_h < 120.0f) min_h = 120.0f;
     n->h = min_h;
+    n->w = 200.0f;
 }
 
 W_EXPORT void quadro_chalk_set_node_code(int32_t node_id, const char *code_text) {
@@ -481,6 +480,20 @@ W_EXPORT void quadro_chalk_disconnect(int32_t src_node, int32_t dst_node) {
     }
 }
 
+W_EXPORT int32_t quadro_chalk_get_active_links(int32_t *out_src, int32_t *out_src_out, int32_t *out_dst, int32_t *out_type) {
+    int count = 0;
+    for (int i = 0; i < g_board.link_count; i++) {
+        if (g_board.links[i].active) {
+            if (out_src) out_src[count] = g_board.links[i].src_node;
+            if (out_src_out) out_src_out[count] = g_board.links[i].src_out_idx;
+            if (out_dst) out_dst[count] = g_board.links[i].dst_node;
+            if (out_type) out_type[count] = g_board.links[i].link_type;
+            count++;
+        }
+    }
+    return count;
+}
+
 W_EXPORT void quadro_chalk_clear(void) {
     g_board.link_count = 0;
     for (int i = 0; i < g_board.node_count; i++) {
@@ -543,7 +556,8 @@ W_EXPORT void quadro_chalk_mouse_down(float screen_x, float screen_y, int32_t bu
             quadro_chalk_set_selected_node(i);
 
             // Check Delete (x) on input tags
-            float input_y = n->y + 24.0f;
+            // Check Delete (x) on input tags
+            float input_y = n->y + 24.0f + 30.0f;
             for (int in = 0; in < n->input_count; in++) {
                 float iy = input_y + in * 18.0f;
                 if (wy >= iy && wy <= iy + 16.0f && wx >= n->x + n->w - 24.0f && wx <= n->x + n->w - 6.0f) {
@@ -556,11 +570,9 @@ W_EXPORT void quadro_chalk_mouse_down(float screen_x, float screen_y, int32_t bu
                 }
             }
 
-            // Check Sliders (located below code)
-            int lines = (n->code_line_count > 0) ? n->code_line_count : 1;
+            // Check Sliders (located below inputs)
             float inputs_h = (n->input_count > 0) ? (n->input_count * 18.0f + 6.0f) : 18.0f;
-            float code_h = lines * 11.0f + 6.0f;
-            float slider_y = n->y + 24.0f + inputs_h + code_h + 4.0f;
+            float slider_y = n->y + 24.0f + 30.0f + inputs_h;
 
             for (int s = 0; s < n->slider_count; s++) {
                 float sy = slider_y + s * 24.0f;
@@ -781,10 +793,36 @@ W_EXPORT void quadro_chalk_render(void) {
         // Top IN Socket Indicator
         qc_draw_circle_filled(sx + sw / 2, sy, 4, 0xFFffffff);
 
-        // Dynamic Received Inputs Section
         int cur_y = sy + header_h + (int)(4.0f * g_board.zoom);
+
+        // Live Mini Oscilloscope / Waveform Display
+        int sc_x = sx + (int)(8.0f * g_board.zoom);
+        int sc_y = cur_y;
+        int sc_w = sw - (int)(16.0f * g_board.zoom);
+        int sc_h = (int)(26.0f * g_board.zoom);
+
+        qc_fill_rect(sc_x, sc_y, sc_w, sc_h, 0xFF080c0a);
+        qc_fill_rect(sc_x, sc_y + sc_h / 2, sc_w, 1, 0x22ffffff); // Scope center line
+
+        int prev_px = sc_x;
+        int prev_py = sc_y + sc_h / 2;
+        for (int s = 0; s < 48 && s < sc_w; s++) {
+            int px = sc_x + (s * sc_w) / 48;
+            float val = n->scope_data[s];
+            int py = sc_y + sc_h / 2 - (int)(val * (sc_h / 2 - 2));
+            if (py < sc_y + 1) py = sc_y + 1;
+            if (py >= sc_y + sc_h - 1) py = sc_y + sc_h - 2;
+
+            qc_draw_line(prev_px, prev_py, px, py, 2, n->accent_color);
+            prev_px = px;
+            prev_py = py;
+        }
+
+        cur_y += sc_h + (int)(6.0f * g_board.zoom);
+
+        // Dynamic Received Inputs Section
         if (n->input_count == 0) {
-            qc_draw_text_clipped(sx + (int)(10.0f * g_board.zoom), cur_y + (int)(2.0f * g_board.zoom), "// inputs: []", 0xFF485460, 1, sx + sw - (int)(10.0f * g_board.zoom));
+            qc_draw_text_clipped(sx + (int)(10.0f * g_board.zoom), cur_y + (int)(2.0f * g_board.zoom), "// in: (no links)", 0xFF485460, 1, sx + sw - (int)(10.0f * g_board.zoom));
             cur_y += (int)(16.0f * g_board.zoom);
         } else {
             for (int in = 0; in < n->input_count; in++) {
@@ -810,38 +848,6 @@ W_EXPORT void quadro_chalk_render(void) {
                 cur_y += (int)(18.0f * g_board.zoom);
             }
         }
-
-        // Code Editor Text Box Area (Gutter + Syntax Highlighting)
-        int gutter_w = (int)(22.0f * g_board.zoom);
-        int code_box_x = sx + (int)(8.0f * g_board.zoom);
-        int code_box_w = sw - (int)(16.0f * g_board.zoom);
-        int lines_to_draw = (n->code_line_count > 0) ? n->code_line_count : 1;
-        if (lines_to_draw > MAX_CODE_LINES) lines_to_draw = MAX_CODE_LINES;
-
-        int code_box_h = lines_to_draw * (int)(11.0f * g_board.zoom) + (int)(6.0f * g_board.zoom);
-
-        // Gutter Background
-        qc_fill_rect(code_box_x, cur_y, gutter_w, code_box_h, 0xFF080c0a);
-        qc_fill_rect(code_box_x + gutter_w, cur_y, code_box_w - gutter_w, code_box_h, 0xFF050807);
-        qc_fill_rect(code_box_x + gutter_w, cur_y, 1, code_box_h, 0xFF1c2923); // Separator
-
-        for (int l = 0; l < lines_to_draw; l++) {
-            int line_y = cur_y + (int)(3.0f * g_board.zoom) + l * (int)(11.0f * g_board.zoom);
-
-            // Line Number (01, 02...)
-            char lnum_str[4];
-            lnum_str[0] = '0' + ((l + 1) / 10) % 10;
-            lnum_str[1] = '0' + ((l + 1) % 10);
-            lnum_str[2] = 0;
-            qc_draw_text(code_box_x + (int)(3.0f * g_board.zoom), line_y, lnum_str, 0xFF485460, 1);
-
-            // Code Line with syntax highlight (strictly clipped inside code box)
-            const char *code_str = (n->code_line_count > 0) ? n->code_lines[l] : "// (empty script)";
-            uint32_t line_color = qc_get_syntax_color(code_str);
-            qc_draw_text_clipped(code_box_x + gutter_w + (int)(5.0f * g_board.zoom), line_y, code_str, line_color, 1, code_box_x + code_box_w - (int)(4.0f * g_board.zoom));
-        }
-
-        cur_y += code_box_h + (int)(4.0f * g_board.zoom);
 
         // Sliders (if any)
         for (int s = 0; s < n->slider_count; s++) {
@@ -877,5 +883,43 @@ W_EXPORT void quadro_chalk_render(void) {
             }
         }
     }
+}
+
+/* =========================================================================
+ * Public GFX Drawing API for JS Modules
+ * ========================================================================= */
+
+W_EXPORT void quadro_chalk_draw_rect(int32_t x, int32_t y, int32_t w, int32_t h, uint32_t color) {
+    qc_fill_rect(x, y, w, h, color);
+}
+
+W_EXPORT void quadro_chalk_draw_line(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t thickness, uint32_t color) {
+    qc_draw_line(x0, y0, x1, y1, (thickness > 0) ? thickness : 1, color);
+}
+
+W_EXPORT void quadro_chalk_draw_circle(int32_t cx, int32_t cy, int32_t radius, uint32_t color, int32_t filled) {
+    if (filled) {
+        qc_draw_circle_filled(cx, cy, radius, color);
+    } else {
+        qc_draw_line(cx - radius, cy, cx + radius, cy, 1, color);
+    }
+}
+
+W_EXPORT void quadro_chalk_draw_text_cmd(int32_t x, int32_t y, const char *str, uint32_t color, int32_t scale) {
+    qc_draw_text(x, y, str, color, (scale > 0) ? scale : 1);
+}
+
+W_EXPORT void quadro_chalk_draw_pixel(int32_t x, int32_t y, uint32_t color) {
+    qc_put_pixel(x, y, color);
+}
+
+W_EXPORT int32_t quadro_chalk_get_node_rect(int32_t node_id, int32_t *out_x, int32_t *out_y, int32_t *out_w, int32_t *out_h) {
+    if (node_id < 0 || node_id >= g_board.node_count) return 0;
+    chalk_module_node_t *n = &g_board.nodes[node_id];
+    if (out_x) *out_x = to_screen_x(n->x);
+    if (out_y) *out_y = to_screen_y(n->y);
+    if (out_w) *out_w = (int)(n->w * g_board.zoom);
+    if (out_h) *out_h = (int)(n->h * g_board.zoom);
+    return 1;
 }
 

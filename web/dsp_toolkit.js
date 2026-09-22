@@ -103,5 +103,41 @@ export const dsp = {
             bp: v1,
             hp: v0 - k * v1 - v2
         };
+    },
+
+    // Short-Form Synthesizer Helper Aliases
+    saw(phase, dt = 0.005) {
+        return dsp.sawPolyblep(phase % 1.0, dt);
+    },
+
+    sqr(phase, pw = 0.5, dt = 0.005) {
+        return dsp.sqrPolyblep(phase % 1.0, pw, dt);
+    },
+
+    tri(phase) {
+        const p = phase % 1.0;
+        return 2.0 * Math.abs(2.0 * p - 1.0) - 1.0;
+    },
+
+    sin(phase) {
+        return Math.sin((phase % 1.0) * 2.0 * Math.PI);
+    },
+
+    noise() {
+        return Math.random() * 2.0 - 1.0;
+    },
+
+    voct(v, base = 130.81278) {
+        return dsp.voctToFreq(v, base);
+    },
+
+    moog(state, inSample, cutoff = 800, res = 0.7, drive = 1.2, sr = 48000) {
+        if (!state) state = [0, 0, 0, 0];
+        return dsp.moogStep(state, inSample, cutoff, res, drive, sr);
+    },
+
+    svf(state, inSample, cutoff = 800, res = 0.7, sr = 48000) {
+        if (!state) state = { ic1eq: 0, ic2eq: 0 };
+        return dsp.svfStep(state, inSample, cutoff, res, sr);
     }
 };
