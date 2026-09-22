@@ -404,25 +404,29 @@ window.addEventListener('DOMContentLoaded', () => {
         synthEngine.compile();
     });
 
-    // 7. Header Controls (Play / Stop)
-    const btnFlag = document.getElementById('btn-flag');
-    const btnStop = document.getElementById('btn-stop');
-    const statusLabel = document.getElementById('status-label');
+    // 7. Header Controls (Unified Play / Stop Toggle)
+    const btnPlayToggle = document.getElementById('btn-play-toggle');
 
-    btnFlag.addEventListener('click', async () => {
-        await startAudio();
-        isPlaying = true;
-        btnFlag.classList.add('running');
-        statusLabel.textContent = 'Sintetizando';
-        statusLabel.style.color = '#55efc4';
-    });
+    async function togglePlayback() {
+        if (!isPlaying) {
+            await startAudio();
+            isPlaying = true;
+            if (btnPlayToggle) {
+                btnPlayToggle.classList.add('playing');
+                btnPlayToggle.title = 'Parar Síntese';
+            }
+        } else {
+            isPlaying = false;
+            if (btnPlayToggle) {
+                btnPlayToggle.classList.remove('playing');
+                btnPlayToggle.title = 'Iniciar Síntese';
+            }
+        }
+    }
 
-    btnStop.addEventListener('click', async () => {
-        isPlaying = false;
-        btnFlag.classList.remove('running');
-        statusLabel.textContent = 'Parado';
-        statusLabel.style.color = '#ff7675';
-    });
+    if (btnPlayToggle) {
+        btnPlayToggle.addEventListener('click', togglePlayback);
+    }
 
     // 8. Project Toolbar Event Handlers
     const projectSelect = document.getElementById('project-select');

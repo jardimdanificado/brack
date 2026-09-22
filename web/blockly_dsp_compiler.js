@@ -82,6 +82,14 @@ export class BlocklySynthEngine {
         for (const id of this.blockStates.keys()) {
             if (!activeIds.has(id)) this.blockStates.delete(id);
         }
+
+        // Execute initial setup / flag hat blocks
+        for (const hat of this.hatBlocks) {
+            if (hat.type === 'event_whenflagclicked') {
+                const next = hat.getNextBlock ? hat.getNextBlock() : null;
+                if (next) this.evalBlock(next);
+            }
+        }
     }
 
     initBlockState(type) {
@@ -647,7 +655,7 @@ export class BlocklySynthEngine {
         }
     }
 
-    processBlock(outL, outR, offset, numSamples = 128) {
+    processBlock(outL, outR, offset = 0, numSamples = 128) {
         this.busCache.clear();
 
         // 1. Execute Event Hat Triggers
