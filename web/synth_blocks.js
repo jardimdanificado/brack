@@ -5,6 +5,8 @@
  * =========================================================================
  */
 
+import { registerAllBlocksToBlockly } from './synth_registry.js';
+
 export function registerSynthBlocks(Blockly) {
     // -------------------------------------------------------------------------
     // 📡 1. BARRAMENTOS & TAGS LIVRES (#FF6680)
@@ -51,6 +53,33 @@ export function registerSynthBlocks(Blockly) {
         }
     };
 
+    Blockly.Blocks['synth_var_change'] = {
+        init: function() {
+            this.appendValueInput("DELTA")
+                .appendField("mudar sinal [")
+                .appendField(new Blockly.FieldTextInput("voltagem"), "VAR")
+                .appendField("] por");
+            this.setPreviousStatement(true);
+            this.setNextStatement(true);
+            this.setInputsInline(true);
+            this.setColour("#FF6680");
+            this.setTooltip("Acumulador: incrementa o valor da variável a cada execução.");
+        }
+    };
+
+    Blockly.Blocks['synth_var_reset'] = {
+        init: function() {
+            this.appendDummyInput()
+                .appendField("zerar sinal [")
+                .appendField(new Blockly.FieldTextInput("voltagem"), "VAR")
+                .appendField("]");
+            this.setPreviousStatement(true);
+            this.setNextStatement(true);
+            this.setColour("#FF6680");
+            this.setTooltip("Zera o valor acumulado da variável.");
+        }
+    };
+
     Blockly.Blocks['synth_var_get'] = {
         init: function() {
             this.appendDummyInput()
@@ -89,172 +118,8 @@ export function registerSynthBlocks(Blockly) {
     };
 
     // -------------------------------------------------------------------------
-    // 〰️ 3. GERADORES & OSCILADORES (#9966FF)
+    // 🎹 3. SEQUENCIADOR DE PASSOS ABERTO (#59C059)
     // -------------------------------------------------------------------------
-    Blockly.Blocks['synth_vco'] = {
-        init: function() {
-            this.appendDummyInput()
-                .appendField("〰️ VCO Oscilador")
-                .appendField(new Blockly.FieldDropdown([
-                    ["SAW (Dente de Serra)", "saw"],
-                    ["SQUARE (Quadrada)", "sqr"],
-                    ["TRIANGLE (Triangular)", "tri"],
-                    ["SINE (Senoidal)", "sin"],
-                    ["NOISE (Ruído)", "noise"]
-                ]), "WAVE");
-            this.appendValueInput("FREQ")
-                .appendField("Frequência (Hz)")
-                .setCheck(null);
-            this.appendValueInput("FM")
-                .appendField("Modulação FM (CV)")
-                .setCheck(null);
-            this.appendValueInput("PW")
-                .appendField("Largura Pulso (0..1)")
-                .setCheck(null);
-            this.setPreviousStatement(true, "AUDIO");
-            this.setNextStatement(true, "AUDIO");
-            this.setOutput(true);
-            this.setInputsInline(false);
-            this.setColour("#9966FF");
-            this.setTooltip("Oscilador analógico PolyBLEP anti-aliased. Aceita pílulas em qualquer entrada.");
-        }
-    };
-
-    Blockly.Blocks['synth_bytebeat'] = {
-        init: function() {
-            this.appendDummyInput()
-                .appendField("👾 Bytebeat 8-Bit")
-                .appendField(new Blockly.FieldDropdown([
-                    ["t * ((t>>12|t>>8)&63&t>>4)", "0"],
-                    ["(t>>7|t|t>>6)*10", "1"],
-                    ["(t*(t>>5|t>>8))>>(t>>16)", "2"],
-                    ["(t*5&t>>7)|(t*3&t>>10)", "3"]
-                ]), "FORMULA");
-            this.appendValueInput("SPEED")
-                .appendField("Velocidade (Hz)")
-                .setCheck(null);
-            this.setPreviousStatement(true, "AUDIO");
-            this.setNextStatement(true, "AUDIO");
-            this.setOutput(true);
-            this.setInputsInline(false);
-            this.setColour("#9966FF");
-            this.setTooltip("Síntese algorítmica matemática 8-bit.");
-        }
-    };
-
-    // -------------------------------------------------------------------------
-    // 🎛️ 4. FILTROS, AMPS & DINÂMICA (#FF8C1A)
-    // -------------------------------------------------------------------------
-    Blockly.Blocks['synth_vcf'] = {
-        init: function() {
-            this.appendDummyInput()
-                .appendField("🎛️ Filtro Moog 24dB VCF");
-            this.appendValueInput("IN")
-                .appendField("Áudio In (ou fluxo acima)");
-            this.appendValueInput("CUTOFF")
-                .appendField("Corte (Hz ou CV)")
-                .setCheck(null);
-            this.appendValueInput("RES")
-                .appendField("Ressonância (0..0.95)")
-                .setCheck(null);
-            this.setPreviousStatement(true, "AUDIO");
-            this.setNextStatement(true, "AUDIO");
-            this.setOutput(true);
-            this.setInputsInline(false);
-            this.setColour("#FF8C1A");
-            this.setTooltip("Filtro transistor ladder 4-polos com saturação analógica.");
-        }
-    };
-
-    Blockly.Blocks['synth_vca'] = {
-        init: function() {
-            this.appendDummyInput()
-                .appendField("🔊 Amplificador VCA")
-                .appendField(new Blockly.FieldDropdown([
-                    ["EXPONENCIAL", "1"],
-                    ["LINEAR", "0"]
-                ]), "EXP");
-            this.appendValueInput("IN")
-                .appendField("Áudio In (ou fluxo acima)");
-            this.appendValueInput("GAIN")
-                .appendField("Ganho / Modulação (CV)")
-                .setCheck(null);
-            this.setPreviousStatement(true, "AUDIO");
-            this.setNextStatement(true, "AUDIO");
-            this.setOutput(true);
-            this.setInputsInline(false);
-            this.setColour("#FF8C1A");
-            this.setTooltip("Amplificador controlado por voltagem com curva exponencial ou linear.");
-        }
-    };
-
-    Blockly.Blocks['synth_distortion'] = {
-        init: function() {
-            this.appendDummyInput()
-                .appendField("🔥 Distorção & Wavefolder")
-                .appendField(new Blockly.FieldDropdown([
-                    ["TANH (Saturação Quente)", "tanh"],
-                    ["HARD CLIP (Digital)", "hard"],
-                    ["BITCRUSH (8-Bit Lo-Fi)", "crush"],
-                    ["WAVEFOLDER (Dobra Harmônica)", "fold"]
-                ]), "MODE");
-            this.appendValueInput("IN")
-                .appendField("Áudio In (ou fluxo acima)");
-            this.appendValueInput("DRIVE")
-                .appendField("Drive / Ganho (1..20)")
-                .setCheck(null);
-            this.setPreviousStatement(true, "AUDIO");
-            this.setNextStatement(true, "AUDIO");
-            this.setOutput(true);
-            this.setInputsInline(false);
-            this.setColour("#FF8C1A");
-            this.setTooltip("Efeito de distorção, saturação analógica e wavefolding harmônico.");
-        }
-    };
-
-    Blockly.Blocks['synth_mixer'] = {
-        init: function() {
-            this.appendDummyInput()
-                .appendField("🎚️ Mixer 2 Canais");
-            this.appendValueInput("IN1")
-                .appendField("Canal 1");
-            this.appendValueInput("VOL1")
-                .appendField("  Volume 1 (0..2)");
-            this.appendValueInput("IN2")
-                .appendField("Canal 2");
-            this.appendValueInput("VOL2")
-                .appendField("  Volume 2 (0..2)");
-            this.setPreviousStatement(true, "AUDIO");
-            this.setNextStatement(true, "AUDIO");
-            this.setOutput(true);
-            this.setInputsInline(false);
-            this.setColour("#FF8C1A");
-            this.setTooltip("Soma e mistura 2 sinais de áudio ou voltagens de controle.");
-        }
-    };
-
-    // -------------------------------------------------------------------------
-    // 📈 5. MODULADORES & SEQUENCIADORES (#59C059)
-    // -------------------------------------------------------------------------
-    Blockly.Blocks['synth_clock'] = {
-        init: function() {
-            this.appendDummyInput()
-                .appendField("⚡ Clock Mestre");
-            this.appendValueInput("BPM")
-                .appendField("Tempo (BPM)")
-                .setCheck(null);
-            this.appendValueInput("PW")
-                .appendField("Largura Pulso (0..1)")
-                .setCheck(null);
-            this.setPreviousStatement(true);
-            this.setNextStatement(true);
-            this.setOutput(true, "VAL");
-            this.setInputsInline(false);
-            this.setColour("#59C059");
-            this.setTooltip("Gerador de pulso de clock mestre.");
-        }
-    };
-
     Blockly.Blocks['synth_seq'] = {
         init: function() {
             this.appendDummyInput()
@@ -308,73 +173,19 @@ export function registerSynthBlocks(Blockly) {
         }
     };
 
-    Blockly.Blocks['synth_adsr'] = {
-        init: function() {
-            this.appendDummyInput()
-                .appendField("📈 Envelope ADSR");
-            this.appendValueInput("GATE")
-                .appendField("Gate Trigger (CV)");
-            this.appendValueInput("ATTACK")
-                .appendField("  Ataque (s)");
-            this.appendValueInput("DECAY")
-                .appendField("  Decaimento (s)");
-            this.appendValueInput("SUSTAIN")
-                .appendField("  Sustentação (0..1)");
-            this.appendValueInput("RELEASE")
-                .appendField("  Relaxamento (s)");
-            this.setPreviousStatement(true);
-            this.setNextStatement(true);
-            this.setOutput(true, "VAL");
-            this.setInputsInline(false);
-            this.setColour("#59C059");
-            this.setTooltip("Envelope analógico Attack-Decay-Sustain-Release.");
-        }
-    };
-
-    Blockly.Blocks['synth_lfo'] = {
-        init: function() {
-            this.appendDummyInput()
-                .appendField("〰️ LFO Modulador")
-                .appendField(new Blockly.FieldDropdown([
-                    ["TRIÂNGULO", "tri"],
-                    ["SENO", "sin"],
-                    ["QUADRADA", "sqr"],
-                    ["SAW", "saw"],
-                    ["RANDOM (S&H)", "rnd"]
-                ]), "WAVE");
-            this.appendValueInput("FREQ")
-                .appendField("Frequência (Hz)");
-            this.appendValueInput("DEPTH")
-                .appendField("Intensidade (0..5)");
-            this.setPreviousStatement(true);
-            this.setNextStatement(true);
-            this.setOutput(true, "VAL");
-            this.setInputsInline(false);
-            this.setColour("#59C059");
-            this.setTooltip("Oscilador de baixa frequência para modulação contínua.");
-        }
-    };
-
-    Blockly.Blocks['synth_sample_hold'] = {
-        init: function() {
-            this.appendDummyInput()
-                .appendField("🎲 Sample & Hold");
-            this.appendValueInput("IN")
-                .appendField("Sinal In");
-            this.appendValueInput("TRIG")
-                .appendField("Trigger (CV)");
-            this.setPreviousStatement(true);
-            this.setNextStatement(true);
-            this.setOutput(true, "VAL");
-            this.setInputsInline(false);
-            this.setColour("#59C059");
-            this.setTooltip("Amostra o valor de entrada a cada pulso do trigger.");
-        }
-    };
-
     // -------------------------------------------------------------------------
-    // ➕ 6. OPERADORES MATEMÁTICOS & FUNÇÕES SCRATCH (#59C059)
+    // ➕ 4. OPERADORES MATEMÁTICOS & CV SCRATCH (#59C059)
     // -------------------------------------------------------------------------
+    Blockly.Blocks['math_number'] = {
+        init: function() {
+            this.appendDummyInput()
+                .appendField(new Blockly.FieldNumber(0), "NUM");
+            this.setOutput(true);
+            this.setColour("#59C059");
+            this.setTooltip("Número ou voltagem constante.");
+        }
+    };
+
     Blockly.Blocks['math_arithmetic'] = {
         init: function() {
             this.appendValueInput("A");
@@ -382,15 +193,15 @@ export function registerSynthBlocks(Blockly) {
                 .appendField(new Blockly.FieldDropdown([
                     ["+", "ADD"],
                     ["-", "MINUS"],
-                    ["×", "MULTIPLY"],
-                    ["÷", "DIVIDE"],
+                    ["*", "MULTIPLY"],
+                    ["/", "DIVIDE"],
                     ["mod", "MOD"]
                 ]), "OP");
             this.appendValueInput("B");
             this.setOutput(true);
             this.setInputsInline(true);
             this.setColour("#59C059");
-            this.setTooltip("Operação aritmética entre dois sinais.");
+            this.setTooltip("Operação aritmética entre dois sinais ou números.");
         }
     };
 
@@ -404,14 +215,14 @@ export function registerSynthBlocks(Blockly) {
                 .appendField("..")
                 .appendField(new Blockly.FieldNumber(1), "IN_MAX")
                 .appendField("] para [")
-                .appendField(new Blockly.FieldNumber(100), "OUT_MIN")
+                .appendField(new Blockly.FieldNumber(200), "OUT_MIN")
                 .appendField("..")
-                .appendField(new Blockly.FieldNumber(8000), "OUT_MAX")
+                .appendField(new Blockly.FieldNumber(2000), "OUT_MAX")
                 .appendField("]");
             this.setOutput(true);
             this.setInputsInline(true);
             this.setColour("#59C059");
-            this.setTooltip("Mapeia proporcionalmente um sinal de uma faixa para outra.");
+            this.setTooltip("Mapeia a escala de um sinal de entrada para um intervalo de saída.");
         }
     };
 
@@ -419,20 +230,21 @@ export function registerSynthBlocks(Blockly) {
         init: function() {
             this.appendDummyInput()
                 .appendField(new Blockly.FieldDropdown([
-                    ["seno", "SIN"],
-                    ["cosseno", "COS"],
+                    ["sen", "SIN"],
+                    ["cos", "COS"],
                     ["tanh (saturação)", "TANH"],
-                    ["abs (positivo)", "ABS"],
+                    ["abs", "ABS"],
                     ["inverter (-)", "NEG"],
                     ["raiz quadrada", "SQRT"],
                     ["arredondar", "ROUND"],
-                    ["travar [0..1]", "CLAMP01"]
+                    ["limitar [0..1]", "CLAMP01"]
                 ]), "OP");
-            this.appendValueInput("NUM");
+            this.appendValueInput("NUM")
+                .appendField("de");
             this.setOutput(true);
             this.setInputsInline(true);
             this.setColour("#59C059");
-            this.setTooltip("Função matemática unária.");
+            this.setTooltip("Função matemática avançada sobre um sinal.");
         }
     };
 
@@ -446,7 +258,7 @@ export function registerSynthBlocks(Blockly) {
             this.setOutput(true);
             this.setInputsInline(true);
             this.setColour("#59C059");
-            this.setTooltip("Gera um número aleatório.");
+            this.setTooltip("Gera um número aleatório (ruído de controle).");
         }
     };
 
@@ -458,24 +270,78 @@ export function registerSynthBlocks(Blockly) {
                     [">", "GT"],
                     ["<", "LT"],
                     ["=", "EQ"],
-                    ["≥", "GTE"],
-                    ["≤", "LTE"]
+                    [">=", "GTE"],
+                    ["<=", "LTE"]
                 ]), "OP");
             this.appendValueInput("B");
             this.setOutput(true);
             this.setInputsInline(true);
             this.setColour("#59C059");
-            this.setTooltip("Compara dois sinais e gera 1 (Gate On) ou 0 (Gate Off).");
+            this.setTooltip("Compara dois sinais e gera um Gate (1 ou 0).");
         }
     };
 
-    Blockly.Blocks['math_number'] = {
+    Blockly.Blocks['control_if_else'] = {
         init: function() {
-            this.appendDummyInput()
-                .appendField(new Blockly.FieldNumber(130.81), "NUM");
+            this.appendValueInput("COND")
+                .appendField("se");
+            this.appendValueInput("THEN")
+                .appendField("então");
+            this.appendValueInput("ELSE")
+                .appendField("senão");
             this.setOutput(true);
+            this.setInputsInline(true);
+            this.setColour("#FFAB19");
+            this.setTooltip("Seletor condicional: se a condição for verdadeira (> 0.5), emite o sinal 'então', senão o sinal 'senão'.");
+        }
+    };
+
+    Blockly.Blocks['logic_and'] = {
+        init: function() {
+            this.appendValueInput("A");
+            this.appendDummyInput().appendField("e");
+            this.appendValueInput("B");
+            this.setOutput(true);
+            this.setInputsInline(true);
             this.setColour("#59C059");
-            this.setTooltip("Número ou constante de voltagem.");
+            this.setTooltip("Porta lógica E: retorna 1 se ambos os sinais forem ativos (> 0.5).");
+        }
+    };
+
+    Blockly.Blocks['logic_or'] = {
+        init: function() {
+            this.appendValueInput("A");
+            this.appendDummyInput().appendField("ou");
+            this.appendValueInput("B");
+            this.setOutput(true);
+            this.setInputsInline(true);
+            this.setColour("#59C059");
+            this.setTooltip("Porta lógica OU: retorna 1 se pelo menos um dos sinais for ativo (> 0.5).");
+        }
+    };
+
+    Blockly.Blocks['logic_not'] = {
+        init: function() {
+            this.appendValueInput("A").appendField("não");
+            this.setOutput(true);
+            this.setInputsInline(true);
+            this.setColour("#59C059");
+            this.setTooltip("Porta lógica NÃO: inverte o sinal de controle (retorna 1 se entrada <= 0.5).");
+        }
+    };
+
+    Blockly.Blocks['math_list_item'] = {
+        init: function() {
+            this.appendValueInput("INDEX")
+                .appendField("item");
+            this.appendDummyInput()
+                .appendField("da lista [")
+                .appendField(new Blockly.FieldTextInput("0, 3, 7, 10, 12, 10, 7, 3"), "LIST")
+                .appendField("]");
+            this.setOutput(true);
+            this.setInputsInline(true);
+            this.setColour("#59C059");
+            this.setTooltip("Lê um item da lista pelo índice (com wrap circular automático).");
         }
     };
 
@@ -488,48 +354,12 @@ export function registerSynthBlocks(Blockly) {
             this.setOutput(true);
             this.setInputsInline(true);
             this.setColour("#59C059");
-            this.setTooltip("Converte número de nota MIDI (0..127) em frequência em Hertz.");
+            this.setTooltip("Converte número de nota MIDI (ex: 60 = Dó4) em Hertz.");
         }
     };
 
     // -------------------------------------------------------------------------
-    // 📼 7. EFEITOS & SAÍDA MASTER (#4C97FF)
+    // 🎛️ 5. REGISTRAR TODOS OS MÓDULOS UNIFICADOS (VCO, VCF, VCA, LFO, ADSR, ETC.)
     // -------------------------------------------------------------------------
-    Blockly.Blocks['synth_delay'] = {
-        init: function() {
-            this.appendDummyInput()
-                .appendField("📼 Tape Delay / Eco");
-            this.appendValueInput("IN")
-                .appendField("Áudio In (ou fluxo acima)");
-            this.appendValueInput("TIME")
-                .appendField("Tempo (s)");
-            this.appendValueInput("FB")
-                .appendField("Feedback (0..0.95)");
-            this.appendValueInput("MIX")
-                .appendField("Mix (0..1)");
-            this.setPreviousStatement(true, "AUDIO");
-            this.setNextStatement(true, "AUDIO");
-            this.setOutput(true);
-            this.setInputsInline(false);
-            this.setColour("#4C97FF");
-            this.setTooltip("Efeito de delay analógico com saturação quente.");
-        }
-    };
-
-    Blockly.Blocks['synth_out'] = {
-        init: function() {
-            this.appendDummyInput()
-                .appendField("🎚️ Saída Estéreo Master");
-            this.appendValueInput("LEFT")
-                .appendField("Áudio L (opcional)");
-            this.appendValueInput("RIGHT")
-                .appendField("Áudio R (opcional)");
-            this.appendValueInput("VOL")
-                .appendField("Volume Master (0..1.5)");
-            this.setPreviousStatement(true, "AUDIO");
-            this.setInputsInline(false);
-            this.setColour("#4C97FF");
-            this.setTooltip("Saída final para os alto-falantes.");
-        }
-    };
+    registerAllBlocksToBlockly(Blockly);
 }

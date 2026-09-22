@@ -7,7 +7,6 @@
 
 import { registerSynthBlocks } from './synth_blocks.js';
 import { BlocklySynthEngine } from './blockly_dsp_compiler.js';
-import { MODULE_CATALOG } from './modules_catalog.js';
 
 let audioCtx = null;
 let scriptNode = null;
@@ -23,14 +22,13 @@ const BLOCK_SIZE = 128;
 
 function playScratchSnapSound() {
     try {
-        const ctx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-        if (ctx.state === 'suspended') return;
+        if (!audioCtx || audioCtx.state !== 'running') return;
 
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
 
         osc.type = 'sine';
-        const now = ctx.currentTime;
+        const now = audioCtx.currentTime;
         osc.frequency.setValueAtTime(650, now);
         osc.frequency.exponentialRampToValueAtTime(140, now + 0.045);
 
@@ -38,12 +36,12 @@ function playScratchSnapSound() {
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
 
         osc.connect(gain);
-        gain.connect(ctx.destination);
+        gain.connect(audioCtx.destination);
 
         osc.start(now);
         osc.stop(now + 0.05);
     } catch (e) {
-        // AudioContext not allowed before user gesture
+        // Ignored
     }
 }
 
@@ -146,7 +144,8 @@ function loadDefaultPatch() {
     sendPitch.setFieldValue('pitch_seq', 'CHANNEL');
     sendPitch.initSvg();
     sendPitch.render();
-    seqBlock.nextConnection.connect(sendPitch.previousConnection);
+    sendPitch.moveTo(new Blockly.utils.Coordinate(-180, -80));
+    sendPitch.getInput('IN').connection.connect(seqBlock.outputConnection);
 
     // ADSR Envelope (GATE receives clock_mestre) -> Transmit [envelope_adsr]
     const adsrBlock = workspace.newBlock('synth_adsr');
@@ -164,7 +163,8 @@ function loadDefaultPatch() {
     sendEnv.setFieldValue('envelope_adsr', 'CHANNEL');
     sendEnv.initSvg();
     sendEnv.render();
-    adsrBlock.nextConnection.connect(sendEnv.previousConnection);
+    sendEnv.moveTo(new Blockly.utils.Coordinate(-180, 260));
+    sendEnv.getInput('IN').connection.connect(adsrBlock.outputConnection);
 
     // 2. Column 2: Scratch Audio Rack Stack (Right)
     const flagBlock = workspace.newBlock('event_whenflagclicked');
@@ -327,18 +327,5 @@ window.addEventListener('DOMContentLoaded', () => {
         workspace.clear();
         synthEngine.compile();
     });
-
-    // Toggle Code Drawer
-    const workspaceGrid = document.getElementById('workspace-grid');
-    const btnToggleEditor = document.getElementById('btn-toggle-editor');
-    const codeEditor = document.getElementById('code-editor');
-
-    btnToggleEditor.addEventListener('click', () => {
-        workspaceGrid.classList.toggle('editor-open');
-        btnToggleEditor.classList.toggle('active');
-        Blockly.svgResize(workspace);
-    });
-
-    codeEditor.value = MODULE_CATALOG.vco.code;
 });
 

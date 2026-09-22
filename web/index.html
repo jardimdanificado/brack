@@ -344,7 +344,6 @@
             </div>
             <button id="btn-preset-default">⚡ Preset Patch</button>
             <button id="btn-clear-workspace">Limpar</button>
-            <button id="btn-toggle-editor">💻 JS Script Sandbox</button>
             <div class="zoom-info" id="status-label">🔊 Pronto</div>
         </div>
     </header>
@@ -352,18 +351,6 @@
     <div class="workspace-grid" id="workspace-grid">
         <div class="board-container">
             <div id="blockly-div" style="width: 100%; height: 100%;"></div>
-        </div>
-
-        <div class="editor-drawer" id="editor-drawer">
-            <div class="editor-header">
-                <div class="editor-title" id="editor-module-title">⚡ Live DSP Script Sandbox</div>
-                <div class="editor-status" id="editor-status-pill">Active</div>
-            </div>
-            <textarea id="code-editor" spellcheck="false"></textarea>
-            <div class="editor-footer">
-                <div class="cheat-sheet"><code>Ctrl+Enter</code> to Apply Live</div>
-                <button id="btn-apply-code" class="active">⚡ Hot Reload</button>
-            </div>
         </div>
     </div>
 
@@ -374,20 +361,30 @@
 
     <!-- Blockly Toolbox Definition (Scratch Categories) -->
     <xml id="toolbox" style="display: none">
-        <category name="📡 Barramentos & Tags" colour="#FF6680">
+        <category name="📡 Barramentos & Variáveis" colour="#FF6680">
             <block type="synth_send"></block>
             <block type="synth_recv"></block>
             <block type="synth_var_set"></block>
+            <block type="synth_var_change"></block>
+            <block type="synth_var_reset"></block>
             <block type="synth_var_get"></block>
         </category>
-        <category name="🚩 Eventos" colour="#FFAB19">
+        <category name="🔀 Controle & Lógica" colour="#FFAB19">
+            <block type="control_if_else"></block>
+            <block type="logic_compare_cv"></block>
+            <block type="logic_and"></block>
+            <block type="logic_or"></block>
+            <block type="logic_not"></block>
+        </category>
+        <category name="🚩 Eventos & Clock" colour="#FFBF00">
             <block type="event_whenflagclicked"></block>
+            <block type="synth_clock"></block>
+            <block type="synth_clock_divider"></block>
             <block type="event_whenclockpulse"></block>
         </category>
         <category name="〰️ Geradores" colour="#9966FF">
             <block type="synth_vco"></block>
             <block type="synth_bytebeat"></block>
-            <block type="synth_clock"></block>
         </category>
         <category name="🎛️ Filtros & Dinâmica" colour="#FF8C1A">
             <block type="synth_vcf"></block>
@@ -403,16 +400,17 @@
             <block type="synth_lfo"></block>
             <block type="synth_sample_hold"></block>
         </category>
-        <category name="➕ Operadores Scratch" colour="#59C059">
+        <category name="➕ Operadores & Listas" colour="#40C057">
             <block type="math_number"></block>
             <block type="math_arithmetic"></block>
             <block type="math_map"></block>
             <block type="math_single"></block>
             <block type="math_random"></block>
-            <block type="logic_compare_cv"></block>
+            <block type="math_list_item"></block>
             <block type="math_note_to_hz"></block>
         </category>
         <category name="📼 Efeitos & Saída" colour="#4C97FF">
+            <block type="synth_chorus"></block>
             <block type="synth_delay"></block>
             <block type="synth_out"></block>
         </category>
