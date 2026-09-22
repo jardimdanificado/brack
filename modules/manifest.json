@@ -1,0 +1,10 @@
+[
+  "adsr.wasm",
+  "clock.wasm",
+  "delay.wasm",
+  "out.wasm",
+  "seq.wasm",
+  "vca.wasm",
+  "vcf.wasm",
+  "vco.wasm"
+]
