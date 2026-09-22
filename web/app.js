@@ -1,236 +1,49 @@
 /**
  * =========================================================================
- * BRACK Live-Scriptable Modular Controller (web/app.js)
- * 100% C-Rendered Blackboard + Live JavaScript Modules + Hot Reloading
+ * BRACK Scratch Modular Synth Engine (web/app.js)
+ * Scratch-Themed Controls, Snap Sound FX, and C/WASM 48kHz Real-Time DSP
  * =========================================================================
  */
 
-import { ScriptableModule } from './module_runtime.js';
+import { registerSynthBlocks } from './synth_blocks.js';
+import { BlocklySynthEngine } from './blockly_dsp_compiler.js';
 import { MODULE_CATALOG } from './modules_catalog.js';
 
 let audioCtx = null;
 let scriptNode = null;
 let isPlaying = false;
-
-let quadroChalk = null;
-
-const LINK_AUDIO = 0;
-const LINK_MIDI  = 1;
-const LINK_VAL   = 2;
+let synthEngine = null;
+let workspace = null;
 
 const BLOCK_SIZE = 128;
-const CANVAS_W = 1320;
-const CANVAS_H = 700;
 
-const camera = {
-    x: 0,
-    y: 0,
-    zoom: 1.0
-};
+/* =========================================================================
+ * Scratch Snap Pop Sound Synthesizer (Web Audio FX)
+ * ========================================================================= */
 
-// Live Nodes & Modules State
-const activeModules = []; // array of ScriptableModule
-const activeNodes = [];   // metadata for blackboard rendering
+function playScratchSnapSound() {
+    try {
+        const ctx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+        if (ctx.state === 'suspended') return;
 
-let selectedModuleIdx = 0;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
 
-async function loadWasm(url) {
-    const res = await fetch(url);
-    const bytes = await res.arrayBuffer();
-    const mod = await WebAssembly.instantiate(bytes, { env: {} });
-    return mod.instance.exports;
-}
+        osc.type = 'sine';
+        const now = ctx.currentTime;
+        osc.frequency.setValueAtTime(650, now);
+        osc.frequency.exponentialRampToValueAtTime(140, now + 0.045);
 
-async function initGraph() {
-    console.log('[Brack] Initializing Live-Scriptable Modular Engine...');
-    quadroChalk = await loadWasm('../roms/quadro_chalk.wasm');
-    quadroChalk.quadro_chalk_init(CANVAS_W, CANVAS_H);
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
 
-    // Instantiate default preset modules
-    createModuleNode('clock', 30, 200);   // 0: CLOCK
-    createModuleNode('seq', 300, 200);    // 1: SEQ
-    createModuleNode('vco', 570, 60);     // 2: VCO
-    createModuleNode('adsr', 570, 370);   // 3: ADSR
-    createModuleNode('vcf', 840, 60);     // 4: VCF
-    createModuleNode('vca', 840, 370);    // 5: VCA
-    createModuleNode('delay', 1110, 200); // 6: DELAY
-    createModuleNode('out', 1380, 200);   // 7: OUT
+        osc.connect(gain);
+        gain.connect(ctx.destination);
 
-    // Setup Default Links
-    // 1. Clock (Gate out 0) -> Seq (Clock in)
-    addLink(0, 0, 1, LINK_VAL, 1.0);
-
-    // 2. Clock (Gate out 0) -> ADSR (Gate in)
-    addLink(0, 0, 3, LINK_VAL, 1.0);
-
-    // 3. Seq (Pitch out 0) -> VCO (Voct FM in)
-    addLink(1, 0, 2, LINK_VAL, 1.0);
-
-    // 4. VCO (Audio out 0) -> VCF (Audio in)
-    addLink(2, 0, 4, LINK_AUDIO, 1.0);
-
-    // 5. ADSR (Env out 0) -> VCF (Cutoff CV in)
-    addLink(3, 0, 4, LINK_VAL, 2.0);
-
-    // 6. VCF (Audio out 0) -> VCA (Audio in)
-    addLink(4, 0, 5, LINK_AUDIO, 1.0);
-
-    // 7. ADSR (Env out 0) -> VCA (Gain CV in)
-    addLink(3, 0, 5, LINK_VAL, 1.0);
-
-    // 8. VCA (Audio out 0) -> Delay (Audio in)
-    addLink(5, 0, 6, LINK_AUDIO, 1.0);
-
-    // 9. Delay (Audio out 0) -> Out (Master in)
-    addLink(6, 0, 7, LINK_AUDIO, 1.0);
-
-    selectModuleForEditing(2);
-}
-
-let strPoolOffset = 0;
-
-function writeWasmString(str) {
-    if (!str) str = '';
-    const poolBase = quadroChalk.quadro_chalk_get_string_pool();
-    const encoder = new TextEncoder();
-    const bytes = encoder.encode(str + '\0');
-    if (strPoolOffset + bytes.length > 64000) strPoolOffset = 0;
-    const ptr = poolBase + strPoolOffset;
-    new Uint8Array(quadroChalk.memory.buffer).set(bytes, ptr);
-    strPoolOffset = (strPoolOffset + bytes.length + 3) & ~3;
-    return ptr;
-}
-
-function createModuleNode(templateKey, x, y) {
-    const tmpl = MODULE_CATALOG[templateKey] || MODULE_CATALOG['vco'];
-    const idx = activeModules.length;
-
-    const mod = new ScriptableModule(idx, tmpl.code, 48000);
-    activeModules.push(mod);
-
-    const namePtr = writeWasmString(tmpl.name);
-    const catPtr  = writeWasmString(tmpl.category);
-
-    // Register text box node in C Quadro Chalkboard
-    const chalkNodeId = quadroChalk.quadro_chalk_add_node(
-        idx,
-        namePtr,
-        catPtr,
-        tmpl.color,
-        x,
-        y,
-        260,
-        180
-    );
-
-    // Set code script lines in C chalkboard text box
-    const codePtr = writeWasmString(tmpl.code);
-    quadroChalk.quadro_chalk_set_node_code(chalkNodeId, codePtr);
-
-    // Register outputs in Chalkboard
-    mod.outputDefs.forEach((out) => {
-        const outType = (out.type === 'MIDI') ? LINK_MIDI :
-                        (out.type === 'VAL')  ? LINK_VAL : LINK_AUDIO;
-        const outNamePtr = writeWasmString(out.name);
-        quadroChalk.quadro_chalk_add_node_output(chalkNodeId, outType, outNamePtr);
-    });
-
-    // Register sliders in Chalkboard
-    mod.paramDefs.forEach((p, pIdx) => {
-        const defV = p.default !== undefined ? p.default : 0.5;
-        const valStr = formatParamStr(defV, p);
-        const pNamePtr = writeWasmString(p.name);
-        const valStrPtr = writeWasmString(valStr);
-        quadroChalk.quadro_chalk_add_slider(chalkNodeId, pIdx, pNamePtr, valStrPtr, defV, p.min, p.max);
-    });
-
-    activeNodes.push({
-        idx,
-        chalkNodeId,
-        templateKey,
-        name: tmpl.name,
-        category: tmpl.category,
-        color: tmpl.color
-    });
-
-    return idx;
-}
-
-function getActiveGraphLinks() {
-    const ptrSrc = 2048;
-    const ptrSrcOut = 2048 + 4 * 128;
-    const ptrDst = 2048 + 8 * 128;
-    const ptrType = 2048 + 12 * 128;
-
-    const count = quadroChalk.quadro_chalk_get_active_links(ptrSrc, ptrSrcOut, ptrDst, ptrType);
-    const i32 = new Int32Array(quadroChalk.memory.buffer);
-    const links = [];
-
-    for (let i = 0; i < count; i++) {
-        const srcNode = i32[(ptrSrc >> 2) + i];
-        const srcOutIdx = i32[(ptrSrcOut >> 2) + i];
-        const dstNode = i32[(ptrDst >> 2) + i];
-        const type = i32[(ptrType >> 2) + i];
-        const gain = (srcNode === 1 && dstNode === 2) ? 2.5 : 1.0;
-        links.push({ srcNode, srcOutIdx, dstNode, type, gain });
-    }
-    return links;
-}
-
-function addLink(srcNode, srcOutIdx, dstNode, type, gain = 1.0) {
-    quadroChalk.quadro_chalk_connect(srcNode, srcOutIdx, dstNode, type, gain);
-}
-
-function formatParamStr(val, def) {
-    if (!def) return val.toFixed(2);
-    if (def.unit === 'Hz') return `${Math.round(val)} Hz`;
-    if (def.unit === '%') return `${Math.round(val * 100)} %`;
-    if (def.unit === 's') return `${Math.round(val * 1000)} ms`;
-    if (def.unit === 'x') return `${val.toFixed(1)} x`;
-    return val.toFixed(2);
-}
-
-function selectModuleForEditing(idx) {
-    if (idx < 0 || idx >= activeModules.length) return;
-    selectedModuleIdx = idx;
-    quadroChalk.quadro_chalk_set_selected_node(idx);
-
-    const mod = activeModules[idx];
-    const node = activeNodes[idx];
-
-    const editorTitle = document.getElementById('editor-module-title');
-    const editorArea = document.getElementById('code-editor');
-    const statusPill = document.getElementById('editor-status-pill');
-
-    editorTitle.textContent = `⚡ Edit [${node.name}] (Slot ${idx})`;
-    editorArea.value = mod.code;
-
-    if (mod.error) {
-        statusPill.textContent = 'Syntax Error';
-        statusPill.className = 'editor-status error';
-    } else {
-        statusPill.textContent = 'Running';
-        statusPill.className = 'editor-status';
-    }
-}
-
-function applyCurrentCode() {
-    const mod = activeModules[selectedModuleIdx];
-    const node = activeNodes[selectedModuleIdx];
-    const editorArea = document.getElementById('code-editor');
-    const statusPill = document.getElementById('editor-status-pill');
-
-    const res = mod.compile(editorArea.value);
-    if (res.success) {
-        statusPill.textContent = 'Compiled OK';
-        statusPill.className = 'editor-status';
-
-        // Update live code in C blackboard text box
-        const codePtr = writeWasmString(editorArea.value);
-        quadroChalk.quadro_chalk_set_node_code(node.chalkNodeId, codePtr);
-    } else {
-        statusPill.textContent = res.error;
-        statusPill.className = 'editor-status error';
+        osc.start(now);
+        osc.stop(now + 0.05);
+    } catch (e) {
+        // AudioContext not allowed before user gesture
     }
 }
 
@@ -248,62 +61,13 @@ async function startAudio() {
             const outL = e.outputBuffer.getChannelData(0);
             const outR = e.outputBuffer.getChannelData(1);
 
-            // Fetch live active links directly from C blackboard state
-            const currentLinks = getActiveGraphLinks();
-
             for (let offset = 0; offset < bufferSize; offset += BLOCK_SIZE) {
-                // Execute each scriptable module
-                for (let i = 0; i < activeModules.length; i++) {
-                    const mod = activeModules[i];
-
-                    // Gather incoming dynamic links for this module
-                    const inLinks = [];
-                    for (const link of currentLinks) {
-                        if (link.dstNode === i && link.srcNode < activeModules.length) {
-                            const srcMod = activeModules[link.srcNode];
-                            if (link.type === LINK_AUDIO) {
-                                inLinks.push({
-                                    type: 'audio',
-                                    src: link.srcNode,
-                                    gain: link.gain,
-                                    audio: srcMod.audioOutputs[link.srcOutIdx]
-                                });
-                            } else if (link.type === LINK_MIDI) {
-                                inLinks.push({
-                                    type: 'midi',
-                                    src: link.srcNode,
-                                    events: srcMod.midiOutputs[link.srcOutIdx]
-                                });
-                            } else if (link.type === LINK_VAL) {
-                                inLinks.push({
-                                    type: 'val',
-                                    src: link.srcNode,
-                                    gain: link.gain,
-                                    val: srcMod.valOutputs[link.srcOutIdx] * link.gain
-                                });
-                            }
-                        }
-                    }
-
-                    // Run module process (JS script execution with C DSP acceleration)
-                    mod.process(inLinks, BLOCK_SIZE);
-                }
-
-                // Copy Master Output (ONLY from OUT Module) to Audio Buffer
-                const outNodeIdx = activeNodes.findIndex(n => n.templateKey === 'out');
-                if (outNodeIdx >= 0 && activeModules[outNodeIdx]) {
-                    const outMod = activeModules[outNodeIdx];
-                    const finalL = outMod.audioOutputs[0];
-                    const finalR = outMod.audioOutputs[1] || outMod.audioOutputs[0];
-
-                    for (let s = 0; s < BLOCK_SIZE; s++) {
-                        outL[offset + s] = finalL[s];
-                        outR[offset + s] = finalR[s];
-                    }
+                if (synthEngine && isPlaying) {
+                    synthEngine.processBlock(outL, outR, offset, BLOCK_SIZE);
                 } else {
                     for (let s = 0; s < BLOCK_SIZE; s++) {
-                        outL[offset + s] = 0.0;
-                        outR[offset + s] = 0.0;
+                        outL[offset + s] = 0;
+                        outR[offset + s] = 0;
                     }
                 }
             }
@@ -318,199 +82,263 @@ async function startAudio() {
 }
 
 /* =========================================================================
- * UI Interaction & 60 FPS Blackboard Render Loop
+ * Default Scratch Modular Patch Builder
  * ========================================================================= */
 
-window.addEventListener('DOMContentLoaded', async () => {
-    await initGraph();
+function loadDefaultPatch() {
+    if (!workspace) return;
+    workspace.clear();
 
-    const canvas = document.getElementById('chalk-canvas');
-    const ctx = canvas.getContext('2d');
-    const imgData = ctx.createImageData(CANVAS_W, CANVAS_H);
-    const zoomLabel = document.getElementById('zoom-label');
-    const workspaceGrid = document.getElementById('workspace-grid');
+    // 1. Column 1: Modulators & Broadcast Senders (Left)
+    // Clock -> Transmit [clock_mestre]
+    const clockBlock = workspace.newBlock('synth_clock');
+    clockBlock.initSvg();
+    clockBlock.render();
+    clockBlock.moveTo(new Blockly.utils.Coordinate(-460, -280));
 
-    // Zoom on Mouse Wheel (Preserving live camera panning)
-    canvas.addEventListener('wheel', (e) => {
-        e.preventDefault();
-        const rect = canvas.getBoundingClientRect();
-        const mouseX = (e.clientX - rect.left) * (CANVAS_W / rect.width);
-        const mouseY = (e.clientY - rect.top) * (CANVAS_H / rect.height);
+    const sendClk = workspace.newBlock('synth_send');
+    sendClk.setFieldValue('clock_mestre', 'CHANNEL');
+    sendClk.initSvg();
+    sendClk.render();
+    clockBlock.nextConnection.connect(sendClk.previousConnection);
 
-        const curCamX = quadroChalk.quadro_chalk_get_cam_x();
-        const curCamY = quadroChalk.quadro_chalk_get_cam_y();
-        const curZoom = quadroChalk.quadro_chalk_get_zoom();
+    // Sequencer (CLK receives clock_mestre) -> Transmit [pitch_seq]
+    const seqBlock = workspace.newBlock('synth_seq');
+    seqBlock.initSvg();
+    seqBlock.render();
+    seqBlock.moveTo(new Blockly.utils.Coordinate(-460, -80));
 
-        const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
-        const newZoom = Math.max(0.4, Math.min(2.5, curZoom * zoomFactor));
+    const recvClk1 = workspace.newBlock('synth_recv');
+    recvClk1.setFieldValue('clock_mestre', 'CHANNEL');
+    recvClk1.initSvg();
+    recvClk1.render();
+    seqBlock.getInput('CLK').connection.connect(recvClk1.outputConnection);
 
-        const newCamX = mouseX - (mouseX - curCamX) * (newZoom / curZoom);
-        const newCamY = mouseY - (mouseY - curCamY) * (newZoom / curZoom);
+    // Build chainable note sequence: C ➔ Eb ➔ G ➔ Bb ➔ C(+1) ➔ Bb ➔ G ➔ Eb
+    const notesData = [
+        { note: "0", oct: 0 },
+        { note: "3", oct: 0 },
+        { note: "7", oct: 0 },
+        { note: "10", oct: 0 },
+        { note: "0", oct: 1 },
+        { note: "10", oct: 0 },
+        { note: "7", oct: 0 },
+        { note: "3", oct: 0 }
+    ];
 
-        quadroChalk.quadro_chalk_set_camera(newCamX, newCamY, newZoom);
-        zoomLabel.textContent = `🔍 ${Math.round(newZoom * 100)}%`;
-    }, { passive: false });
+    let prevNoteBlock = null;
+    for (let i = 0; i < notesData.length; i++) {
+        const noteBlock = workspace.newBlock('seq_note');
+        noteBlock.setFieldValue(notesData[i].note, 'NOTE');
+        noteBlock.setFieldValue(notesData[i].oct, 'OCTAVE');
+        noteBlock.initSvg();
+        noteBlock.render();
 
-    document.getElementById('btn-reset-view').addEventListener('click', () => {
-        quadroChalk.quadro_chalk_set_camera(0, 0, 1.0);
-        zoomLabel.textContent = `🔍 100%`;
-    });
+        if (i === 0) {
+            seqBlock.getInput('STEPS').connection.connect(noteBlock.previousConnection);
+        } else if (prevNoteBlock) {
+            prevNoteBlock.nextConnection.connect(noteBlock.previousConnection);
+        }
+        prevNoteBlock = noteBlock;
+    }
 
-    const btnPower = document.getElementById('btn-power');
-    btnPower.addEventListener('click', async () => {
-        if (!isPlaying) {
-            await startAudio();
-            btnPower.classList.add('active');
-            btnPower.textContent = 'STOP AUDIO SYNTHESIS';
-            isPlaying = true;
-        } else {
-            if (audioCtx) await audioCtx.suspend();
-            btnPower.classList.remove('active');
-            btnPower.textContent = 'START AUDIO SYNTHESIS';
-            isPlaying = false;
+    const sendPitch = workspace.newBlock('synth_send');
+    sendPitch.setFieldValue('pitch_seq', 'CHANNEL');
+    sendPitch.initSvg();
+    sendPitch.render();
+    seqBlock.nextConnection.connect(sendPitch.previousConnection);
+
+    // ADSR Envelope (GATE receives clock_mestre) -> Transmit [envelope_adsr]
+    const adsrBlock = workspace.newBlock('synth_adsr');
+    adsrBlock.initSvg();
+    adsrBlock.render();
+    adsrBlock.moveTo(new Blockly.utils.Coordinate(-460, 260));
+
+    const recvClk2 = workspace.newBlock('synth_recv');
+    recvClk2.setFieldValue('clock_mestre', 'CHANNEL');
+    recvClk2.initSvg();
+    recvClk2.render();
+    adsrBlock.getInput('GATE').connection.connect(recvClk2.outputConnection);
+
+    const sendEnv = workspace.newBlock('synth_send');
+    sendEnv.setFieldValue('envelope_adsr', 'CHANNEL');
+    sendEnv.initSvg();
+    sendEnv.render();
+    adsrBlock.nextConnection.connect(sendEnv.previousConnection);
+
+    // 2. Column 2: Scratch Audio Rack Stack (Right)
+    const flagBlock = workspace.newBlock('event_whenflagclicked');
+    flagBlock.initSvg();
+    flagBlock.render();
+    flagBlock.moveTo(new Blockly.utils.Coordinate(100, -280));
+
+    const vcoBlock = workspace.newBlock('synth_vco');
+    vcoBlock.initSvg();
+    vcoBlock.render();
+
+    const recvPitch = workspace.newBlock('synth_recv');
+    recvPitch.setFieldValue('pitch_seq', 'CHANNEL');
+    recvPitch.initSvg();
+    recvPitch.render();
+    vcoBlock.getInput('FM').connection.connect(recvPitch.outputConnection);
+
+    const vcfBlock = workspace.newBlock('synth_vcf');
+    vcfBlock.initSvg();
+    vcfBlock.render();
+
+    // Map ADSR envelope (0..1) to Moog cutoff (250..7000 Hz) using math_map
+    const mapCutoff = workspace.newBlock('math_map');
+    mapCutoff.setFieldValue(0, 'IN_MIN');
+    mapCutoff.setFieldValue(1, 'IN_MAX');
+    mapCutoff.setFieldValue(250, 'OUT_MIN');
+    mapCutoff.setFieldValue(7000, 'OUT_MAX');
+    mapCutoff.initSvg();
+    mapCutoff.render();
+
+    const recvEnv1 = workspace.newBlock('synth_recv');
+    recvEnv1.setFieldValue('envelope_adsr', 'CHANNEL');
+    recvEnv1.initSvg();
+    recvEnv1.render();
+    mapCutoff.getInput('VAL').connection.connect(recvEnv1.outputConnection);
+    vcfBlock.getInput('CUTOFF').connection.connect(mapCutoff.outputConnection);
+
+    const vcaBlock = workspace.newBlock('synth_vca');
+    vcaBlock.initSvg();
+    vcaBlock.render();
+
+    const recvEnv2 = workspace.newBlock('synth_recv');
+    recvEnv2.setFieldValue('envelope_adsr', 'CHANNEL');
+    recvEnv2.initSvg();
+    recvEnv2.render();
+    vcaBlock.getInput('GAIN').connection.connect(recvEnv2.outputConnection);
+
+    const delayBlock = workspace.newBlock('synth_delay');
+    delayBlock.initSvg();
+    delayBlock.render();
+
+    const outBlock = workspace.newBlock('synth_out');
+    outBlock.initSvg();
+    outBlock.render();
+
+    // Snap Vertical Scratch Audio Stack: Flag ➔ VCO ➔ VCF ➔ VCA ➔ Delay ➔ Out
+    flagBlock.nextConnection.connect(vcoBlock.previousConnection);
+    vcoBlock.nextConnection.connect(vcfBlock.previousConnection);
+    vcfBlock.nextConnection.connect(vcaBlock.previousConnection);
+    vcaBlock.nextConnection.connect(delayBlock.previousConnection);
+    delayBlock.nextConnection.connect(outBlock.previousConnection);
+
+    workspace.scrollCenter();
+    synthEngine.compile();
+}
+
+/* =========================================================================
+ * Application Initialization
+ * ========================================================================= */
+
+window.addEventListener('DOMContentLoaded', () => {
+    // 1. Register Scratch Synth Blocks
+    registerSynthBlocks(Blockly);
+
+    // 2. Define Dark Scratch Theme for Blockly
+    const scratchTheme = Blockly.Theme.defineTheme('scratchTheme', {
+        base: Blockly.Themes.Classic,
+        blockStyles: {
+            hat_blocks: {
+                colourPrimary: "#FFAB19",
+                colourSecondary: "#E69900",
+                colourTertiary: "#CC8800"
+            }
+        },
+        componentStyles: {
+            workspaceBackgroundColour: '#0c100e',
+            toolboxBackgroundColour: '#16201c',
+            toolboxForegroundColour: '#dcdde1',
+            flyoutBackgroundColour: '#111714',
+            flyoutOpacity: 0.95,
+            scrollbarColour: '#283731',
+            scrollbarOpacity: 0.6,
+            insertionMarkerColour: '#55efc4',
+            insertionMarkerOpacity: 0.85
         }
     });
 
-    // Toggle Code Editor
+    // 3. Inject Blockly Workspace
+    workspace = Blockly.inject('blockly-div', {
+        toolbox: document.getElementById('toolbox'),
+        grid: {
+            spacing: 25,
+            length: 3,
+            colour: '#22302a',
+            snap: true
+        },
+        zoom: {
+            controls: true,
+            wheel: true,
+            startScale: 0.85,
+            maxScale: 2.0,
+            minScale: 0.4,
+            scaleSpeed: 1.1
+        },
+        trashcan: true,
+        theme: scratchTheme
+    });
+
+    // 4. Initialize Real-Time DSP Engine
+    synthEngine = new BlocklySynthEngine(48000);
+    synthEngine.setWorkspace(workspace);
+
+    // Re-compile audio graph & play snap sound on block connections
+    workspace.addChangeListener((e) => {
+        if (e.isUiEvent) return;
+
+        // Play Scratch snap pop when block connects
+        if (e.type === Blockly.Events.BLOCK_MOVE && e.newParentId && !e.oldParentId) {
+            playScratchSnapSound();
+        }
+
+        synthEngine.compile();
+    });
+
+    // 5. Load Default Scratch Modular Preset
+    loadDefaultPatch();
+
+    // 6. Scratch Header Controls (Green Flag 🚩 / Red Stop 🛑)
+    const btnFlag = document.getElementById('btn-flag');
+    const btnStop = document.getElementById('btn-stop');
+    const statusLabel = document.getElementById('status-label');
+
+    btnFlag.addEventListener('click', async () => {
+        await startAudio();
+        isPlaying = true;
+        btnFlag.classList.add('running');
+        statusLabel.textContent = '🔊 Sintetizando';
+        statusLabel.style.color = '#55efc4';
+    });
+
+    btnStop.addEventListener('click', async () => {
+        isPlaying = false;
+        btnFlag.classList.remove('running');
+        statusLabel.textContent = '🛑 Parado';
+        statusLabel.style.color = '#ff7675';
+    });
+
+    document.getElementById('btn-preset-default').addEventListener('click', loadDefaultPatch);
+    document.getElementById('btn-clear-workspace').addEventListener('click', () => {
+        workspace.clear();
+        synthEngine.compile();
+    });
+
+    // Toggle Code Drawer
+    const workspaceGrid = document.getElementById('workspace-grid');
     const btnToggleEditor = document.getElementById('btn-toggle-editor');
+    const codeEditor = document.getElementById('code-editor');
+
     btnToggleEditor.addEventListener('click', () => {
         workspaceGrid.classList.toggle('editor-open');
         btnToggleEditor.classList.toggle('active');
+        Blockly.svgResize(workspace);
     });
 
-    // Apply Code (Hot Reload)
-    document.getElementById('btn-apply-code').addEventListener('click', applyCurrentCode);
-    document.getElementById('code-editor').addEventListener('keydown', (e) => {
-        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-            e.preventDefault();
-            applyCurrentCode();
-        }
-    });
-
-    // Add Module Dropdown
-    document.getElementById('select-add-module').addEventListener('change', (e) => {
-        const tmplKey = e.target.value;
-        if (tmplKey) {
-            const posX = 100 + (activeModules.length % 4) * 230;
-            const posY = 100 + Math.floor(activeModules.length / 4) * 220;
-            const newId = createModuleNode(tmplKey, posX, posY);
-            selectModuleForEditing(newId);
-            workspaceGrid.classList.add('editor-open');
-            btnToggleEditor.classList.add('active');
-            e.target.value = '';
-        }
-    });
-
-    document.getElementById('btn-reset').addEventListener('click', () => {
-        quadroChalk.quadro_chalk_clear();
-    });
-
-    function getCanvasPos(e) {
-        const rect = canvas.getBoundingClientRect();
-        return {
-            x: (e.clientX - rect.left) * (CANVAS_W / rect.width),
-            y: (e.clientY - rect.top) * (CANVAS_H / rect.height)
-        };
-    }
-
-    let isMouseDown = false;
-
-    canvas.addEventListener('mousedown', (e) => {
-        const pos = getCanvasPos(e);
-        quadroChalk.quadro_chalk_mouse_down(pos.x, pos.y, e.button);
-        isMouseDown = true;
-    });
-
-    window.addEventListener('mousemove', (e) => {
-        if (!isMouseDown) return;
-        const pos = getCanvasPos(e);
-
-        const ptrSlot = 1024;
-        const ptrParam = 1028;
-        const ptrVal = 1032;
-
-        const sliderChanged = quadroChalk.quadro_chalk_mouse_move(pos.x, pos.y, ptrSlot, ptrParam, ptrVal);
-        if (sliderChanged) {
-            const i32 = new Int32Array(quadroChalk.memory.buffer);
-            const f32 = new Float32Array(quadroChalk.memory.buffer);
-            const slotId  = i32[ptrSlot >> 2];
-            const paramId = i32[ptrParam >> 2];
-            const val     = f32[ptrVal >> 2];
-
-            if (slotId >= 0 && slotId < activeModules.length) {
-                const mod = activeModules[slotId];
-                mod.setParam(paramId, val);
-                const pDef = mod.paramDefs[paramId];
-                const str = formatParamStr(val, pDef);
-                quadroChalk.quadro_chalk_update_slider_str(slotId, paramId, str);
-            }
-        }
-    });
-
-    window.addEventListener('mouseup', (e) => {
-        if (!isMouseDown) return;
-        const pos = getCanvasPos(e);
-
-        const ptrSrcSlot = 1024;
-        const ptrSrcOut  = 1028;
-        const ptrDstSlot = 1032;
-        const ptrLinkType= 1036;
-        const connected = quadroChalk.quadro_chalk_mouse_up(pos.x, pos.y, ptrSrcSlot, ptrSrcOut, ptrDstSlot, ptrLinkType);
-
-        if (connected) {
-            // Link is registered directly into C Quadro Chalkboard
-        }
-        
-        // Sync selected module text box with editor
-        const selectedId = quadroChalk.quadro_chalk_get_selected_node();
-        if (selectedId >= 0 && selectedId < activeModules.length) {
-            selectModuleForEditing(selectedId);
-        }
-        isMouseDown = false;
-    });
-
-    canvas.addEventListener('dblclick', () => {
-        workspaceGrid.classList.add('editor-open');
-        btnToggleEditor.classList.add('active');
-        document.getElementById('code-editor').focus();
-    });
-
-    // 60 FPS Render Loop (100% C Quadro Blackboard Engine)
-    function renderLoop() {
-        requestAnimationFrame(renderLoop);
-
-        // Feed live waveforms into mini-displays of each chalk node in C
-        if (isPlaying && activeModules.length > 0) {
-            for (let i = 0; i < activeModules.length; i++) {
-                const mod = activeModules[i];
-                const audioOut = mod.audioOutputs[0];
-
-                const scopePtr = 4096 + 32 * 128 * 4;
-                const qc = new Float32Array(quadroChalk.memory.buffer);
-                for (let s = 0; s < 48; s++) {
-                    qc[(scopePtr >> 2) + s] = audioOut[s * 2];
-                }
-                quadroChalk.quadro_chalk_feed_scope(i, scopePtr, 48);
-            }
-        }
-
-        // Render full chalkboard in C via Quadro
-        quadroChalk.quadro_chalk_render();
-
-        // Allow scriptable modules with custom draw(gfx) to render visuals on their card
-        for (let i = 0; i < activeModules.length; i++) {
-            activeModules[i].draw(quadroChalk, writeWasmString);
-        }
-
-        // Blit C framebuffer to Canvas
-        const fbPtr = quadroChalk.quadro_chalk_get_framebuffer();
-        const fbBytes = new Uint8ClampedArray(quadroChalk.memory.buffer, fbPtr, CANVAS_W * CANVAS_H * 4);
-
-        imgData.data.set(fbBytes);
-        ctx.putImageData(imgData, 0, 0);
-    }
-
-    renderLoop();
+    codeEditor.value = MODULE_CATALOG.vco.code;
 });
-
 

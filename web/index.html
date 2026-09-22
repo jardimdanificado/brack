@@ -71,6 +71,69 @@
             gap: 8px;
         }
 
+        .scratch-controls {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #18201d;
+            padding: 4px 8px;
+            border-radius: 20px;
+            border: 1px solid #283731;
+        }
+
+        .btn-flag {
+            background: #00b894;
+            color: #fff;
+            border: none;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 184, 148, 0.4);
+            transition: transform 0.1s ease, background 0.15s ease;
+        }
+
+        .btn-flag:hover {
+            background: #55efc4;
+            transform: scale(1.08);
+        }
+
+        .btn-flag.running {
+            background: #00cec9;
+            box-shadow: 0 0 14px #00cec9;
+            animation: pulse-flag 1.2s infinite ease-in-out;
+        }
+
+        @keyframes pulse-flag {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .btn-stop {
+            background: #d63031;
+            color: #fff;
+            border: none;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(214, 48, 49, 0.4);
+            transition: transform 0.1s ease, background 0.15s ease;
+        }
+
+        .btn-stop:hover {
+            background: #ff7675;
+            transform: scale(1.08);
+        }
+
         button, select {
             background: #1e2723;
             color: var(--chalk-white);
@@ -120,11 +183,11 @@
         .board-container {
             width: 100%;
             height: 700px;
-            background: var(--chalk-board);
-            border: 6px solid #3d2b1f; /* Wooden Chalkboard Frame */
-            border-radius: 8px;
+            background: #111714;
+            border: 2px solid #283731;
+            border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.9), inset 0 0 30px rgba(0, 0, 0, 0.7);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.9);
             position: relative;
         }
 
@@ -138,13 +201,14 @@
         /* Live Code Editor Panel */
         .editor-drawer {
             display: none;
-            height: 700px;
             background: var(--editor-bg);
-            border: 2px solid #273731;
+            border: 1px solid #283731;
             border-radius: 8px;
+            padding: 12px;
             flex-direction: column;
-            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8);
-            overflow: hidden;
+            gap: 8px;
+            height: 700px;
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.9);
         }
 
         .workspace-grid.editor-open .editor-drawer {
@@ -152,28 +216,23 @@
         }
 
         .editor-header {
-            background: #16201c;
-            padding: 8px 12px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid #273731;
         }
 
         .editor-title {
-            font-weight: 800;
-            color: var(--chalk-cyan);
             font-size: 13px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            font-weight: 700;
+            color: var(--chalk-cyan);
+            letter-spacing: 0.5px;
         }
 
         .editor-status {
-            font-size: 11px;
-            padding: 2px 8px;
-            border-radius: 4px;
-            background: rgba(29, 209, 161, 0.15);
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            background: #162a22;
             color: var(--chalk-green);
             border: 1px solid var(--chalk-green);
         }
@@ -186,95 +245,119 @@
 
         textarea#code-editor {
             flex: 1;
-            background: #0d1310;
-            color: #d1d8e0;
-            border: none;
-            padding: 12px;
-            font-family: "Fira Code", "Source Code Pro", Menlo, Monaco, Consolas, monospace;
-            font-size: 12px;
+            background: #090d0b;
+            color: #55efc4;
+            border: 1px solid #283731;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: "Fira Code", "Courier New", monospace;
+            font-size: 11px;
             line-height: 1.5;
             resize: none;
             outline: none;
             white-space: pre;
             tab-size: 4;
-            user-select: text;
-            -webkit-user-select: text;
+        }
+
+        textarea#code-editor:focus {
+            border-color: var(--chalk-cyan);
         }
 
         .editor-footer {
-            background: #16201c;
-            padding: 8px 12px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-top: 1px solid #273731;
         }
 
         .cheat-sheet {
-            font-size: 11px;
+            font-size: 10px;
             color: var(--text-dim);
         }
 
         .cheat-sheet code {
             color: var(--chalk-yellow);
+            background: #18201d;
+            padding: 2px 4px;
+            border-radius: 2px;
         }
 
         .chalk-footer {
             width: 100%;
             max-width: 1400px;
             margin-top: 8px;
+            padding: 8px 12px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 12px;
+            background: #111714;
+            border: 1px solid #202b26;
+            border-radius: 6px;
+            font-size: 11px;
             color: var(--text-dim);
         }
 
         .help-pill {
-            background: #18201d;
-            padding: 4px 10px;
-            border-radius: 4px;
-            border-left: 3px solid var(--chalk-cyan);
-            color: var(--chalk-white);
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .blocklyTreeLabel {
+            font-family: inherit !important;
+            font-size: 12px !important;
+            font-weight: 700 !important;
+            color: #dcdde1 !important;
+        }
+        .blocklyFlyoutBackground {
+            fill: #111714 !important;
+            fill-opacity: 0.95 !important;
+        }
+        .blocklyToolboxDiv {
+            background-color: #16201c !important;
+            border-right: 1px solid #283731 !important;
+        }
+        .blocklyMainBackground {
+            fill: #0c100e !important;
+        }
+        .blocklySelected > .blocklyPath {
+            stroke: #feca57 !important;
+            stroke-width: 3px !important;
+        }
+        .synth-pulse > .blocklyPath {
+            stroke: #55efc4 !important;
+            stroke-width: 4px !important;
+            filter: drop-shadow(0 0 8px #55efc4);
         }
     </style>
+    <script src="vendor/blockly.min.js"></script>
 </head>
 <body>
 
     <header>
         <h1>
-            BRACK <span>LIVE-SCRIPTABLE MODULAR</span>
+            BRACK <span>SCRATCH MODULAR SYNTH</span>
         </h1>
         <div class="actions">
-            <button id="btn-power">START AUDIO SYNTHESIS</button>
-            <select id="select-add-module">
-                <option value="" disabled selected>➕ Add Module...</option>
-                <option value="clock">CLOCK (Tempo & Gate Generator)</option>
-                <option value="seq">SEQ (8-Step Pitch Sequencer)</option>
-                <option value="vco">VCO (PolyBLEP Oscillator)</option>
-                <option value="vcf">VCF (24dB Ladder Filter)</option>
-                <option value="adsr">ADSR (Envelope Modulator)</option>
-                <option value="vca">VCA (Dual Amplifier)</option>
-                <option value="bytebeat">BYTEBEAT (8-bit Math Synth)</option>
-                <option value="delay">DELAY (Tape Echo & Saturation)</option>
-                <option value="out">OUT (Master Stereo Output)</option>
-            </select>
-            <button id="btn-toggle-editor">💻 Code Editor</button>
-            <button id="btn-reset">Reset Links</button>
-            <button id="btn-reset-view">Reset View</button>
-            <div class="zoom-info" id="zoom-label">🔍 100%</div>
+            <div class="scratch-controls">
+                <button class="btn-flag" id="btn-flag" title="Start Synthesis (Green Flag)">🚩</button>
+                <button class="btn-stop" id="btn-stop" title="Stop Synthesis (Red Stop)">🛑</button>
+            </div>
+            <button id="btn-preset-default">⚡ Preset Patch</button>
+            <button id="btn-clear-workspace">Limpar</button>
+            <button id="btn-toggle-editor">💻 JS Script Sandbox</button>
+            <div class="zoom-info" id="status-label">🔊 Pronto</div>
         </div>
     </header>
 
     <div class="workspace-grid" id="workspace-grid">
         <div class="board-container">
-            <canvas id="chalk-canvas" width="1320" height="700"></canvas>
+            <div id="blockly-div" style="width: 100%; height: 100%;"></div>
         </div>
 
         <div class="editor-drawer" id="editor-drawer">
             <div class="editor-header">
-                <div class="editor-title" id="editor-module-title">⚡ Live Script Editor</div>
-                <div class="editor-status" id="editor-status-pill">Running</div>
+                <div class="editor-title" id="editor-module-title">⚡ Live DSP Script Sandbox</div>
+                <div class="editor-status" id="editor-status-pill">Active</div>
             </div>
             <textarea id="code-editor" spellcheck="false"></textarea>
             <div class="editor-footer">
@@ -285,9 +368,55 @@
     </div>
 
     <div class="chalk-footer">
-        <div class="help-pill"><b>3 Link Types:</b> <span style="color:#48dbfb">AUDIO</span> (Cyan Flow) | <span style="color:#ff9f43">MIDI</span> (Amber Pulse) | <span style="color:#1dd1a1">VAL</span> (Lime Beam)</div>
-        <div>Drag Bottom Pins to connect | Wheel = Zoom | Drag background = Pan | Click node to edit Code</div>
+        <div class="help-pill"><b>Scratch Modular:</b> <span style="color:#FFAB19">🚩 Eventos</span> | <span style="color:#9966FF">〰️ Geradores</span> | <span style="color:#FF8C1A">🎛️ Filtros</span> | <span style="color:#59C059">📈 Moduladores</span> | <span style="color:#4C97FF">📼 Efeitos</span></div>
+        <div>Clique na Bandeira 🚩 para tocar | Conecte os blocos verticalmente como LEGO | DSP 48kHz em tempo real</div>
     </div>
+
+    <!-- Blockly Toolbox Definition (Scratch Categories) -->
+    <xml id="toolbox" style="display: none">
+        <category name="📡 Barramentos & Tags" colour="#FF6680">
+            <block type="synth_send"></block>
+            <block type="synth_recv"></block>
+            <block type="synth_var_set"></block>
+            <block type="synth_var_get"></block>
+        </category>
+        <category name="🚩 Eventos" colour="#FFAB19">
+            <block type="event_whenflagclicked"></block>
+            <block type="event_whenclockpulse"></block>
+        </category>
+        <category name="〰️ Geradores" colour="#9966FF">
+            <block type="synth_vco"></block>
+            <block type="synth_bytebeat"></block>
+            <block type="synth_clock"></block>
+        </category>
+        <category name="🎛️ Filtros & Dinâmica" colour="#FF8C1A">
+            <block type="synth_vcf"></block>
+            <block type="synth_vca"></block>
+            <block type="synth_distortion"></block>
+            <block type="synth_mixer"></block>
+        </category>
+        <category name="📈 Moduladores" colour="#59C059">
+            <block type="synth_seq"></block>
+            <block type="seq_note"></block>
+            <block type="seq_rest"></block>
+            <block type="synth_adsr"></block>
+            <block type="synth_lfo"></block>
+            <block type="synth_sample_hold"></block>
+        </category>
+        <category name="➕ Operadores Scratch" colour="#59C059">
+            <block type="math_number"></block>
+            <block type="math_arithmetic"></block>
+            <block type="math_map"></block>
+            <block type="math_single"></block>
+            <block type="math_random"></block>
+            <block type="logic_compare_cv"></block>
+            <block type="math_note_to_hz"></block>
+        </category>
+        <category name="📼 Efeitos & Saída" colour="#4C97FF">
+            <block type="synth_delay"></block>
+            <block type="synth_out"></block>
+        </category>
+    </xml>
 
     <script type="module" src="app.js"></script>
 </body>

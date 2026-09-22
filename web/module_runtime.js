@@ -116,7 +116,16 @@ export class ScriptableModule {
                 this.paramsProxy[p.name] = this.params[idx];
             });
 
-            this.outputDefs = modObj.outputs || [{ type: 'AUDIO', name: 'OUT' }];
+            this.socketDefs = (modObj.inputs || modObj.sockets || []).map((s, idx) => {
+                if (typeof s === 'string') return { name: s, type: s.toLowerCase().includes('val') || s.toLowerCase().includes('cv') || s.toLowerCase().includes('pitch') || s.toLowerCase().includes('gate') ? 'VAL' : 'AUDIO' };
+                return { name: s.name || `IN${idx}`, type: (s.type || 'AUDIO').toUpperCase() };
+            });
+
+            this.pillDefs = (modObj.outputs || modObj.pills || [{ name: 'OUT', type: 'AUDIO' }]).map((p, idx) => {
+                if (typeof p === 'string') return { name: p, type: 'AUDIO', color: 0xFF48dbfb };
+                return { name: p.name || `OUT${idx}`, type: (p.type || 'AUDIO').toUpperCase(), color: p.color || 0 };
+            });
+            this.outputDefs = this.pillDefs;
 
             // Initialize module state
             if (typeof modObj.init === 'function') {
@@ -172,6 +181,7 @@ export class ScriptableModule {
         let hasAudio = false;
         let hasVal = false;
         const inMidi = [];
+        const socketMap = {};
 
         for (let i = 0; i < rawInputs.length; i++) {
             const link = rawInputs[i];
@@ -181,16 +191,19 @@ export class ScriptableModule {
                 for (let s = 0; s < numSamples; s++) {
                     inAudioSum[s] += link.audio[s] * (link.gain !== undefined ? link.gain : 1.0);
                 }
+                if (link.socketName) socketMap[link.socketName.toLowerCase()] = { type: 'audio', audio: link.audio };
             } else if (link.type === 'val' && link.val !== undefined) {
                 hasVal = true;
                 inVals.push(link.val);
                 inValSum += link.val;
+                if (link.socketName) socketMap[link.socketName.toLowerCase()] = { type: 'val', val: link.val };
             } else if (link.type === 'midi' && link.events) {
                 for (const ev of link.events) inMidi.push(ev);
+                if (link.socketName) socketMap[link.socketName.toLowerCase()] = { type: 'midi', events: link.events };
             }
         }
 
-        const inHelper = Object.assign(rawInputs, {
+        const inHelper = {
             audio: inAudioSum,
             audios: inAudios,
             val: inValSum,
@@ -199,20 +212,39 @@ export class ScriptableModule {
             hasVal,
             hasMidi: inMidi.length > 0,
             midi: inMidi,
-            events: inMidi
-        });
+            events: inMidi,
+            has: (name) => {
+                if (!name) return hasAudio || hasVal;
+                return socketMap[name.toLowerCase()] !== undefined;
+            },
+            getVal: (name, fallback = 0) => {
+                if (name && socketMap[name.toLowerCase()]) return socketMap[name.toLowerCase()].val;
+                return hasVal ? inValSum : fallback;
+            },
+            getAudio: (name) => {
+                if (name && socketMap[name.toLowerCase()]) return socketMap[name.toLowerCase()].audio;
+                return inAudioSum;
+            }
+        };
 
         // Build Smart Out Object
         const outHelper = {
             audio: (arg1, arg2) => {
                 if (typeof arg1 === 'function') {
-                    // One-liner loop over default out 0
+                    // One-liner loop over default out 0: out.audio(s => ...)
                     const buf = this.audioOutputs[0];
                     for (let s = 0; s < numSamples; s++) buf[s] = arg1(s);
                     return buf;
                 } else if (typeof arg1 === 'number' && typeof arg2 === 'function') {
-                    // Loop over specific out channel
+                    // Loop over specific out channel: out.audio(1, s => ...)
                     const buf = this.audioOutputs[arg1];
+                    for (let s = 0; s < numSamples; s++) buf[s] = arg2(s);
+                    return buf;
+                } else if (typeof arg1 === 'string' && typeof arg2 === 'function') {
+                    // Named output pill: out.audio('lp', s => ...)
+                    const pIdx = this.pillDefs.findIndex(p => p.name.toLowerCase() === arg1.toLowerCase());
+                    const idx = pIdx >= 0 ? pIdx : 0;
+                    const buf = this.audioOutputs[idx];
                     for (let s = 0; s < numSamples; s++) buf[s] = arg2(s);
                     return buf;
                 } else if (arg1 instanceof Float32Array) {
@@ -226,6 +258,10 @@ export class ScriptableModule {
                     this.valOutputs[0] = arg1;
                 } else if (typeof arg1 === 'number' && typeof arg2 === 'number') {
                     this.valOutputs[arg1] = arg2;
+                } else if (typeof arg1 === 'string' && typeof arg2 === 'number') {
+                    const pIdx = this.pillDefs.findIndex(p => p.name.toLowerCase() === arg1.toLowerCase());
+                    const idx = pIdx >= 0 ? pIdx : 0;
+                    this.valOutputs[idx] = arg2;
                 }
                 return this.valOutputs[arg1 || 0];
             },
