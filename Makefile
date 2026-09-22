@@ -5,15 +5,15 @@ LDFLAGS = -Wl,--no-entry -Wl,--export-all -Wl,--allow-undefined -Wl,--stack-firs
 MODULE_SRCS = $(wildcard src/modules/*/main.c)
 MODULE_WASM = $(patsubst src/modules/%/main.c,modules/%.wasm,$(MODULE_SRCS))
 
-all: roms/core.wasm roms/node_graph.wasm $(MODULE_WASM) modules/manifest.json
+all: roms/core.wasm roms/quadro_chalk.wasm $(MODULE_WASM) modules/manifest.json
 
 roms/core.wasm: src/core/engine.c include/brack_core.h include/brack_dsp.h
 	mkdir -p roms
 	$(CLANG) $(CFLAGS) $(LDFLAGS) -o $@ $<
 
-roms/node_graph.wasm: src/ui/node_graph.c src/ui/quadro.c include/node_graph.h include/quadro.h include/brack_dsp.h
+roms/quadro_chalk.wasm: src/ui/quadro_chalk.c src/ui/quadro.c include/quadro_chalk.h include/quadro.h include/chalk_font.h include/brack_dsp.h
 	mkdir -p roms
-	$(CLANG) $(CFLAGS) $(LDFLAGS) -o $@ src/ui/node_graph.c src/ui/quadro.c
+	$(CLANG) $(CFLAGS) $(LDFLAGS) -o $@ src/ui/quadro_chalk.c src/ui/quadro.c
 
 modules/%.wasm: src/modules/%/main.c include/brack_core.h include/brack_dsp.h
 	mkdir -p modules

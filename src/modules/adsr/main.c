@@ -8,7 +8,6 @@ typedef struct {
     int32_t stage;
     float level;
     float last_gate;
-    float last_retrig;
     float params[4];
 } adsr_state_t;
 
@@ -16,21 +15,17 @@ static adsr_state_t g_adsr = {0};
 
 B_EXPORT const char* b_module_descriptor(void) {
     return "{"
-        "\"name\":\"ADSR-EG\","
-        "\"hp\":8,"
+        "\"name\":\"ADSR\","
+        "\"category\":\"MOD\","
         "\"params\":["
             "{\"id\":0,\"name\":\"Attack\",\"min\":0.001,\"max\":5.0,\"default\":0.01},"
             "{\"id\":1,\"name\":\"Decay\",\"min\":0.001,\"max\":5.0,\"default\":0.20},"
             "{\"id\":2,\"name\":\"Sustain\",\"min\":0,\"max\":1.0,\"default\":0.40},"
             "{\"id\":3,\"name\":\"Release\",\"min\":0.001,\"max\":10.0,\"default\":0.30}"
         "],"
-        "\"inputs\":["
-            "{\"id\":0,\"name\":\"GATE\",\"type\":\"gate\"},"
-            "{\"id\":1,\"name\":\"RETRIG\",\"type\":\"gate\"}"
-        "],"
         "\"outputs\":["
-            "{\"id\":0,\"name\":\"ENV\",\"type\":\"cv\"},"
-            "{\"id\":1,\"name\":\"INV\",\"type\":\"cv\"}"
+            "{\"type\":\"VAL\",\"name\":\"ENV\"},"
+            "{\"type\":\"AUDIO\",\"name\":\"CV\"}"
         "]"
     "}";
 }
@@ -40,7 +35,6 @@ B_EXPORT void b_module_init(float sample_rate) {
     g_adsr.stage = ADSR_IDLE;
     g_adsr.level = 0.0f;
     g_adsr.last_gate = 0.0f;
-    g_adsr.last_retrig = 0.0f;
     g_adsr.params[0] = 0.01f;
     g_adsr.params[1] = 0.20f;
     g_adsr.params[2] = 0.40f;
@@ -55,12 +49,30 @@ B_EXPORT float b_module_get_param(uint32_t param_id) {
     return (param_id < 4) ? g_adsr.params[param_id] : 0.0f;
 }
 
-B_EXPORT void b_module_process(const float **inputs, float **outputs, uint32_t n) {
-    const float *in_gate   = inputs[0];
-    const float *in_retrig = inputs[1];
+B_EXPORT void b_module_process(
+    void *instance,
+    const brack_in_link_t *in_links,
+    uint32_t in_count,
+    brack_out_link_t *out_links,
+    uint32_t *out_count,
+    uint32_t num_samples
+) {
+    float gate_signal = 0.0f;
 
-    float *out_env = outputs[0];
-    float *out_inv = outputs[1];
+    // Check MIDI Note On/Off or Gate VAL
+    for (uint32_t i = 0; i < in_count; i++) {
+        const brack_in_link_t *lnk = &in_links[i];
+        if (lnk->type == BRACK_LINK_MIDI && lnk->midi_events) {
+            for (uint32_t m = 0; m < lnk->midi_count; m++) {
+                uint8_t st = lnk->midi_events[m].status & 0xF0;
+                uint8_t vel = lnk->midi_events[m].data2;
+                if (st == 0x90 && vel > 0) gate_signal = 1.0f;
+                else if (st == 0x80 || (st == 0x90 && vel == 0)) gate_signal = 0.0f;
+            }
+        } else if (lnk->type == BRACK_LINK_VAL) {
+            if (lnk->val > 0.1f) gate_signal = 1.0f;
+        }
+    }
 
     float attack_time  = b_clamp(g_adsr.params[0], 0.001f, 10.0f);
     float decay_time   = b_clamp(g_adsr.params[1], 0.001f, 10.0f);
@@ -72,27 +84,20 @@ B_EXPORT void b_module_process(const float **inputs, float **outputs, uint32_t n
     float d_rate = 1.0f / (decay_time * sr);
     float r_rate = 1.0f / (release_time * sr);
 
-    int32_t stage    = g_adsr.stage;
-    float level      = g_adsr.level;
-    float last_gate  = g_adsr.last_gate;
-    float last_retrig= g_adsr.last_retrig;
+    int32_t stage   = g_adsr.stage;
+    float level     = g_adsr.level;
+    float last_gate = g_adsr.last_gate;
 
-    for (uint32_t i = 0; i < n; i++) {
-        float gate = in_gate ? in_gate[i] : 0.0f;
-        float retrig = in_retrig ? in_retrig[i] : 0.0f;
+    if (gate_signal > 0.5f && last_gate <= 0.5f) {
+        stage = ADSR_ATTACK;
+    } else if (gate_signal <= 0.5f && last_gate > 0.5f) {
+        stage = ADSR_RELEASE;
+    }
+    last_gate = gate_signal;
 
-        if (gate > 0.5f && last_gate <= 0.5f) {
-            stage = ADSR_ATTACK;
-        } else if (gate <= 0.5f && last_gate > 0.5f) {
-            stage = ADSR_RELEASE;
-        }
+    float *out_audio_buf = out_links[1].audio;
 
-        if (retrig > 0.5f && last_retrig <= 0.5f) {
-            stage = ADSR_ATTACK;
-        }
-        last_gate = gate;
-        last_retrig = retrig;
-
+    for (uint32_t s = 0; s < num_samples; s++) {
         switch (stage) {
             case ADSR_ATTACK:
                 level += a_rate * (1.2f - level);
@@ -123,12 +128,20 @@ B_EXPORT void b_module_process(const float **inputs, float **outputs, uint32_t n
                 break;
         }
 
-        if (out_env) out_env[i] = level;
-        if (out_inv) out_inv[i] = 1.0f - level;
+        if (out_audio_buf) out_audio_buf[s] = level;
     }
 
     g_adsr.stage = stage;
     g_adsr.level = level;
     g_adsr.last_gate = last_gate;
-    g_adsr.last_retrig = last_retrig;
+
+    // Output 0: VAL CV
+    out_links[0].type = BRACK_LINK_VAL;
+    out_links[0].val = level;
+
+    // Output 1: AUDIO rate envelope
+    out_links[1].type = BRACK_LINK_AUDIO;
+
+    if (out_count) *out_count = 2;
 }
+

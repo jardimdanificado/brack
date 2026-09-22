@@ -9,18 +9,14 @@ static out_state_t g_out = {0};
 
 B_EXPORT const char* b_module_descriptor(void) {
     return "{"
-        "\"name\":\"Master-Out\","
-        "\"hp\":6,"
+        "\"name\":\"OUT\","
+        "\"category\":\"OUT\","
         "\"params\":["
-            "{\"id\":0,\"name\":\"Master Volume\",\"min\":0,\"max\":1.5,\"default\":0.85}"
-        "],"
-        "\"inputs\":["
-            "{\"id\":0,\"name\":\"IN L\",\"type\":\"audio\"},"
-            "{\"id\":1,\"name\":\"IN R\",\"type\":\"audio\"}"
+            "{\"id\":0,\"name\":\"Master Vol\",\"min\":0,\"max\":1.5,\"default\":0.85}"
         "],"
         "\"outputs\":["
-            "{\"id\":0,\"name\":\"MON L\",\"type\":\"audio\"},"
-            "{\"id\":1,\"name\":\"MON R\",\"type\":\"audio\"}"
+            "{\"type\":\"AUDIO\",\"name\":\"OUT L\"},"
+            "{\"type\":\"AUDIO\",\"name\":\"OUT R\"}"
         "]"
     "}";
 }
@@ -38,24 +34,40 @@ B_EXPORT float b_module_get_param(uint32_t param_id) {
     return (param_id < 2) ? g_out.params[param_id] : 0.0f;
 }
 
-B_EXPORT void b_module_process(const float **inputs, float **outputs, uint32_t n) {
-    const float *in_l = inputs[0];
-    const float *in_r = inputs[1];
+B_EXPORT void b_module_process(
+    void *instance,
+    const brack_in_link_t *in_links,
+    uint32_t in_count,
+    brack_out_link_t *out_links,
+    uint32_t *out_count,
+    uint32_t num_samples
+) {
+    float vol_mod = 0.0f;
+    for (uint32_t i = 0; i < in_count; i++) {
+        if (in_links[i].type == BRACK_LINK_VAL) {
+            vol_mod += in_links[i].val;
+        }
+    }
 
-    float *out_l = outputs[0];
-    float *out_r = outputs[1];
+    float vol = b_clamp(g_out.params[0] + vol_mod, 0.0f, 2.0f);
+    float *out_l = out_links[0].audio;
+    float *out_r = out_links[1].audio;
 
-    float vol = g_out.params[0];
+    out_links[0].type = BRACK_LINK_AUDIO;
+    out_links[1].type = BRACK_LINK_AUDIO;
+    if (out_count) *out_count = 2;
 
-    for (uint32_t i = 0; i < n; i++) {
-        float l = (in_l ? in_l[i] : 0.0f) * vol;
-        float r = (in_r ? in_r[i] : 0.0f) * vol;
+    for (uint32_t s = 0; s < num_samples; s++) {
+        float in_sum = 0.0f;
+        for (uint32_t i = 0; i < in_count; i++) {
+            if (in_links[i].type == BRACK_LINK_AUDIO && in_links[i].audio) {
+                in_sum += in_links[i].audio[s];
+            }
+        }
 
-        // Tube soft-clipping protection
-        l = b_tanh(l);
-        r = b_tanh(r);
-
-        if (out_l) out_l[i] = l;
-        if (out_r) out_r[i] = r;
+        float out = b_tanh(in_sum * vol);
+        if (out_l) out_l[s] = out;
+        if (out_r) out_r[s] = out;
     }
 }
+

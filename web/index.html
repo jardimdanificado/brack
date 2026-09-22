@@ -3,27 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BRACK // SunVox / PureData WASM Modular Graph</title>
+    <title>BRACK // Live-Scriptable Blackboard Modular Synth</title>
     <style>
         :root {
-            --bg: #0c0e14;
-            --panel: #161922;
-            --accent: #00d2d3;
-            --accent-green: #2ed573;
-            --text: #f1f2f6;
-            --text-dim: #747d8c;
+            --bg: #0c100e;
+            --chalk-board: #151c19;
+            --chalk-white: #f5f6fa;
+            --chalk-yellow: #feca57;
+            --chalk-cyan: #48dbfb;
+            --chalk-pink: #ff6b6b;
+            --chalk-green: #1dd1a1;
+            --chalk-purple: #a29bfe;
+            --chalk-orange: #ff9f43;
+            --editor-bg: #111714;
+            --text-dim: #8395a7;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'SF Mono', Monaco, Consolas, monospace; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; }
 
         body {
             background: var(--bg);
-            color: var(--text);
+            color: var(--chalk-white);
             display: flex;
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
-            padding: 14px;
+            padding: 10px 16px;
             user-select: none;
             -webkit-user-select: none;
             overflow-x: hidden;
@@ -31,119 +36,259 @@
 
         header {
             width: 100%;
-            max-width: 1280px;
+            max-width: 1400px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 12px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #202432;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         h1 {
             font-size: 17px;
-            letter-spacing: 2px;
+            letter-spacing: 1.5px;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
+            color: var(--chalk-yellow);
+            font-weight: 800;
         }
 
         h1 span {
-            font-size: 10px;
-            background: var(--accent);
-            color: #0c0e14;
-            font-weight: bold;
+            font-size: 11px;
+            background: rgba(72, 219, 251, 0.15);
+            color: var(--chalk-cyan);
+            border: 1px solid var(--chalk-cyan);
             padding: 2px 8px;
             border-radius: 4px;
+            letter-spacing: 0.5px;
         }
 
         .actions {
             display: flex;
-            gap: 10px;
+            align-items: center;
+            gap: 8px;
         }
 
-        button {
-            background: #202432;
-            color: #fff;
-            border: 1px solid #333a4f;
-            padding: 8px 16px;
+        button, select {
+            background: #1e2723;
+            color: var(--chalk-white);
+            border: 1px solid #35433d;
+            padding: 6px 14px;
             border-radius: 6px;
             cursor: pointer;
             font-size: 12px;
-            font-weight: bold;
-            letter-spacing: 1px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
             transition: all 0.15s ease;
         }
 
-        button:hover { background: #2f364a; }
-        button.active {
-            background: var(--accent-green);
-            color: #0c0e14;
-            border-color: var(--accent-green);
+        button:hover, select:hover {
+            border-color: var(--chalk-green);
+            color: var(--chalk-green);
         }
 
-        .canvas-wrapper {
+        button.active {
+            background: #10ac84;
+            color: #0b0c10;
+            border-color: #1dd1a1;
+        }
+
+        .zoom-info {
+            font-size: 12px;
+            color: var(--chalk-yellow);
+            background: #18201d;
+            padding: 5px 10px;
+            border-radius: 4px;
+            border: 1px solid #283430;
+        }
+
+        .workspace-grid {
             width: 100%;
-            max-width: 1280px;
-            background: #000;
-            border: 2px solid #202432;
+            max-width: 1400px;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .workspace-grid.editor-open {
+            grid-template-columns: 1fr 480px;
+        }
+
+        .board-container {
+            width: 100%;
+            height: 700px;
+            background: var(--chalk-board);
+            border: 6px solid #3d2b1f; /* Wooden Chalkboard Frame */
             border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.9);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.9), inset 0 0 30px rgba(0, 0, 0, 0.7);
             position: relative;
         }
 
-        canvas#graph-canvas {
+        canvas#chalk-canvas {
             width: 100%;
-            height: auto;
+            height: 100%;
             display: block;
             cursor: default;
         }
 
-        .legend {
-            width: 100%;
-            max-width: 1280px;
-            margin-top: 14px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            font-size: 11px;
+        /* Live Code Editor Panel */
+        .editor-drawer {
+            display: none;
+            height: 700px;
+            background: var(--editor-bg);
+            border: 2px solid #273731;
+            border-radius: 8px;
+            flex-direction: column;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8);
+            overflow: hidden;
         }
 
-        .badge {
-            background: #161922;
-            padding: 6px 12px;
-            border-radius: 4px;
-            border-left: 4px solid var(--accent);
+        .workspace-grid.editor-open .editor-drawer {
+            display: flex;
+        }
+
+        .editor-header {
+            background: #16201c;
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #273731;
+        }
+
+        .editor-title {
+            font-weight: 800;
+            color: var(--chalk-cyan);
+            font-size: 13px;
             display: flex;
             align-items: center;
             gap: 8px;
+        }
+
+        .editor-status {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: rgba(29, 209, 161, 0.15);
+            color: var(--chalk-green);
+            border: 1px solid var(--chalk-green);
+        }
+
+        .editor-status.error {
+            background: rgba(255, 107, 107, 0.2);
+            color: var(--chalk-pink);
+            border-color: var(--chalk-pink);
+        }
+
+        textarea#code-editor {
+            flex: 1;
+            background: #0d1310;
+            color: #d1d8e0;
+            border: none;
+            padding: 12px;
+            font-family: "Fira Code", "Source Code Pro", Menlo, Monaco, Consolas, monospace;
+            font-size: 12px;
+            line-height: 1.5;
+            resize: none;
+            outline: none;
+            white-space: pre;
+            tab-size: 4;
+            user-select: text;
+            -webkit-user-select: text;
+        }
+
+        .editor-footer {
+            background: #16201c;
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid #273731;
+        }
+
+        .cheat-sheet {
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+
+        .cheat-sheet code {
+            color: var(--chalk-yellow);
+        }
+
+        .chalk-footer {
+            width: 100%;
+            max-width: 1400px;
+            margin-top: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+
+        .help-pill {
+            background: #18201d;
+            padding: 4px 10px;
+            border-radius: 4px;
+            border-left: 3px solid var(--chalk-cyan);
+            color: var(--chalk-white);
         }
     </style>
 </head>
 <body>
 
     <header>
-        <h1>BRACK <span>SUNVOX / PUREDATA WASM GRAPH</span></h1>
+        <h1>
+            BRACK <span>LIVE-SCRIPTABLE MODULAR</span>
+        </h1>
         <div class="actions">
             <button id="btn-power">START AUDIO SYNTHESIS</button>
-            <button id="btn-reset">RESET GRAPH</button>
+            <select id="select-add-module">
+                <option value="" disabled selected>➕ Add Module...</option>
+                <option value="clock">CLOCK (Tempo & Gate Generator)</option>
+                <option value="seq">SEQ (8-Step Pitch Sequencer)</option>
+                <option value="vco">VCO (PolyBLEP Oscillator)</option>
+                <option value="vcf">VCF (24dB Ladder Filter)</option>
+                <option value="adsr">ADSR (Envelope Modulator)</option>
+                <option value="vca">VCA (Dual Amplifier)</option>
+                <option value="bytebeat">BYTEBEAT (8-bit Math Synth)</option>
+                <option value="delay">DELAY (Tape Echo & Saturation)</option>
+                <option value="out">OUT (Master Stereo Output)</option>
+            </select>
+            <button id="btn-toggle-editor">💻 Code Editor</button>
+            <button id="btn-reset">Reset Links</button>
+            <button id="btn-reset-view">Reset View</button>
+            <div class="zoom-info" id="zoom-label">🔍 100%</div>
         </div>
     </header>
 
-    <div class="canvas-wrapper">
-        <canvas id="graph-canvas" width="1280" height="720"></canvas>
+    <div class="workspace-grid" id="workspace-grid">
+        <div class="board-container">
+            <canvas id="chalk-canvas" width="1320" height="700"></canvas>
+        </div>
+
+        <div class="editor-drawer" id="editor-drawer">
+            <div class="editor-header">
+                <div class="editor-title" id="editor-module-title">⚡ Live Script Editor</div>
+                <div class="editor-status" id="editor-status-pill">Running</div>
+            </div>
+            <textarea id="code-editor" spellcheck="false"></textarea>
+            <div class="editor-footer">
+                <div class="cheat-sheet"><code>Ctrl+Enter</code> to Apply Live</div>
+                <button id="btn-apply-code" class="active">⚡ Hot Reload</button>
+            </div>
+        </div>
     </div>
 
-    <div class="legend">
-        <div class="badge" style="border-color: #00d2d3">🔵 GERADORES (VCO, Noise)</div>
-        <div class="badge" style="border-color: #ff9f43">🟠 FILTROS (24dB Moog, SVF)</div>
-        <div class="badge" style="border-color: #9c88ff">🟣 MODULADORES (ADSR, LFO)</div>
-        <div class="badge" style="border-color: #feca57">🟡 CONTROLE (SEQ-8, Clock)</div>
-        <div class="badge" style="border-color: #10ac84">🟢 EFEITOS (Tape Delay, Reverb)</div>
-        <div class="badge" style="border-color: #ff4757">🔴 MASTER OUT</div>
+    <div class="chalk-footer">
+        <div class="help-pill"><b>3 Link Types:</b> <span style="color:#48dbfb">AUDIO</span> (Cyan Flow) | <span style="color:#ff9f43">MIDI</span> (Amber Pulse) | <span style="color:#1dd1a1">VAL</span> (Lime Beam)</div>
+        <div>Drag Bottom Pins to connect | Wheel = Zoom | Drag background = Pan | Click node to edit Code</div>
     </div>
 
-    <script src="app.js"></script>
+    <script type="module" src="app.js"></script>
 </body>
 </html>

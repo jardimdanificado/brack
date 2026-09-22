@@ -9,18 +9,14 @@ static vca_state_t g_vca = {0};
 
 B_EXPORT const char* b_module_descriptor(void) {
     return "{"
-        "\"name\":\"VCA-Dual\","
-        "\"hp\":6,"
+        "\"name\":\"VCA\","
+        "\"category\":\"AMP\","
         "\"params\":["
             "{\"id\":0,\"name\":\"Initial Gain\",\"min\":0,\"max\":1,\"default\":0},"
             "{\"id\":1,\"name\":\"Exponential\",\"min\":0,\"max\":1,\"default\":1}"
         "],"
-        "\"inputs\":["
-            "{\"id\":0,\"name\":\"IN\",\"type\":\"audio\"},"
-            "{\"id\":1,\"name\":\"CV\",\"type\":\"cv\"}"
-        "],"
         "\"outputs\":["
-            "{\"id\":0,\"name\":\"OUT\",\"type\":\"audio\"}"
+            "{\"type\":\"AUDIO\",\"name\":\"OUT\"}"
         "]"
     "}";
 }
@@ -39,24 +35,46 @@ B_EXPORT float b_module_get_param(uint32_t param_id) {
     return (param_id < 2) ? g_vca.params[param_id] : 0.0f;
 }
 
-B_EXPORT void b_module_process(const float **inputs, float **outputs, uint32_t n) {
-    const float *in_audio = inputs[0];
-    const float *in_cv    = inputs[1];
-    float *out_audio      = outputs[0];
+B_EXPORT void b_module_process(
+    void *instance,
+    const brack_in_link_t *in_links,
+    uint32_t in_count,
+    brack_out_link_t *out_links,
+    uint32_t *out_count,
+    uint32_t num_samples
+) {
+    float cv_gain = 0.0f;
+    int has_cv = 0;
+    const float *cv_audio = 0;
+
+    for (uint32_t i = 0; i < in_count; i++) {
+        if (in_links[i].type == BRACK_LINK_VAL) {
+            cv_gain += in_links[i].val;
+            has_cv = 1;
+        }
+    }
 
     float init_gain = g_vca.params[0];
     float is_exp    = g_vca.params[1];
 
-    if (!out_audio) return;
+    float total_gain = init_gain + (has_cv ? cv_gain : 1.0f);
+    total_gain = b_clamp(total_gain, 0.0f, 2.0f);
+    if (is_exp > 0.5f && total_gain > 0.0001f) {
+        total_gain = total_gain * total_gain * total_gain;
+    }
 
-    for (uint32_t i = 0; i < n; i++) {
-        float gain = init_gain + (in_cv ? in_cv[i] : 1.0f);
-        gain = b_clamp(gain, 0.0f, 2.0f);
+    float *out_buf = out_links[0].audio;
+    out_links[0].type = BRACK_LINK_AUDIO;
+    if (out_count) *out_count = 1;
 
-        if (is_exp > 0.5f && gain > 0.0001f) {
-            gain = gain * gain * gain;
+    for (uint32_t s = 0; s < num_samples; s++) {
+        float in_samp = 0.0f;
+        for (uint32_t i = 0; i < in_count; i++) {
+            if (in_links[i].type == BRACK_LINK_AUDIO && in_links[i].audio) {
+                in_samp += in_links[i].audio[s];
+            }
         }
-
-        out_audio[i] = (in_audio ? in_audio[i] : 0.0f) * gain;
+        if (out_buf) out_buf[s] = in_samp * total_gain;
     }
 }
+

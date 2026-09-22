@@ -1,7 +1,8 @@
 /**
  * =========================================================================
  * BRACK Microkernel Engine (src/core/engine.c)
- * Pure Modular Audio Host & Patch Matrix (Zero Sound Generators)
+ * Pure Modular Audio Host & Dynamic Multi-Link Matrix
+ * Handles 3 Link Types: AUDIO, MIDI, VAL
  * =========================================================================
  */
 
@@ -11,7 +12,7 @@
 static brack_core_engine_t g_engine = {0};
 
 /* =========================================================================
- * Memory Management
+ * Memory Primitives (Freestanding / No Libc)
  * ========================================================================= */
 
 static void brack_zero(void *ptr, uint32_t size) {
@@ -27,23 +28,22 @@ static void brack_update_routing(void) {
     uint8_t in_degree[BRACK_MAX_SLOTS] = {0};
     uint8_t visited[BRACK_MAX_SLOTS] = {0};
 
-    // Reset cable feedback flags
-    for (uint32_t c = 0; c < g_engine.cable_count; c++) {
-        brack_cable_t *cable = &g_engine.cables[c];
-        if (cable->active) {
-            cable->is_feedback = 0;
-            // Self-loop is immediate feedback
-            if (cable->src_slot == cable->dst_slot) {
-                cable->is_feedback = 1;
-            } else if (cable->dst_slot < BRACK_MAX_SLOTS) {
-                in_degree[cable->dst_slot]++;
+    // Reset feedback flags
+    for (uint32_t c = 0; c < g_engine.link_count; c++) {
+        brack_link_t *link = &g_engine.links[c];
+        if (link->active) {
+            link->is_feedback = 0;
+            if (link->src_slot == link->dst_slot) {
+                link->is_feedback = 1;
+            } else if (link->dst_slot < BRACK_MAX_SLOTS) {
+                in_degree[link->dst_slot]++;
             }
         }
     }
 
     g_engine.exec_count = 0;
 
-    // 1. Slots with zero dependencies execute first
+    // 1. Slots with zero incoming dependencies run first
     for (uint32_t i = 0; i < BRACK_MAX_SLOTS; i++) {
         if (g_engine.slots[i].active && in_degree[i] == 0) {
             g_engine.exec_order[g_engine.exec_count++] = (uint16_t)i;
@@ -54,10 +54,10 @@ static void brack_update_routing(void) {
     // 2. Resolve downstream dependencies
     for (uint32_t h = 0; h < g_engine.exec_count; h++) {
         uint16_t curr = g_engine.exec_order[h];
-        for (uint32_t c = 0; c < g_engine.cable_count; c++) {
-            brack_cable_t *cable = &g_engine.cables[c];
-            if (cable->active && cable->src_slot == curr) {
-                uint16_t dst = cable->dst_slot;
+        for (uint32_t c = 0; c < g_engine.link_count; c++) {
+            brack_link_t *link = &g_engine.links[c];
+            if (link->active && link->src_slot == curr) {
+                uint16_t dst = link->dst_slot;
                 if (!visited[dst] && g_engine.slots[dst].active) {
                     if (in_degree[dst] > 0) in_degree[dst]--;
                     if (in_degree[dst] == 0) {
@@ -69,15 +69,14 @@ static void brack_update_routing(void) {
         }
     }
 
-    // 3. Mark cycles / remaining slots as feedback connections
+    // 3. Mark remaining cycles as feedback connections
     for (uint32_t i = 0; i < BRACK_MAX_SLOTS; i++) {
         if (g_engine.slots[i].active && !visited[i]) {
             g_engine.exec_order[g_engine.exec_count++] = (uint16_t)i;
             visited[i] = 1;
-            // Mark incoming cables to this cyclic slot as feedback
-            for (uint32_t c = 0; c < g_engine.cable_count; c++) {
-                if (g_engine.cables[c].active && g_engine.cables[c].dst_slot == i) {
-                    g_engine.cables[c].is_feedback = 1;
+            for (uint32_t c = 0; c < g_engine.link_count; c++) {
+                if (g_engine.links[c].active && g_engine.links[c].dst_slot == i) {
+                    g_engine.links[c].is_feedback = 1;
                 }
             }
         }
@@ -111,15 +110,23 @@ B_EXPORT void brack_core_set_playing(uint32_t playing) {
     g_engine.transport.playing = playing ? 1 : 0;
 }
 
-B_EXPORT int32_t brack_slot_create(uint32_t in_ports, uint32_t out_ports) {
+B_EXPORT int32_t brack_slot_create(void) {
     for (uint32_t i = 0; i < BRACK_MAX_SLOTS; i++) {
         if (!g_engine.slots[i].active) {
             brack_slot_t *slot = &g_engine.slots[i];
             brack_zero(slot, sizeof(brack_slot_t));
             slot->active = 1;
-            slot->in_port_count = (in_ports > BRACK_MAX_PORTS) ? BRACK_MAX_PORTS : in_ports;
-            slot->out_port_count = (out_ports > BRACK_MAX_PORTS) ? BRACK_MAX_PORTS : out_ports;
+            slot->out_count = 1;
             
+            // Setup default out links pointers
+            for (int o = 0; o < BRACK_MAX_OUT_LINKS; o++) {
+                slot->out_links[o].type = BRACK_LINK_AUDIO;
+                slot->out_links[o].audio = slot->out_audio[o];
+                slot->out_links[o].midi_events = slot->out_midi[o];
+                slot->out_links[o].midi_count = 0;
+                slot->out_links[o].val = 0.0f;
+            }
+
             g_engine.slot_count++;
             brack_update_routing();
             return (int32_t)i;
@@ -131,10 +138,9 @@ B_EXPORT int32_t brack_slot_create(uint32_t in_ports, uint32_t out_ports) {
 B_EXPORT void brack_slot_destroy(int32_t slot_id) {
     if (slot_id >= 0 && slot_id < BRACK_MAX_SLOTS && g_engine.slots[slot_id].active) {
         g_engine.slots[slot_id].active = 0;
-        // Remove connected cables
-        for (uint32_t c = 0; c < g_engine.cable_count; c++) {
-            if (g_engine.cables[c].src_slot == slot_id || g_engine.cables[c].dst_slot == slot_id) {
-                g_engine.cables[c].active = 0;
+        for (uint32_t c = 0; c < g_engine.link_count; c++) {
+            if (g_engine.links[c].src_slot == slot_id || g_engine.links[c].dst_slot == slot_id) {
+                g_engine.links[c].active = 0;
             }
         }
         g_engine.slot_count--;
@@ -142,37 +148,43 @@ B_EXPORT void brack_slot_destroy(int32_t slot_id) {
     }
 }
 
-B_EXPORT float* brack_slot_get_in_ptr(int32_t slot_id, uint32_t port_id) {
-    if (slot_id >= 0 && slot_id < BRACK_MAX_SLOTS && port_id < BRACK_MAX_PORTS) {
-        return g_engine.slots[slot_id].in_buffers[port_id];
+B_EXPORT void* brack_slot_get_in_links_ptr(int32_t slot_id) {
+    if (slot_id >= 0 && slot_id < BRACK_MAX_SLOTS) {
+        return &g_engine.slots[slot_id].in_links[0];
     }
     return 0;
 }
 
-B_EXPORT float* brack_slot_get_out_ptr(int32_t slot_id, uint32_t port_id) {
-    if (slot_id >= 0 && slot_id < BRACK_MAX_SLOTS && port_id < BRACK_MAX_PORTS) {
-        return g_engine.slots[slot_id].out_buffers[port_id];
+B_EXPORT uint32_t brack_slot_get_in_links_count(int32_t slot_id) {
+    if (slot_id >= 0 && slot_id < BRACK_MAX_SLOTS) {
+        return g_engine.slots[slot_id].in_link_count;
     }
     return 0;
 }
 
-B_EXPORT int32_t brack_cable_connect(uint16_t src_slot, uint8_t src_port, uint16_t dst_slot, uint8_t dst_port, float gain) {
+B_EXPORT void* brack_slot_get_out_links_ptr(int32_t slot_id) {
+    if (slot_id >= 0 && slot_id < BRACK_MAX_SLOTS) {
+        return &g_engine.slots[slot_id].out_links[0];
+    }
+    return 0;
+}
+
+B_EXPORT int32_t brack_link_connect(uint16_t src_slot, uint8_t src_out_idx, uint16_t dst_slot, uint8_t link_type, float gain) {
     if (src_slot >= BRACK_MAX_SLOTS || dst_slot >= BRACK_MAX_SLOTS) return -1;
-    if (src_port >= BRACK_MAX_PORTS || dst_port >= BRACK_MAX_PORTS) return -1;
+    if (src_out_idx >= BRACK_MAX_OUT_LINKS) return -1;
 
-    for (uint32_t c = 0; c < BRACK_MAX_CABLES; c++) {
-        if (!g_engine.cables[c].active) {
-            brack_cable_t *cable = &g_engine.cables[c];
-            cable->src_slot = src_slot;
-            cable->src_port = src_port;
-            cable->dst_slot = dst_slot;
-            cable->dst_port = dst_port;
-            cable->gain = (gain > 0.0f) ? gain : 1.0f;
-            cable->channels = 1;
-            cable->active = 1;
+    for (uint32_t c = 0; c < BRACK_MAX_LINKS; c++) {
+        if (!g_engine.links[c].active) {
+            brack_link_t *link = &g_engine.links[c];
+            link->src_slot = src_slot;
+            link->src_out_idx = src_out_idx;
+            link->dst_slot = dst_slot;
+            link->type = link_type;
+            link->gain = (gain > 0.0f) ? gain : 1.0f;
+            link->active = 1;
 
-            if (c >= g_engine.cable_count) {
-                g_engine.cable_count = c + 1;
+            if (c >= g_engine.link_count) {
+                g_engine.link_count = c + 1;
             }
             brack_update_routing();
             return (int32_t)c;
@@ -181,88 +193,145 @@ B_EXPORT int32_t brack_cable_connect(uint16_t src_slot, uint8_t src_port, uint16
     return -1;
 }
 
-B_EXPORT void brack_cable_disconnect(int32_t cable_id) {
-    if (cable_id >= 0 && cable_id < BRACK_MAX_CABLES) {
-        g_engine.cables[cable_id].active = 0;
+B_EXPORT void brack_link_disconnect(int32_t link_id) {
+    if (link_id >= 0 && link_id < BRACK_MAX_LINKS) {
+        g_engine.links[link_id].active = 0;
         brack_update_routing();
     }
 }
 
-B_EXPORT void brack_cable_clear(void) {
-    for (uint32_t c = 0; c < BRACK_MAX_CABLES; c++) {
-        g_engine.cables[c].active = 0;
+B_EXPORT void brack_link_disconnect_pair(uint16_t src_slot, uint16_t dst_slot) {
+    for (uint32_t c = 0; c < g_engine.link_count; c++) {
+        if (g_engine.links[c].src_slot == src_slot && g_engine.links[c].dst_slot == dst_slot) {
+            g_engine.links[c].active = 0;
+        }
     }
-    g_engine.cable_count = 0;
     brack_update_routing();
 }
 
-/**
- * Prepares the audio block:
- * 1. Clears all slot input buffers.
- * 2. Transmits cable signals to inputs with auto-summing.
- * 3. Handles cyclic feedback signals using previous block outputs.
- */
+B_EXPORT void brack_link_clear(void) {
+    for (uint32_t c = 0; c < BRACK_MAX_LINKS; c++) {
+        g_engine.links[c].active = 0;
+    }
+    g_engine.link_count = 0;
+    brack_update_routing();
+}
+
+/* =========================================================================
+ * Real-Time Audio Block Routing & Execution
+ * ========================================================================= */
+
 B_EXPORT void brack_core_prepare_block(uint32_t num_samples) {
     uint32_t n = (num_samples > 0 && num_samples <= BRACK_BLOCK_SIZE) ? num_samples : BRACK_BLOCK_SIZE;
 
-    // 1. Zero all input buffers
+    // 1. Reset incoming links count and output buffers for all slots
     for (uint32_t i = 0; i < BRACK_MAX_SLOTS; i++) {
         if (g_engine.slots[i].active) {
-            brack_zero(g_engine.slots[i].in_buffers, sizeof(g_engine.slots[i].in_buffers));
-        }
-    }
-
-    // 2. Transfer signals through active cables
-    for (uint32_t c = 0; c < g_engine.cable_count; c++) {
-        brack_cable_t *cable = &g_engine.cables[c];
-        if (!cable->active) continue;
-
-        brack_slot_t *src_slot = &g_engine.slots[cable->src_slot];
-        brack_slot_t *dst_slot = &g_engine.slots[cable->dst_slot];
-
-        if (!src_slot->active || !dst_slot->active) continue;
-
-        float *src_buf = cable->is_feedback ?
-                         src_slot->prev_out_buffers[cable->src_port] :
-                         src_slot->out_buffers[cable->src_port];
-
-        float *dst_buf = dst_slot->in_buffers[cable->dst_port];
-        float gain = cable->gain;
-
-        for (uint32_t s = 0; s < n; s++) {
-            dst_buf[s] += src_buf[s] * gain;
-        }
-    }
-}
-
-/**
- * Finishes the block after all modules processed:
- * 1. Double-buffers outputs for feedback loops in the next cycle.
- * 2. Updates transport sample clock and oscilloscope visualizer.
- */
-B_EXPORT void brack_core_finish_block(uint32_t num_samples) {
-    uint32_t n = (num_samples > 0 && num_samples <= BRACK_BLOCK_SIZE) ? num_samples : BRACK_BLOCK_SIZE;
-
-    for (uint32_t i = 0; i < BRACK_MAX_SLOTS; i++) {
-        if (g_engine.slots[i].active) {
-            for (uint32_t p = 0; p < g_engine.slots[i].out_port_count; p++) {
-                for (uint32_t s = 0; s < n; s++) {
-                    g_engine.slots[i].prev_out_buffers[p][s] = g_engine.slots[i].out_buffers[p][s];
-                }
+            brack_slot_t *slot = &g_engine.slots[i];
+            slot->in_link_count = 0;
+            
+            for (int o = 0; o < BRACK_MAX_OUT_LINKS; o++) {
+                slot->out_links[o].type = slot->out_types[o];
+                slot->out_links[o].audio = slot->out_audio[o];
+                slot->out_links[o].midi_events = slot->out_midi[o];
+                slot->out_links[o].midi_count = 0;
+                slot->out_links[o].val = 0.0f;
+                brack_zero(slot->out_audio[o], sizeof(float) * n);
+                brack_zero(slot->out_midi[o], sizeof(brack_midi_event_t) * BRACK_MAX_MIDI_EVENTS);
             }
         }
     }
 
-    // Advance transport clock
+    // 2. Assemble incoming links for each destination slot
+    for (uint32_t c = 0; c < g_engine.link_count; c++) {
+        brack_link_t *link = &g_engine.links[c];
+        if (!link->active) continue;
+
+        brack_slot_t *src_slot = &g_engine.slots[link->src_slot];
+        brack_slot_t *dst_slot = &g_engine.slots[link->dst_slot];
+        if (!src_slot->active || !dst_slot->active) continue;
+
+        if (dst_slot->in_link_count < BRACK_MAX_IN_LINKS) {
+            brack_in_link_t *in = &dst_slot->in_links[dst_slot->in_link_count++];
+            in->type = link->type;
+            in->src_slot = link->src_slot;
+            in->src_out_idx = link->src_out_idx;
+            in->gain = link->gain;
+
+            if (link->type == BRACK_LINK_AUDIO) {
+                in->audio = link->is_feedback ?
+                            src_slot->prev_out_audio[link->src_out_idx] :
+                            src_slot->out_audio[link->src_out_idx];
+                in->midi_events = 0;
+                in->midi_count = 0;
+                in->val = 0.0f;
+            } else if (link->type == BRACK_LINK_MIDI) {
+                in->audio = 0;
+                in->midi_events = src_slot->out_midi[link->src_out_idx];
+                in->midi_count = src_slot->out_midi_count[link->src_out_idx];
+                in->val = 0.0f;
+            } else if (link->type == BRACK_LINK_VAL) {
+                in->audio = 0;
+                in->midi_events = 0;
+                in->midi_count = 0;
+                in->val = link->is_feedback ?
+                          (src_slot->prev_out_val[link->src_out_idx] * link->gain) :
+                          (src_slot->out_val[link->src_out_idx] * link->gain);
+            }
+        }
+    }
+}
+
+B_EXPORT void brack_core_route_slot_outputs(int32_t slot_id) {
+    if (slot_id >= 0 && slot_id < BRACK_MAX_SLOTS && g_engine.slots[slot_id].active) {
+        brack_slot_t *slot = &g_engine.slots[slot_id];
+        // Propagate updated outputs to downstream slots within the same block
+        for (uint32_t c = 0; c < g_engine.link_count; c++) {
+            brack_link_t *link = &g_engine.links[c];
+            if (link->active && !link->is_feedback && link->src_slot == slot_id) {
+                brack_slot_t *dst = &g_engine.slots[link->dst_slot];
+                for (uint32_t in_i = 0; in_i < dst->in_link_count; in_i++) {
+                    if (dst->in_links[in_i].src_slot == slot_id && dst->in_links[in_i].src_out_idx == link->src_out_idx) {
+                        if (link->type == BRACK_LINK_AUDIO) {
+                            dst->in_links[in_i].audio = slot->out_audio[link->src_out_idx];
+                        } else if (link->type == BRACK_LINK_MIDI) {
+                            dst->in_links[in_i].midi_events = slot->out_midi[link->src_out_idx];
+                            dst->in_links[in_i].midi_count = slot->out_midi_count[link->src_out_idx];
+                        } else if (link->type == BRACK_LINK_VAL) {
+                            dst->in_links[in_i].val = slot->out_val[link->src_out_idx] * link->gain;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+B_EXPORT void brack_core_finish_block(uint32_t num_samples) {
+    uint32_t n = (num_samples > 0 && num_samples <= BRACK_BLOCK_SIZE) ? num_samples : BRACK_BLOCK_SIZE;
+
+    // 1. Double-buffer for feedback connections
+    for (uint32_t i = 0; i < BRACK_MAX_SLOTS; i++) {
+        if (g_engine.slots[i].active) {
+            brack_slot_t *slot = &g_engine.slots[i];
+            for (uint32_t o = 0; o < BRACK_MAX_OUT_LINKS; o++) {
+                for (uint32_t s = 0; s < n; s++) {
+                    slot->prev_out_audio[o][s] = slot->out_audio[o][s];
+                }
+                slot->prev_out_val[o] = slot->out_val[o];
+            }
+        }
+    }
+
+    // 2. Advance transport
     g_engine.transport.total_samples += n;
     g_engine.transport.sample_time += (double)n / (double)g_engine.transport.sample_rate;
-    g_engine.midi_count = 0; // Clear MIDI queue for next frame
+    g_engine.midi_count = 0;
 }
 
 B_EXPORT void brack_core_get_master_out(float *out_l, float *out_r, uint32_t num_samples) {
     uint32_t n = (num_samples > 0 && num_samples <= BRACK_BLOCK_SIZE) ? num_samples : BRACK_BLOCK_SIZE;
     
-    // Default: copy master_out_l / r and record to scope
     for (uint32_t s = 0; s < n; s++) {
         float l = g_engine.master_out_l[s];
         float r = g_engine.master_out_r[s];

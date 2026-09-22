@@ -15,21 +15,16 @@ static delay_state_t g_delay = {0};
 
 B_EXPORT const char* b_module_descriptor(void) {
     return "{"
-        "\"name\":\"Tape-Delay\","
-        "\"hp\":10,"
+        "\"name\":\"DELAY\","
+        "\"category\":\"FX\","
         "\"params\":["
             "{\"id\":0,\"name\":\"Time\",\"min\":0.01,\"max\":1.8,\"default\":0.30},"
             "{\"id\":1,\"name\":\"Feedback\",\"min\":0,\"max\":0.95,\"default\":0.40},"
             "{\"id\":2,\"name\":\"Damp\",\"min\":0,\"max\":0.9,\"default\":0.40},"
             "{\"id\":3,\"name\":\"Mix\",\"min\":0,\"max\":1.0,\"default\":0.35}"
         "],"
-        "\"inputs\":["
-            "{\"id\":0,\"name\":\"IN\",\"type\":\"audio\"},"
-            "{\"id\":1,\"name\":\"TIME CV\",\"type\":\"cv\"}"
-        "],"
         "\"outputs\":["
-            "{\"id\":0,\"name\":\"OUT L\",\"type\":\"audio\"},"
-            "{\"id\":1,\"name\":\"OUT R\",\"type\":\"audio\"}"
+            "{\"type\":\"AUDIO\",\"name\":\"OUT\"}"
         "]"
     "}";
 }
@@ -53,14 +48,22 @@ B_EXPORT float b_module_get_param(uint32_t param_id) {
     return (param_id < 4) ? g_delay.params[param_id] : 0.0f;
 }
 
-B_EXPORT void b_module_process(const float **inputs, float **outputs, uint32_t n) {
-    const float *in_audio = inputs[0];
-    const float *in_time  = inputs[1];
+B_EXPORT void b_module_process(
+    void *instance,
+    const brack_in_link_t *in_links,
+    uint32_t in_count,
+    brack_out_link_t *out_links,
+    uint32_t *out_count,
+    uint32_t num_samples
+) {
+    float time_mod = 0.0f;
+    for (uint32_t i = 0; i < in_count; i++) {
+        if (in_links[i].type == BRACK_LINK_VAL) {
+            time_mod += in_links[i].val;
+        }
+    }
 
-    float *out_l = outputs[0];
-    float *out_r = outputs[1];
-
-    float delay_time = b_clamp(g_delay.params[0], 0.01f, 1.8f);
+    float delay_time = b_clamp(g_delay.params[0] + time_mod * 0.2f, 0.005f, 1.8f);
     float feedback   = b_clamp(g_delay.params[1], 0.0f, 0.95f);
     float damp       = b_clamp(g_delay.params[2], 0.0f, 0.9f);
     float mix        = b_clamp(g_delay.params[3], 0.0f, 1.0f);
@@ -69,12 +72,19 @@ B_EXPORT void b_module_process(const float **inputs, float **outputs, uint32_t n
     uint32_t head   = g_delay.head;
     float lpf_state = g_delay.lpf_state;
 
-    for (uint32_t i = 0; i < n; i++) {
-        float in_samp = in_audio ? in_audio[i] : 0.0f;
-        float eff_time = delay_time + (in_time ? in_time[i] * 0.2f : 0.0f);
-        eff_time = b_clamp(eff_time, 0.005f, 1.9f);
+    float *out_buf = out_links[0].audio;
+    out_links[0].type = BRACK_LINK_AUDIO;
+    if (out_count) *out_count = 1;
 
-        float delay_samples = eff_time * sr;
+    for (uint32_t s = 0; s < num_samples; s++) {
+        float in_samp = 0.0f;
+        for (uint32_t i = 0; i < in_count; i++) {
+            if (in_links[i].type == BRACK_LINK_AUDIO && in_links[i].audio) {
+                in_samp += in_links[i].audio[s];
+            }
+        }
+
+        float delay_samples = delay_time * sr;
         float r_pos = (float)head - delay_samples;
         if (r_pos < 0.0f) r_pos += (float)MAX_DELAY_BUF;
 
@@ -93,12 +103,10 @@ B_EXPORT void b_module_process(const float **inputs, float **outputs, uint32_t n
 
         float wet = delayed;
         float dry = in_samp;
-        float out = b_lerp(dry, wet, mix);
-
-        if (out_l) out_l[i] = out;
-        if (out_r) out_r[i] = out;
+        if (out_buf) out_buf[s] = b_lerp(dry, wet, mix);
     }
 
     g_delay.head = head;
     g_delay.lpf_state = lpf_state;
 }
+

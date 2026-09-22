@@ -1,11 +1,16 @@
 /**
  * Brack Microkernel Test
+ * 3 Link Types: AUDIO (0), MIDI (1), VAL (2)
  * Loads core.wasm and individual modules/*.wasm dynamically.
- * Routes them together via the core matrix and synthesizes audio.
+ * Routes them together via the dynamic multi-link matrix.
  */
 
 const fs = require('fs');
 const path = require('path');
+
+const LINK_AUDIO = 0;
+const LINK_MIDI  = 1;
+const LINK_VAL   = 2;
 
 async function loadWasm(filePath) {
     const buf = fs.readFileSync(filePath);
@@ -48,27 +53,25 @@ async function main() {
     modOut.b_module_init(SAMPLE_RATE);
 
     // Register slots in core matrix
-    const slotClock = core.brack_slot_create(0, 4); // in: 0, out: 4
-    const slotSeq   = core.brack_slot_create(2, 2); // in: 2, out: 2
-    const slotVco   = core.brack_slot_create(4, 5); // in: 4, out: 5
-    const slotVcf   = core.brack_slot_create(3, 4); // in: 3, out: 4
-    const slotAdsr  = core.brack_slot_create(2, 2); // in: 2, out: 2
-    const slotVca   = core.brack_slot_create(2, 1); // in: 2, out: 1
-    const slotDelay = core.brack_slot_create(2, 2); // in: 2, out: 2
-    const slotOut   = core.brack_slot_create(2, 2); // in: 2, out: 2
+    const slotClock = core.brack_slot_create();
+    const slotSeq   = core.brack_slot_create();
+    const slotVco   = core.brack_slot_create();
+    const slotVcf   = core.brack_slot_create();
+    const slotAdsr  = core.brack_slot_create();
+    const slotVca   = core.brack_slot_create();
+    const slotDelay = core.brack_slot_create();
+    const slotOut   = core.brack_slot_create();
 
     console.log(`[Brack Microkernel] Slots created in core: Clock=${slotClock}, Seq=${slotSeq}, VCO=${slotVco}, VCF=${slotVcf}, ADSR=${slotAdsr}, VCA=${slotVca}, Delay=${slotDelay}, Out=${slotOut}`);
 
     // Set Module Parameters
     modClock.b_module_set_param(0, 132.0); // 132 BPM
 
-    // 8-step Acid Notes
-    const notes = [0.0, 1.0, 3/12, 5/12, 7/12, 10/12, 0.0, 15/12];
+    // Acid Pattern Notes
+    const notes = [0.0, 3.0, 7.0, 10.0, 12.0, 10.0, 7.0, 3.0];
     for (let s = 0; s < 8; s++) {
         modSeq.b_module_set_param(s, notes[s]);
-        modSeq.b_module_set_param(8 + s, 1.0);
     }
-    modSeq.b_module_set_param(16, 8.0);
 
     modVco.b_module_set_param(3, 65.406); // C2
     modVco.b_module_set_param(6, 0.0);    // Saw wave
@@ -92,121 +95,62 @@ async function main() {
 
     modOut.b_module_set_param(0, 0.85); // Vol
 
-    console.log('[Brack Microkernel] Connecting patch cables in host matrix...');
-    // Clock 1/16 (out 0) -> Seq Clock (in 0)
-    core.brack_cable_connect(slotClock, 0, slotSeq, 0, 1.0);
+    console.log('[Brack Microkernel] Connecting dynamic multi-links in host matrix...');
+    
+    // 1. Clock (VAL out 0) -> Seq (VAL in)
+    core.brack_link_connect(slotClock, 0, slotSeq, LINK_VAL, 1.0);
 
-    // Seq CV (out 0) -> VCO 1V/Oct (in 0)
-    core.brack_cable_connect(slotSeq, 0, slotVco, 0, 1.0);
+    // 2. Seq (MIDI out 0) -> VCO (MIDI in)
+    core.brack_link_connect(slotSeq, 0, slotVco, LINK_MIDI, 1.0);
 
-    // Seq Gate (out 1) -> ADSR Gate (in 0)
-    core.brack_cable_connect(slotSeq, 1, slotAdsr, 0, 1.0);
+    // 3. Seq (GATE VAL out 2) -> ADSR (VAL in)
+    core.brack_link_connect(slotSeq, 2, slotAdsr, LINK_VAL, 1.0);
 
-    // VCO Saw (out 1) -> VCF Audio In (in 0)
-    core.brack_cable_connect(slotVco, 1, slotVcf, 0, 1.0);
+    // 4. VCO (AUDIO out 0) -> VCF (AUDIO in)
+    core.brack_link_connect(slotVco, 0, slotVcf, LINK_AUDIO, 1.0);
 
-    // ADSR Env (out 0) -> VCF Cutoff CV (in 1) with 3.2x depth
-    core.brack_cable_connect(slotAdsr, 0, slotVcf, 1, 3.2);
+    // 5. ADSR (VAL out 0) -> VCF (VAL in, Cutoff modulation)
+    core.brack_link_connect(slotAdsr, 0, slotVcf, LINK_VAL, 3.2);
 
-    // ADSR Env (out 0) -> VCA CV (in 1)
-    core.brack_cable_connect(slotAdsr, 0, slotVca, 1, 1.0);
+    // 6. VCF (AUDIO out 0) -> VCA (AUDIO in)
+    core.brack_link_connect(slotVcf, 0, slotVca, LINK_AUDIO, 1.0);
 
-    // VCF Moog 24dB (out 0) -> VCA Audio In (in 0)
-    core.brack_cable_connect(slotVcf, 0, slotVca, 0, 1.0);
+    // 7. ADSR (VAL out 0) -> VCA (VAL in, Gain envelope)
+    core.brack_link_connect(slotAdsr, 0, slotVca, LINK_VAL, 1.0);
 
-    // VCA Audio Out (out 0) -> Delay In (in 0)
-    core.brack_cable_connect(slotVca, 0, slotDelay, 0, 1.0);
+    // 8. VCA (AUDIO out 0) -> Delay (AUDIO in)
+    core.brack_link_connect(slotVca, 0, slotDelay, LINK_AUDIO, 1.0);
 
-    // Delay Out L/R (out 0, 1) -> Out In L/R (in 0, 1)
-    core.brack_cable_connect(slotDelay, 0, slotOut, 0, 1.0);
-    core.brack_cable_connect(slotDelay, 1, slotOut, 1, 1.0);
+    // 9. Delay (AUDIO out 0) -> Out (AUDIO in)
+    core.brack_link_connect(slotDelay, 0, slotOut, LINK_AUDIO, 1.0);
 
-    // Helper: bridge pointers between host core memory and individual module WASM memories
-    // Each module has its input and output pointers
-    function getSlotInPtr(slot, port) { return core.brack_slot_get_in_ptr(slot, port); }
-    function getSlotOutPtr(slot, port) { return core.brack_slot_get_out_ptr(slot, port); }
-
-    // Prepare module dispatch descriptors
     const modules = [
-        {
-            exports: modClock,
-            slot: slotClock,
-            inPorts: 0,
-            outPorts: 4,
-            inPtrs: [],
-            outPtrs: [getSlotOutPtr(slotClock, 0), getSlotOutPtr(slotClock, 1), getSlotOutPtr(slotClock, 2), getSlotOutPtr(slotClock, 3)]
-        },
-        {
-            exports: modSeq,
-            slot: slotSeq,
-            inPorts: 2,
-            outPorts: 2,
-            inPtrs: [getSlotInPtr(slotSeq, 0), getSlotInPtr(slotSeq, 1)],
-            outPtrs: [getSlotOutPtr(slotSeq, 0), getSlotOutPtr(slotSeq, 1)]
-        },
-        {
-            exports: modVco,
-            slot: slotVco,
-            inPorts: 4,
-            outPorts: 5,
-            inPtrs: [getSlotInPtr(slotVco, 0), getSlotInPtr(slotVco, 1), getSlotInPtr(slotVco, 2), getSlotInPtr(slotVco, 3)],
-            outPtrs: [getSlotOutPtr(slotVco, 0), getSlotOutPtr(slotVco, 1), getSlotOutPtr(slotVco, 2), getSlotOutPtr(slotVco, 3), getSlotOutPtr(slotVco, 4)]
-        },
-        {
-            exports: modVcf,
-            slot: slotVcf,
-            inPorts: 3,
-            outPorts: 4,
-            inPtrs: [getSlotInPtr(slotVcf, 0), getSlotInPtr(slotVcf, 1), getSlotInPtr(slotVcf, 2)],
-            outPtrs: [getSlotOutPtr(slotVcf, 0), getSlotOutPtr(slotVcf, 1), getSlotOutPtr(slotVcf, 2), getSlotOutPtr(slotVcf, 3)]
-        },
-        {
-            exports: modAdsr,
-            slot: slotAdsr,
-            inPorts: 2,
-            outPorts: 2,
-            inPtrs: [getSlotInPtr(slotAdsr, 0), getSlotInPtr(slotAdsr, 1)],
-            outPtrs: [getSlotOutPtr(slotAdsr, 0), getSlotOutPtr(slotAdsr, 1)]
-        },
-        {
-            exports: modVca,
-            slot: slotVca,
-            inPorts: 2,
-            outPorts: 1,
-            inPtrs: [getSlotInPtr(slotVca, 0), getSlotInPtr(slotVca, 1)],
-            outPtrs: [getSlotOutPtr(slotVca, 0)]
-        },
-        {
-            exports: modDelay,
-            slot: slotDelay,
-            inPorts: 2,
-            outPorts: 2,
-            inPtrs: [getSlotInPtr(slotDelay, 0), getSlotInPtr(slotDelay, 1)],
-            outPtrs: [getSlotOutPtr(slotDelay, 0), getSlotOutPtr(slotDelay, 1)]
-        },
-        {
-            exports: modOut,
-            slot: slotOut,
-            inPorts: 2,
-            outPorts: 2,
-            inPtrs: [getSlotInPtr(slotOut, 0), getSlotInPtr(slotOut, 1)],
-            outPtrs: [getSlotOutPtr(slotOut, 0), getSlotOutPtr(slotOut, 1)]
-        }
+        { exports: modClock, slot: slotClock },
+        { exports: modSeq,   slot: slotSeq },
+        { exports: modVco,   slot: slotVco },
+        { exports: modAdsr,  slot: slotAdsr },
+        { exports: modVcf,   slot: slotVcf },
+        { exports: modVca,   slot: slotVca },
+        { exports: modDelay, slot: slotDelay },
+        { exports: modOut,   slot: slotOut }
     ];
 
-    // Build pointer arrays in each module's memory for C double-pointer inputs/outputs
+    // Allocate module scratch in-links and out-links buffers in module memory
+    // In-links entry: struct { uint8 type, uint16 src_slot, uint16 src_out_idx, float gain, float* audio, midi_ev* midi, uint32 midi_count, float val } = ~32 bytes
+    // Out-links entry: struct { uint8 type, float* audio, midi_ev* midi, uint32 midi_count, float val } = ~24 bytes
     for (const m of modules) {
-        m.inTablePtr = 2048;
-        m.outTablePtr = 2048 + 16 * 4;
-        m.inBufPtr = 4096;
-        m.outBufPtr = 4096 + 16 * BLOCK_SIZE * 4;
+        m.inLinksPtr  = 4096;
+        m.outLinksPtr = 8192;
+        m.outCountPtr = 12288;
+        m.audioBufPtr = 16384; // 16 buffers of 128 floats = 16 * 512 = 8192 bytes
+        m.midiBufPtr  = 32768;
 
-        const tableU32 = new Uint32Array(m.exports.memory.buffer);
-        for (let p = 0; p < m.inPorts; p++) {
-            tableU32[(m.inTablePtr >> 2) + p] = m.inBufPtr + p * BLOCK_SIZE * 4;
-        }
-        for (let p = 0; p < m.outPorts; p++) {
-            tableU32[(m.outTablePtr >> 2) + p] = m.outBufPtr + p * BLOCK_SIZE * 4;
+        // Initialize out_links pointers inside module memory
+        const u32 = new Uint32Array(m.exports.memory.buffer);
+        for (let o = 0; o < 16; o++) {
+            const outEntryOffset = (m.outLinksPtr + o * 24) >> 2;
+            u32[outEntryOffset + 1] = m.audioBufPtr + o * BLOCK_SIZE * 4; // audio ptr
+            u32[outEntryOffset + 2] = m.midiBufPtr + o * 64 * 8;         // midi ptr
         }
     }
 
@@ -217,45 +161,116 @@ async function main() {
     const startTime = performance.now();
 
     for (let b = 0; b < TOTAL_BLOCKS; b++) {
-        // 1. Core prepares block (zero inputs, sum cables, feed feedback)
+        // 1. Core prepares block
         core.brack_core_prepare_block(BLOCK_SIZE);
-
-        const coreF32 = new Float32Array(coreMemory.buffer);
 
         // 2. Process each module
         for (const m of modules) {
+            const inCount = core.brack_slot_get_in_links_count(m.slot);
+            const inLinksPtrCore = core.brack_slot_get_in_links_ptr(m.slot);
+
+            const modU32 = new Uint32Array(m.exports.memory.buffer);
             const modF32 = new Float32Array(m.exports.memory.buffer);
+            const coreU32 = new Uint32Array(coreMemory.buffer);
+            const coreF32 = new Float32Array(coreMemory.buffer);
 
-            // Copy input buffers from host core memory into module memory
-            for (let p = 0; p < m.inPorts; p++) {
-                const srcOffset = m.inPtrs[p] >> 2;
-                const dstOffset = (m.inBufPtr + p * BLOCK_SIZE * 4) >> 2;
-                for (let s = 0; s < BLOCK_SIZE; s++) {
-                    modF32[dstOffset + s] = coreF32[srcOffset + s];
+            // Copy in_links from core into module
+            for (let i = 0; i < inCount; i++) {
+                // brack_in_link_t structure layout (32 bytes):
+                // offset 0 (u8): type
+                // offset 2 (u16): src_slot
+                // offset 4 (u16): src_out_idx
+                // offset 8 (f32): gain
+                // offset 12 (u32): audio ptr
+                // offset 16 (u32): midi ptr
+                // offset 20 (u32): midi_count
+                // offset 24 (f32): val
+                const coreLinkBase = (inLinksPtrCore >> 2) + (i * 8);
+                const modLinkBase  = (m.inLinksPtr >> 2) + (i * 8);
+
+                const type = coreU32[coreLinkBase] & 0xFF;
+                modU32[modLinkBase] = coreU32[coreLinkBase]; // type, src_slot, src_out_idx
+                modF32[modLinkBase + 2] = coreF32[coreLinkBase + 2]; // gain
+                modF32[modLinkBase + 6] = coreF32[coreLinkBase + 6]; // val
+
+                if (type === LINK_AUDIO) {
+                    const audioPtrCore = coreU32[coreLinkBase + 3];
+                    const audioScratchMod = m.audioBufPtr + (8 + i) * BLOCK_SIZE * 4;
+                    modU32[modLinkBase + 3] = audioScratchMod;
+                    if (audioPtrCore !== 0) {
+                        const srcIdx = audioPtrCore >> 2;
+                        const dstIdx = audioScratchMod >> 2;
+                        for (let s = 0; s < BLOCK_SIZE; s++) {
+                            modF32[dstIdx + s] = coreF32[srcIdx + s];
+                        }
+                    }
+                } else if (type === LINK_MIDI) {
+                    const midiCount = coreU32[coreLinkBase + 5];
+                    modU32[modLinkBase + 5] = midiCount;
+                    const midiPtrCore = coreU32[coreLinkBase + 4];
+                    const midiScratchMod = m.midiBufPtr + (8 + i) * 64 * 8;
+                    modU32[modLinkBase + 4] = midiScratchMod;
+                    if (midiPtrCore !== 0 && midiCount > 0) {
+                        const srcIdx = midiPtrCore >> 2;
+                        const dstIdx = midiScratchMod >> 2;
+                        for (let s = 0; s < midiCount * 2; s++) {
+                            modU32[dstIdx + s] = coreU32[srcIdx + s];
+                        }
+                    }
                 }
             }
 
-            // Run module DSP process in its own WASM sandbox
-            m.exports.b_module_process(m.inTablePtr, m.outTablePtr, BLOCK_SIZE);
+            // Execute module process
+            m.exports.b_module_process(0, m.inLinksPtr, inCount, m.outLinksPtr, m.outCountPtr, BLOCK_SIZE);
 
-            // Copy output buffers from module memory into host core memory
-            for (let p = 0; p < m.outPorts; p++) {
-                const srcOffset = (m.outBufPtr + p * BLOCK_SIZE * 4) >> 2;
-                const dstOffset = m.outPtrs[p] >> 2;
-                for (let s = 0; s < BLOCK_SIZE; s++) {
-                    coreF32[dstOffset + s] = modF32[srcOffset + s];
+            // Copy out_links back to core
+            const outCount = modU32[m.outCountPtr >> 2] || 1;
+            const coreOutLinksPtr = core.brack_slot_get_out_links_ptr(m.slot);
+
+            for (let o = 0; o < outCount; o++) {
+                const modOutBase = (m.outLinksPtr >> 2) + (o * 6);
+                const coreOutBase = (coreOutLinksPtr >> 2) + (o * 6);
+
+                const type = modU32[modOutBase] & 0xFF;
+                coreU32[coreOutBase] = type;
+                coreF32[coreOutBase + 4] = modF32[modOutBase + 4]; // val
+                const midiCount = modU32[modOutBase + 3];
+                coreU32[coreOutBase + 3] = midiCount;
+
+                if (type === LINK_AUDIO) {
+                    const modAudioPtr = modU32[modOutBase + 1];
+                    const coreAudioPtr = coreU32[coreOutBase + 1];
+                    if (modAudioPtr && coreAudioPtr) {
+                        const srcIdx = modAudioPtr >> 2;
+                        const dstIdx = coreAudioPtr >> 2;
+                        for (let s = 0; s < BLOCK_SIZE; s++) {
+                            coreF32[dstIdx + s] = modF32[srcIdx + s];
+                        }
+                    }
+                } else if (type === LINK_MIDI && midiCount > 0) {
+                    const modMidiPtr = modU32[modOutBase + 2];
+                    const coreMidiPtr = coreU32[coreOutBase + 2];
+                    if (modMidiPtr && coreMidiPtr) {
+                        const srcIdx = modMidiPtr >> 2;
+                        const dstIdx = coreMidiPtr >> 2;
+                        for (let s = 0; s < midiCount * 2; s++) {
+                            coreU32[dstIdx + s] = modU32[srcIdx + s];
+                        }
+                    }
                 }
             }
+
+            core.brack_core_route_slot_outputs(m.slot);
         }
 
-        // 3. Core finishes block (history buffers, scope)
+        // 3. Core finishes block
         core.brack_core_finish_block(BLOCK_SIZE);
 
-        // Record Master Out slot output to output array
-        const outSlot = modules[modules.length - 1];
-        const outSlotF32 = new Float32Array(outSlot.exports.memory.buffer);
-        const lOffset = (outSlot.outBufPtr) >> 2;
-        const rOffset = (outSlot.outBufPtr + BLOCK_SIZE * 4) >> 2;
+        // Record Master Out
+        const outModule = modules[modules.length - 1];
+        const outSlotF32 = new Float32Array(outModule.exports.memory.buffer);
+        const lOffset = (outModule.audioBufPtr) >> 2;
+        const rOffset = (outModule.audioBufPtr + BLOCK_SIZE * 4) >> 2;
 
         const sampleOffset = b * BLOCK_SIZE;
         for (let s = 0; s < BLOCK_SIZE && (sampleOffset + s) < TOTAL_SAMPLES; s++) {
@@ -308,3 +323,4 @@ main().catch(err => {
     console.error(err);
     process.exit(1);
 });
+
