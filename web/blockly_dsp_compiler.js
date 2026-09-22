@@ -122,7 +122,10 @@ export class BlocklySynthEngine {
             case 'event_whenkeypressed':
                 return { wasPressed: false };
             case 'synth_seq':
-                return { step: 0, last: 0, voct: 0, gate: 0, audioBuf: new Float32Array(128) };
+            case 'synth_step_matrix':
+                return { step: 0, last: 0, lastClk: 0, voct: 0, gate: 0, audioBuf: new Float32Array(128) };
+            case 'synth_drum_matrix':
+                return { step: 0, lastClk: 0, gates: [0, 0, 0, 0], audioBuf: new Float32Array(128) };
             case 'math_arithmetic':
             case 'math_map':
             case 'math_single':
@@ -567,6 +570,57 @@ export class BlocklySynthEngine {
                 return { type: 'AUDIO', val: state.voct, audio: state.audioBuf, gate: state.gate };
             }
 
+            case 'synth_step_matrix': {
+                const clkRes = this.getParamVal(block, 'CLK', 0, new Set(visited));
+                const name = block.getFieldValue('NAME') || 'Seq';
+                const pattern = this.knobValues.get(name) || [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0];
+                const len = pattern.length || 16;
+
+                for (let s = 0; s < numSamples; s++) {
+                    const clk = clkRes.audio ? clkRes.audio[s] : clkRes.val;
+                    if (clk > 0.5 && state.lastClk <= 0.5) {
+                        state.step = (state.step + 1) % len;
+                        const active = pattern[state.step];
+                        state.gate = (active > 0) ? 1 : 0;
+                        state.voct = (state.step % 12) / 12.0;
+                    } else if (clk <= 0.5) {
+                        state.gate = 0;
+                    }
+                    state.lastClk = clk;
+                    state.audioBuf[s] = state.gate;
+                }
+                return { type: 'AUDIO', val: state.gate, audio: state.audioBuf, currentStep: state.step };
+            }
+
+            case 'synth_drum_matrix': {
+                const clkRes = this.getParamVal(block, 'CLK', 0, new Set(visited));
+                const name = block.getFieldValue('NAME') || 'Drums';
+                const trackIdx = parseInt(block.getFieldValue('TRACK'), 10) || 0;
+                const matrix = this.knobValues.get(name) || [
+                    [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0], // Kick
+                    [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0], // Snare
+                    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // Hat
+                    [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0]  // Perc
+                ];
+
+                const trackPattern = matrix[trackIdx] || matrix[0];
+                const len = trackPattern.length || 16;
+
+                for (let s = 0; s < numSamples; s++) {
+                    const clk = clkRes.audio ? clkRes.audio[s] : clkRes.val;
+                    if (clk > 0.5 && state.lastClk <= 0.5) {
+                        state.step = (state.step + 1) % len;
+                        const active = trackPattern[state.step];
+                        state.gates[trackIdx] = (active > 0) ? 1 : 0;
+                    } else if (clk <= 0.5) {
+                        state.gates[trackIdx] = 0;
+                    }
+                    state.lastClk = clk;
+                    state.audioBuf[s] = state.gates[trackIdx];
+                }
+                return { type: 'AUDIO', val: state.gates[trackIdx], audio: state.audioBuf, currentStep: state.step };
+            }
+
             // Control & Logic
             case 'control_if_else': {
                 const condRes = this.getParamVal(block, 'COND', 0, new Set(visited));
@@ -961,6 +1015,37 @@ export class BlocklySynthEngine {
                 if (!seenParam.has(wName)) {
                     seenParam.add(wName);
                     params.push({ id: wName, name: wName, type: 'WAVE_DRAW', waveTable: new Float32Array(128) });
+                }
+            } else if (block.type === 'module_io_step_grid') {
+                const gName = block.getFieldValue('NAME') || 'Seq';
+                const steps = parseInt(block.getFieldValue('STEPS'), 10) || 16;
+                if (!seenParam.has(gName)) {
+                    seenParam.add(gName);
+                    params.push({
+                        id: gName,
+                        name: gName,
+                        type: 'STEP_GRID',
+                        steps: steps,
+                        pattern: [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0].slice(0, steps)
+                    });
+                }
+            } else if (block.type === 'module_io_drum_grid') {
+                const dName = block.getFieldValue('NAME') || 'Drums';
+                if (!seenParam.has(dName)) {
+                    seenParam.add(dName);
+                    params.push({
+                        id: dName,
+                        name: dName,
+                        type: 'DRUM_GRID',
+                        tracks: ['Kick', 'Snare', 'Hi-Hat', 'Perc'],
+                        steps: 16,
+                        matrix: [
+                            [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0],
+                            [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+                            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                            [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0]
+                        ]
+                    });
                 }
             } else if (block.type === 'module_visor_adsr') {
                 visors.push({

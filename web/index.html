@@ -608,7 +608,7 @@
 
     <!-- Blockly Toolbox Definition -->
     <xml id="toolbox" style="display: none">
-        <category name="Caixa & Controles (Faceplate)" colour="#059669">
+        <category name="Caixa &amp; Controles (Faceplate)" colour="#059669">
             <block type="module_def"></block>
             <block type="module_io_label"></block>
             <block type="module_io_separator"></block>
@@ -620,6 +620,8 @@
             <block type="module_io_button"></block>
             <block type="module_io_xy"></block>
             <block type="module_io_wavedraw"></block>
+            <block type="module_io_step_grid"></block>
+            <block type="module_io_drum_grid"></block>
             <block type="module_visor_adsr"></block>
             <block type="module_visor_scope"></block>
             <block type="module_visor_vu"></block>
@@ -632,7 +634,7 @@
             <block type="synth_send"></block>
             <block type="synth_recv"></block>
         </category>
-        <category name="Variáveis & Listas" colour="#FF661A">
+        <category name="Variáveis &amp; Listas" colour="#FF661A">
             <block type="synth_var_set"></block>
             <block type="synth_var_change"></block>
             <block type="synth_var_mult"></block>
@@ -649,15 +651,17 @@
             <block type="synth_list_contains"></block>
             <block type="synth_list_find"></block>
         </category>
-        <category name="Controle & Lógica" colour="#FFAB19">
+        <category name="Controle &amp; Lógica" colour="#FFAB19">
             <block type="control_if_else"></block>
             <block type="logic_compare_cv"></block>
             <block type="logic_and"></block>
             <block type="logic_or"></block>
             <block type="logic_not"></block>
             <block type="logic_xor"></block>
+            <block type="synth_step_matrix"></block>
+            <block type="synth_drum_matrix"></block>
         </category>
-        <category name="Eventos & Clock" colour="#FFBF00">
+        <category name="Eventos &amp; Clock" colour="#FFBF00">
             <block type="event_whenflagclicked"></block>
             <block type="event_every"></block>
             <block type="event_broadcast"></block>
@@ -670,13 +674,18 @@
         </category>
         <category name="Geradores" colour="#9966FF">
             <block type="synth_vco"></block>
+            <block type="synth_3xosc"></block>
+            <block type="synth_drum_voice"></block>
+            <block type="synth_fm_op"></block>
             <block type="synth_noise"></block>
             <block type="synth_sub_osc"></block>
             <block type="synth_bytebeat"></block>
         </category>
-        <category name="Filtros & Dinâmica" colour="#FF8C1A">
+        <category name="Filtros &amp; Dinâmica" colour="#FF8C1A">
             <block type="synth_vcf"></block>
             <block type="synth_svf"></block>
+            <block type="synth_formant"></block>
+            <block type="synth_eq7"></block>
             <block type="synth_vca"></block>
             <block type="synth_distortion"></block>
             <block type="synth_ringmod"></block>
@@ -694,7 +703,7 @@
             <block type="synth_slew"></block>
             <block type="synth_attenuverter"></block>
         </category>
-        <category name="Operadores & Matemática" colour="#40C057">
+        <category name="Operadores &amp; Matemática" colour="#40C057">
             <block type="math_number"></block>
             <block type="math_arithmetic"></block>
             <block type="math_map"></block>
@@ -705,9 +714,16 @@
             <block type="math_note_convert"></block>
             <block type="math_transpose"></block>
         </category>
-        <category name="Efeitos & Saída" colour="#4C97FF">
+        <category name="Efeitos &amp; Saída" colour="#4C97FF">
             <block type="synth_scope"></block>
+            <block type="synth_grossbeat"></block>
+            <block type="synth_soundgoodizer"></block>
             <block type="synth_chorus"></block>
+            <block type="synth_phaser"></block>
+            <block type="synth_bitcrush"></block>
+            <block type="synth_stereo_shaper"></block>
+            <block type="synth_soft_clipper"></block>
+            <block type="synth_granular_pitch"></block>
             <block type="synth_reverb"></block>
             <block type="synth_delay"></block>
             <block type="synth_out"></block>

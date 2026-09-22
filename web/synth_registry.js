@@ -136,6 +136,19 @@ export const dspHelpers = {
         const peak = state.lp - hp;
 
         return { lp: state.lp, hp, bp: state.bp, notch, peak };
+    },
+    biquad(inSmp, b0, b1, b2, a1, a2, state) {
+        const out = b0 * inSmp + b1 * state.x1 + b2 * state.x2 - a1 * state.y1 - a2 * state.y2;
+        state.x2 = state.x1;
+        state.x1 = inSmp;
+        state.y2 = state.y1;
+        state.y1 = out;
+        return out;
+    },
+    softClip(x) {
+        if (x > 1.0) return 1.0;
+        if (x < -1.0) return -1.0;
+        return 1.5 * x * (1.0 - (x * x) / 3.0);
     }
 };
 
@@ -1050,6 +1063,781 @@ defineModule({
         return { type: 'VAL', val: state.gate, audio: state.audioBuf };
     },
     tooltip: 'Sub-divide o clock de entrada gerando tempos mais lentos e polirritmos.'
+});
+
+/* =========================================================================
+ * 6. FL STUDIO SUITE & ADVANCED SYNTHESIS MODULES
+ * ========================================================================= */
+defineModule({
+    id: 'synth_3xosc',
+    name: '3xOsc Triplo Oscilador',
+    category: 'GENERATORS',
+    shape: 'value',
+    inputs: [
+        { id: 'FREQ', label: 'Freq Base (Hz)', type: 'val', default: 220 },
+        { id: 'FM', label: 'V/Oct / Pitch CV', type: 'val', default: 0 },
+        { id: 'SHAPE1', label: 'Osc 1 Forma', type: 'dropdown', options: [['Saw', 'saw'], ['Square', 'sqr'], ['Sine', 'sin'], ['Triangle', 'tri'], ['Noise', 'noise']], default: 'saw' },
+        { id: 'SHAPE2', label: 'Osc 2 Forma', type: 'dropdown', options: [['Saw', 'saw'], ['Square', 'sqr'], ['Sine', 'sin'], ['Triangle', 'tri'], ['Noise', 'noise']], default: 'sqr' },
+        { id: 'SHAPE3', label: 'Osc 3 Forma', type: 'dropdown', options: [['Saw', 'saw'], ['Square', 'sqr'], ['Sine', 'sin'], ['Triangle', 'tri'], ['Noise', 'noise']], default: 'sin' },
+        { id: 'DETUNE2', label: 'Osc 2 Detune (semitons)', type: 'val', default: 0.1 },
+        { id: 'DETUNE3', label: 'Osc 3 Detune (semitons)', type: 'val', default: -12 },
+        { id: 'MIX1', label: 'Mix Osc 1 (0..1)', type: 'val', default: 0.8 },
+        { id: 'MIX2', label: 'Mix Osc 2 (0..1)', type: 'val', default: 0.5 },
+        { id: 'MIX3', label: 'Mix Osc 3 (0..1)', type: 'val', default: 0.3 }
+    ],
+    state: () => ({ phase1: 0, phase2: 0, phase3: 0, audioBuf: new Float32Array(128) }),
+    process(inputs, state, dsp, numSamples) {
+        const baseFreq = Math.max(1, inputs.FREQ.val || 220);
+        const fm = inputs.FM ? (inputs.FM.audio || inputs.FM.val) : 0;
+        const detune2 = inputs.DETUNE2.val || 0;
+        const detune3 = inputs.DETUNE3.val || 0;
+        const mix1 = inputs.MIX1.val !== undefined ? inputs.MIX1.val : 0.8;
+        const mix2 = inputs.MIX2.val !== undefined ? inputs.MIX2.val : 0.5;
+        const mix3 = inputs.MIX3.val !== undefined ? inputs.MIX3.val : 0.3;
+        const shape1 = inputs.SHAPE1 || 'saw';
+        const shape2 = inputs.SHAPE2 || 'sqr';
+        const shape3 = inputs.SHAPE3 || 'sin';
+
+        const genSample = (shape, phase, dt) => {
+            if (shape === 'sin') return Math.sin(phase * 2 * Math.PI);
+            if (shape === 'saw') return dsp.saw(phase, dt);
+            if (shape === 'sqr') return dsp.sqr(phase, 0.5, dt);
+            if (shape === 'tri') return dsp.tri(phase);
+            if (shape === 'noise') return (Math.random() * 2 - 1);
+            return 0;
+        };
+
+        for (let s = 0; s < numSamples; s++) {
+            const cv = (typeof fm === 'object' && fm.length) ? fm[s] : (Number(fm) || 0);
+            const f1 = dsp.voct(cv, baseFreq);
+            const f2 = dsp.voct(cv + detune2 / 12, baseFreq);
+            const f3 = dsp.voct(cv + detune3 / 12, baseFreq);
+
+            const dt1 = dsp.clamp(f1 / 48000, 0, 0.49);
+            const dt2 = dsp.clamp(f2 / 48000, 0, 0.49);
+            const dt3 = dsp.clamp(f3 / 48000, 0, 0.49);
+
+            state.phase1 = (state.phase1 + dt1) % 1;
+            state.phase2 = (state.phase2 + dt2) % 1;
+            state.phase3 = (state.phase3 + dt3) % 1;
+
+            const s1 = genSample(shape1, state.phase1, dt1) * mix1;
+            const s2 = genSample(shape2, state.phase2, dt2) * mix2;
+            const s3 = genSample(shape3, state.phase3, dt3) * mix3;
+
+            state.audioBuf[s] = (s1 + s2 + s3) * 0.5;
+        }
+        return { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf };
+    },
+    tooltip: '3xOsc clássico do FL Studio: 3 osciladores com formas de onda ricas e detune polifônico.'
+});
+
+defineModule({
+    id: 'synth_grossbeat',
+    name: 'Gross Beat & Glitch Stutter',
+    category: 'EFFECTS',
+    shape: 'value',
+    inputs: [
+        { id: 'IN', label: 'Áudio In', type: 'audio' },
+        { id: 'CLK', label: 'Clock Trigger', type: 'audio' },
+        { id: 'MODE', label: 'Modo FX', type: 'dropdown', options: [
+            ['1/2 Speed (Slowdown)', 'slow'],
+            ['Reverse 1-Bar', 'reverse'],
+            ['Stutter 1/8', 'stutter8'],
+            ['Stutter 1/16', 'stutter16'],
+            ['Tape Scratch Stop', 'scratch'],
+            ['Gate Trance 1/16', 'gate16']
+        ], default: 'stutter8' },
+        { id: 'MIX', label: 'Mix Dry/Wet (0..1)', type: 'val', default: 1.0 }
+    ],
+    state: () => ({
+        buf: new Float32Array(96000),
+        writePos: 0,
+        readPos: 0,
+        stepCount: 0,
+        lastClk: 0,
+        audioBuf: new Float32Array(128)
+    }),
+    process(inputs, state, dsp, numSamples) {
+        const inRes = inputs.IN;
+        const clkRes = inputs.CLK;
+        const mode = inputs.MODE || 'stutter8';
+        const mix = dsp.clamp(inputs.MIX.val !== undefined ? inputs.MIX.val : 1, 0, 1);
+
+        if (!inRes || !inRes.audio) {
+            state.audioBuf.fill(0);
+            return { type: 'AUDIO', val: 0, audio: state.audioBuf };
+        }
+
+        const bufLen = 48000; // 1 second buffer (1 bar @ 120bpm = 2s)
+
+        for (let s = 0; s < numSamples; s++) {
+            const smp = inRes.audio[s];
+            const clk = clkRes ? (clkRes.audio ? clkRes.audio[s] : clkRes.val) : 0;
+
+            if (clk > 0.5 && state.lastClk <= 0.5) {
+                state.stepCount = (state.stepCount + 1) % 16;
+                if (state.stepCount === 0 || mode.startsWith('stutter')) {
+                    state.readPos = state.writePos;
+                }
+            }
+            state.lastClk = clk;
+
+            state.buf[state.writePos] = smp;
+            state.writePos = (state.writePos + 1) % bufLen;
+
+            let outWet = 0;
+            if (mode === 'slow') {
+                const rIdx = Math.floor((state.writePos - (state.writePos % 24000) * 0.5 + bufLen) % bufLen);
+                outWet = state.buf[rIdx];
+            } else if (mode === 'reverse') {
+                const blockLen = 24000;
+                const offsetInBlock = state.writePos % blockLen;
+                const rIdx = (state.writePos - offsetInBlock + (blockLen - offsetInBlock) + bufLen) % bufLen;
+                outWet = state.buf[Math.floor(rIdx)];
+            } else if (mode === 'stutter8') {
+                const sliceLen = 6000;
+                const rIdx = (state.writePos - (state.writePos % sliceLen) + (state.readPos % sliceLen) + bufLen) % bufLen;
+                outWet = state.buf[Math.floor(rIdx)];
+            } else if (mode === 'stutter16') {
+                const sliceLen = 3000;
+                const rIdx = (state.writePos - (state.writePos % sliceLen) + bufLen) % bufLen;
+                outWet = state.buf[Math.floor(rIdx)];
+            } else if (mode === 'gate16') {
+                const sliceLen = 3000;
+                const inSlice = state.writePos % sliceLen;
+                outWet = inSlice < (sliceLen * 0.5) ? smp : 0;
+            } else if (mode === 'scratch') {
+                const env = Math.max(0, 1 - (state.stepCount % 4) / 4);
+                const rIdx = (state.writePos - Math.floor(env * 12000) + bufLen) % bufLen;
+                outWet = state.buf[rIdx];
+            }
+
+            state.audioBuf[s] = smp * (1 - mix) + outWet * mix;
+        }
+
+        return { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf };
+    },
+    tooltip: 'Gross Beat: Manipulação temporal com repetição de loop, reverse, slowdown e glitch rítmico.'
+});
+
+defineModule({
+    id: 'synth_soundgoodizer',
+    name: 'Soundgoodizer Saturador',
+    category: 'EFFECTS',
+    shape: 'value',
+    inputs: [
+        { id: 'IN', label: 'Áudio In', type: 'audio' },
+        { id: 'PRESET', label: 'Preset', type: 'dropdown', options: [
+            ['A (Punchy Master)', 'A'],
+            ['B (Warm Bass Boost)', 'B'],
+            ['C (Bright High Air)', 'C'],
+            ['D (Aggressive Lead)', 'D']
+        ], default: 'A' },
+        { id: 'AMOUNT', label: 'Quantidade (0..1)', type: 'val', default: 0.65 }
+    ],
+    state: () => ({
+        lpState: { lp: 0, hp: 0, bp: 0 },
+        hpState: { lp: 0, hp: 0, bp: 0 },
+        audioBuf: new Float32Array(128)
+    }),
+    process(inputs, state, dsp, numSamples) {
+        const inRes = inputs.IN;
+        const preset = inputs.PRESET || 'A';
+        const amt = dsp.clamp(inputs.AMOUNT.val !== undefined ? inputs.AMOUNT.val : 0.65, 0, 1);
+
+        if (!inRes || !inRes.audio) {
+            state.audioBuf.fill(0);
+            return { type: 'AUDIO', val: 0, audio: state.audioBuf };
+        }
+
+        const drive = 1.0 + amt * 3.5;
+
+        for (let s = 0; s < numSamples; s++) {
+            const smp = inRes.audio[s];
+            const lowSplit = dsp.svf(smp, 250, 0.2, state.lpState);
+            const highSplit = dsp.svf(smp, 3500, 0.2, state.hpState);
+
+            let low = lowSplit.lp;
+            let mid = smp - lowSplit.lp - highSplit.hp;
+            let high = highSplit.hp;
+
+            if (preset === 'A') {
+                low = dsp.tanh(low * (1.2 + amt * 1.5));
+                mid = dsp.tanh(mid * (1.0 + amt * 1.0));
+                high = dsp.tanh(high * (1.4 + amt * 2.0));
+            } else if (preset === 'B') {
+                low = dsp.tanh(low * (1.8 + amt * 2.5)) * 1.3;
+                mid = mid * 0.9;
+                high = high * 0.8;
+            } else if (preset === 'C') {
+                low = low * 0.9;
+                mid = dsp.tanh(mid * (1.1 + amt * 1.2));
+                high = dsp.tanh(high * (2.0 + amt * 3.0)) * 1.4;
+            } else if (preset === 'D') {
+                low = dsp.softClip(low * (1.5 + amt * 2.0));
+                mid = dsp.softClip(mid * (2.0 + amt * 3.5));
+                high = dsp.softClip(high * (1.5 + amt * 2.0));
+            }
+
+            const wet = (low + mid + high) * 0.85;
+            state.audioBuf[s] = dsp.softClip(smp * (1 - amt * 0.5) + wet * amt);
+        }
+
+        return { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf };
+    },
+    tooltip: 'Soundgoodizer: O lendário maximizador multiband do FL Studio com saturação e exciter.'
+});
+
+defineModule({
+    id: 'synth_drum_voice',
+    name: '808 Drum Voice Sintetizador',
+    category: 'GENERATORS',
+    shape: 'value',
+    inputs: [
+        { id: 'TRIG', label: 'Trigger Gate', type: 'audio' },
+        { id: 'TYPE', label: 'Instrumento', type: 'dropdown', options: [
+            ['Kick 808 Sub', 'kick'],
+            ['Snare 808 Crisp', 'snare'],
+            ['Clap 808 Handclap', 'clap'],
+            ['Hi-Hat Closed', 'hat'],
+            ['Tom 808 Resonant', 'tom']
+        ], default: 'kick' },
+        { id: 'TUNE', label: 'Afinação Base (Hz)', type: 'val', default: 55 },
+        { id: 'DECAY', label: 'Decaimento (s)', type: 'val', default: 0.4 },
+        { id: 'SNAP', label: 'Punch / Snap (0..1)', type: 'val', default: 0.6 },
+        { id: 'DRIVE', label: 'Overdrive Saturação', type: 'val', default: 0.3 }
+    ],
+    state: () => ({
+        phase: 0,
+        env: 0,
+        pitchEnv: 0,
+        noiseState: 0,
+        lastTrig: 0,
+        svfState: { lp: 0, hp: 0, bp: 0 },
+        audioBuf: new Float32Array(128)
+    }),
+    process(inputs, state, dsp, numSamples) {
+        const trigRes = inputs.TRIG;
+        const type = inputs.TYPE || 'kick';
+        const tune = Math.max(20, inputs.TUNE.val || 55);
+        const decay = Math.max(0.01, inputs.DECAY.val || 0.4);
+        const snap = dsp.clamp(inputs.SNAP.val !== undefined ? inputs.SNAP.val : 0.6, 0, 1);
+        const drive = dsp.clamp(inputs.DRIVE.val !== undefined ? inputs.DRIVE.val : 0.3, 0, 1);
+
+        const decayCoeff = Math.exp(-1.0 / (decay * 48000));
+        const pitchDecayCoeff = Math.exp(-1.0 / (0.02 * 48000));
+
+        for (let s = 0; s < numSamples; s++) {
+            const tr = trigRes ? (trigRes.audio ? trigRes.audio[s] : trigRes.val) : 0;
+            if (tr > 0.5 && state.lastTrig <= 0.5) {
+                state.env = 1.0;
+                state.pitchEnv = 1.0;
+                state.phase = 0;
+            }
+            state.lastTrig = tr;
+
+            state.env *= decayCoeff;
+            state.pitchEnv *= pitchDecayCoeff;
+
+            let out = 0;
+            if (type === 'kick') {
+                const pitchSweep = tune * (1.0 + state.pitchEnv * 3.5 * snap);
+                state.phase = (state.phase + pitchSweep / 48000) % 1;
+                const sub = Math.sin(state.phase * 2 * Math.PI);
+                const click = (Math.random() * 2 - 1) * state.pitchEnv * snap * 0.4;
+                out = (sub + click) * state.env;
+            } else if (type === 'snare') {
+                state.phase = (state.phase + (tune * 3.5) / 48000) % 1;
+                const tone = Math.sin(state.phase * 2 * Math.PI) * Math.exp(-1.0 / (0.05 * 48000));
+                const noise = (Math.random() * 2 - 1);
+                const filtNoise = dsp.svf(noise, 2200, 0.4, state.svfState).bp;
+                out = (tone * 0.4 + filtNoise * 0.8) * state.env;
+            } else if (type === 'clap') {
+                const noise = (Math.random() * 2 - 1);
+                const filtNoise = dsp.svf(noise, 1400, 0.6, state.svfState).bp;
+                out = filtNoise * state.env * 1.2;
+            } else if (type === 'hat') {
+                const noise = (Math.random() * 2 - 1);
+                const fHigh = dsp.svf(noise, 8000, 0.7, state.svfState).hp;
+                out = fHigh * state.env * 0.8;
+            } else if (type === 'tom') {
+                const pitchSweep = tune * (1.0 + state.pitchEnv * 1.5 * snap);
+                state.phase = (state.phase + pitchSweep / 48000) % 1;
+                out = Math.sin(state.phase * 2 * Math.PI) * state.env;
+            }
+
+            // Apply Drive
+            if (drive > 0) {
+                out = dsp.tanh(out * (1 + drive * 4)) * (1 / (1 + drive * 0.5));
+            }
+
+            state.audioBuf[s] = out;
+        }
+
+        return { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf };
+    },
+    tooltip: 'Voz de percussão analógica estilo TR-808 (Kick, Snare, Clap, Hat, Tom) com pitch sweep e decay.'
+});
+
+defineModule({
+    id: 'synth_chorus',
+    name: 'Stereo Chorus & Flanger',
+    category: 'EFFECTS',
+    shape: 'value',
+    inputs: [
+        { id: 'IN', label: 'Áudio In', type: 'audio' },
+        { id: 'RATE', label: 'Velocidade LFO (Hz)', type: 'val', default: 0.8 },
+        { id: 'DEPTH', label: 'Profundidade (ms)', type: 'val', default: 3.5 },
+        { id: 'FEEDBACK', label: 'Feedback (0..0.9)', type: 'val', default: 0.25 },
+        { id: 'MIX', label: 'Mix Dry/Wet (0..1)', type: 'val', default: 0.5 }
+    ],
+    state: () => ({
+        bufL: new Float32Array(9600),
+        bufR: new Float32Array(9600),
+        head: 0,
+        lfoPhase: 0,
+        audioBuf: new Float32Array(128)
+    }),
+    process(inputs, state, dsp, numSamples) {
+        const inRes = inputs.IN;
+        const rate = Math.max(0.05, inputs.RATE.val || 0.8);
+        const depthMs = dsp.clamp(inputs.DEPTH.val || 3.5, 0.1, 15);
+        const fb = dsp.clamp(inputs.FEEDBACK.val || 0.25, 0, 0.9);
+        const mix = dsp.clamp(inputs.MIX.val !== undefined ? inputs.MIX.val : 0.5, 0, 1);
+
+        if (!inRes || !inRes.audio) {
+            state.audioBuf.fill(0);
+            return { type: 'AUDIO', val: 0, audio: state.audioBuf };
+        }
+
+        const baseDelaySamples = 480; // 10ms
+        const maxDepthSamples = (depthMs / 1000) * 48000;
+        const lfoInc = rate / 48000;
+
+        for (let s = 0; s < numSamples; s++) {
+            const smp = inRes.audio[s];
+            state.lfoPhase = (state.lfoPhase + lfoInc) % 1;
+
+            const modL = (Math.sin(state.lfoPhase * 2 * Math.PI) + 1) * 0.5 * maxDepthSamples;
+            const modR = (Math.cos(state.lfoPhase * 2 * Math.PI) + 1) * 0.5 * maxDepthSamples;
+
+            const readIdxL = Math.floor((state.head - baseDelaySamples - modL + 9600) % 9600);
+            const readIdxR = Math.floor((state.head - baseDelaySamples - modR + 9600) % 9600);
+
+            const delayedL = state.bufL[readIdxL];
+            const delayedR = state.bufR[readIdxR];
+
+            state.bufL[state.head] = smp + delayedL * fb;
+            state.bufR[state.head] = smp + delayedR * fb;
+            state.head = (state.head + 1) % 9600;
+
+            const outWet = (delayedL + delayedR) * 0.5;
+            state.audioBuf[s] = smp * (1 - mix * 0.5) + outWet * mix;
+        }
+
+        return { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf };
+    },
+    tooltip: 'Chorus e Flanger estéreo quente com modulação em quadratura (L/R).'
+});
+
+defineModule({
+    id: 'synth_phaser',
+    name: '8-Stage Phaser Eurorack',
+    category: 'EFFECTS',
+    shape: 'value',
+    inputs: [
+        { id: 'IN', label: 'Áudio In', type: 'audio' },
+        { id: 'RATE', label: 'Velocidade LFO (Hz)', type: 'val', default: 0.5 },
+        { id: 'DEPTH', label: 'Profundidade (0..1)', type: 'val', default: 0.75 },
+        { id: 'FEEDBACK', label: 'Feedback (0..0.9)', type: 'val', default: 0.6 },
+        { id: 'MIX', label: 'Mix Dry/Wet (0..1)', type: 'val', default: 0.5 }
+    ],
+    state: () => ({
+        allpass: [
+            { x1: 0, y1: 0 }, { x1: 0, y1: 0 }, { x1: 0, y1: 0 }, { x1: 0, y1: 0 },
+            { x1: 0, y1: 0 }, { x1: 0, y1: 0 }, { x1: 0, y1: 0 }, { x1: 0, y1: 0 }
+        ],
+        lastOut: 0,
+        lfoPhase: 0,
+        audioBuf: new Float32Array(128)
+    }),
+    process(inputs, state, dsp, numSamples) {
+        const inRes = inputs.IN;
+        const rate = Math.max(0.01, inputs.RATE.val || 0.5);
+        const depth = dsp.clamp(inputs.DEPTH.val || 0.75, 0, 1);
+        const fb = dsp.clamp(inputs.FEEDBACK.val || 0.6, 0, 0.9);
+        const mix = dsp.clamp(inputs.MIX.val !== undefined ? inputs.MIX.val : 0.5, 0, 1);
+
+        if (!inRes || !inRes.audio) {
+            state.audioBuf.fill(0);
+            return { type: 'AUDIO', val: 0, audio: state.audioBuf };
+        }
+
+        const lfoInc = rate / 48000;
+
+        for (let s = 0; s < numSamples; s++) {
+            const smp = inRes.audio[s];
+            state.lfoPhase = (state.lfoPhase + lfoInc) % 1;
+
+            const lfoVal = (Math.sin(state.lfoPhase * 2 * Math.PI) + 1) * 0.5;
+            const centerFreq = 300 + lfoVal * 3000 * depth;
+            const w = Math.tan((Math.PI * centerFreq) / 48000);
+            const a1 = (w - 1) / (w + 1);
+
+            let x = smp + state.lastOut * fb;
+            for (let stage = 0; stage < 8; stage++) {
+                const ap = state.allpass[stage];
+                const y = a1 * x + ap.x1 - a1 * ap.y1;
+                ap.x1 = x;
+                ap.y1 = y;
+                x = y;
+            }
+
+            state.lastOut = x;
+            state.audioBuf[s] = smp * (1 - mix) + x * mix;
+        }
+
+        return { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf };
+    },
+    tooltip: 'Phaser de 8 estágios com múltiplos pontos de cancelamento de fase e feedback psicodélico.'
+});
+
+defineModule({
+    id: 'synth_formant',
+    name: 'Vocoder & Filtro Formante',
+    category: 'FILTERS',
+    shape: 'value',
+    inputs: [
+        { id: 'IN', label: 'Áudio In', type: 'audio' },
+        { id: 'VOWEL', label: 'Vogal', type: 'dropdown', options: [
+            ['A (Ah)', 'A'],
+            ['E (Eh)', 'E'],
+            ['I (Ee)', 'I'],
+            ['O (Oh)', 'O'],
+            ['U (Oo)', 'U']
+        ], default: 'A' },
+        { id: 'MORPH', label: 'Morph V/Oct (0..1)', type: 'val', default: 0 },
+        { id: 'RES', label: 'Ressonância (0..0.95)', type: 'val', default: 0.85 }
+    ],
+    state: () => ({
+        f1State: { lp: 0, hp: 0, bp: 0 },
+        f2State: { lp: 0, hp: 0, bp: 0 },
+        f3State: { lp: 0, hp: 0, bp: 0 },
+        audioBuf: new Float32Array(128)
+    }),
+    process(inputs, state, dsp, numSamples) {
+        const inRes = inputs.IN;
+        const vowel = inputs.VOWEL || 'A';
+        const morph = dsp.clamp(inputs.MORPH.val || 0, 0, 1);
+        const res = dsp.clamp(inputs.RES.val || 0.85, 0.1, 0.95);
+
+        if (!inRes || !inRes.audio) {
+            state.audioBuf.fill(0);
+            return { type: 'AUDIO', val: 0, audio: state.audioBuf };
+        }
+
+        const FORMANT_FREQS = {
+            'A': [800, 1200, 2500],
+            'E': [500, 1800, 2500],
+            'I': [300, 2300, 3000],
+            'O': [450, 800, 2500],
+            'U': [300, 870, 2250]
+        };
+
+        const freqs = FORMANT_FREQS[vowel] || [800, 1200, 2500];
+        const f1 = freqs[0] * (1 + morph * 0.5);
+        const f2 = freqs[1] * (1 + morph * 0.5);
+        const f3 = freqs[2] * (1 + morph * 0.5);
+
+        for (let s = 0; s < numSamples; s++) {
+            const smp = inRes.audio[s];
+            const band1 = dsp.svf(smp, f1, res, state.f1State).bp;
+            const band2 = dsp.svf(smp, f2, res, state.f2State).bp;
+            const band3 = dsp.svf(smp, f3, res, state.f3State).bp;
+
+            state.audioBuf[s] = (band1 * 1.2 + band2 * 1.0 + band3 * 0.6) * 1.5;
+        }
+
+        return { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf };
+    },
+    tooltip: 'Filtro formante com ressonadores vocais A-E-I-O-U simulando a fala humana.'
+});
+
+defineModule({
+    id: 'synth_bitcrush',
+    name: 'Bitcrusher & Decimator',
+    category: 'EFFECTS',
+    shape: 'value',
+    inputs: [
+        { id: 'IN', label: 'Áudio In', type: 'audio' },
+        { id: 'BITS', label: 'Resolução Bits (1..16)', type: 'val', default: 6 },
+        { id: 'DOWNSAMPLE', label: 'Downsample Fator (1..40)', type: 'val', default: 4 },
+        { id: 'MIX', label: 'Mix Dry/Wet (0..1)', type: 'val', default: 1.0 }
+    ],
+    state: () => ({ holdSample: 0, holdCount: 0, audioBuf: new Float32Array(128) }),
+    process(inputs, state, dsp, numSamples) {
+        const inRes = inputs.IN;
+        const bits = dsp.clamp(inputs.BITS.val || 6, 1, 16);
+        const downsample = Math.max(1, Math.floor(inputs.DOWNSAMPLE.val || 4));
+        const mix = dsp.clamp(inputs.MIX.val !== undefined ? inputs.MIX.val : 1.0, 0, 1);
+
+        if (!inRes || !inRes.audio) {
+            state.audioBuf.fill(0);
+            return { type: 'AUDIO', val: 0, audio: state.audioBuf };
+        }
+
+        const steps = Math.pow(2, bits);
+
+        for (let s = 0; s < numSamples; s++) {
+            const smp = inRes.audio[s];
+
+            if (state.holdCount >= downsample) {
+                state.holdSample = Math.round(smp * steps) / steps;
+                state.holdCount = 0;
+            }
+            state.holdCount++;
+
+            state.audioBuf[s] = smp * (1 - mix) + state.holdSample * mix;
+        }
+
+        return { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf };
+    },
+    tooltip: 'Destruidor digital de bits com redução de profundidade e redução de taxa de amostragem retro.'
+});
+
+defineModule({
+    id: 'synth_fm_op',
+    name: 'Sytrus 2-Op FM Synth',
+    category: 'GENERATORS',
+    shape: 'value',
+    inputs: [
+        { id: 'FREQ', label: 'Freq Portadora (Hz)', type: 'val', default: 220 },
+        { id: 'RATIO', label: 'Harmonic Ratio (ex: 2.0)', type: 'val', default: 2.0 },
+        { id: 'FM_AMT', label: 'FM Amount (Modulação)', type: 'val', default: 1.5 },
+        { id: 'FEEDBACK', label: 'Modulator Feedback', type: 'val', default: 0.2 },
+        { id: 'CV', label: 'Pitch V/Oct CV', type: 'val', default: 0 }
+    ],
+    state: () => ({ carPhase: 0, modPhase: 0, modLast: 0, audioBuf: new Float32Array(128) }),
+    process(inputs, state, dsp, numSamples) {
+        const baseFreq = Math.max(1, inputs.FREQ.val || 220);
+        const ratio = Math.max(0.1, inputs.RATIO.val || 2.0);
+        const fmAmount = inputs.FM_AMT.val !== undefined ? inputs.FM_AMT.val : 1.5;
+        const fb = dsp.clamp(inputs.FEEDBACK.val || 0.2, 0, 0.95);
+        const cv = inputs.CV ? (inputs.CV.audio || inputs.CV.val) : 0;
+
+        for (let s = 0; s < numSamples; s++) {
+            const pitchOffset = (typeof cv === 'object' && cv.length) ? cv[s] : (Number(cv) || 0);
+            const freq = dsp.voct(pitchOffset, baseFreq);
+            const modFreq = freq * ratio;
+
+            const modDt = dsp.clamp(modFreq / 48000, 0, 0.49);
+            state.modPhase = (state.modPhase + modDt) % 1;
+
+            const modSig = Math.sin(state.modPhase * 2 * Math.PI + state.modLast * fb);
+            state.modLast = modSig;
+
+            const carDt = dsp.clamp(freq / 48000, 0, 0.49);
+            state.carPhase = (state.carPhase + carDt) % 1;
+
+            const out = Math.sin(state.carPhase * 2 * Math.PI + modSig * fmAmount);
+            state.audioBuf[s] = out;
+        }
+
+        return { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf };
+    },
+    tooltip: 'Síntese FM estilo Sytrus com Modulador -> Portadora e feedback harmônico.'
+});
+
+defineModule({
+    id: 'synth_stereo_shaper',
+    name: 'Stereo Shaper & Haas Widener',
+    category: 'EFFECTS',
+    shape: 'value',
+    inputs: [
+        { id: 'IN', label: 'Áudio In', type: 'audio' },
+        { id: 'WIDTH', label: 'Stereo Width (0..2)', type: 'val', default: 1.5 },
+        { id: 'HAAS', label: 'Haas Delay (0..20 ms)', type: 'val', default: 8.0 }
+    ],
+    state: () => ({ bufR: new Float32Array(2400), head: 0, audioBuf: new Float32Array(128) }),
+    process(inputs, state, dsp, numSamples) {
+        const inRes = inputs.IN;
+        const width = dsp.clamp(inputs.WIDTH.val !== undefined ? inputs.WIDTH.val : 1.5, 0, 2);
+        const haasMs = dsp.clamp(inputs.HAAS.val || 8.0, 0, 20);
+
+        if (!inRes || !inRes.audio) {
+            state.audioBuf.fill(0);
+            return { type: 'AUDIO', val: 0, audio: state.audioBuf };
+        }
+
+        const haasSamples = Math.floor((haasMs / 1000) * 48000);
+
+        for (let s = 0; s < numSamples; s++) {
+            const smp = inRes.audio[s];
+            state.bufR[state.head] = smp;
+            const rIdx = (state.head - haasSamples + 2400) % 2400;
+            const delayedR = state.bufR[rIdx];
+            state.head = (state.head + 1) % 2400;
+
+            const mid = (smp + delayedR) * 0.5;
+            const side = (smp - delayedR) * 0.5 * width;
+            state.audioBuf[s] = mid + side;
+        }
+
+        return { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf };
+    },
+    tooltip: 'Stereo Shaper: Expansor psicoacústico de palco sonoro baseado em efeito Haas e Mid/Side.'
+});
+
+defineModule({
+    id: 'synth_soft_clipper',
+    name: 'Fruity Soft Clipper & Limiter',
+    category: 'EFFECTS',
+    shape: 'value',
+    inputs: [
+        { id: 'IN', label: 'Áudio In', type: 'audio' },
+        { id: 'THRESHOLD', label: 'Threshold (0.1..1.5)', type: 'val', default: 0.8 },
+        { id: 'POST_GAIN', label: 'Post Gain (0.5..2)', type: 'val', default: 1.0 }
+    ],
+    state: () => ({ audioBuf: new Float32Array(128) }),
+    process(inputs, state, dsp, numSamples) {
+        const inRes = inputs.IN;
+        const thresh = Math.max(0.01, inputs.THRESHOLD.val || 0.8);
+        const postGain = inputs.POST_GAIN.val || 1.0;
+
+        if (!inRes || !inRes.audio) {
+            state.audioBuf.fill(0);
+            return { type: 'AUDIO', val: 0, audio: state.audioBuf };
+        }
+
+        for (let s = 0; s < numSamples; s++) {
+            const smp = inRes.audio[s] / thresh;
+            let clipped = 0;
+            if (smp > 1.0) clipped = 1.0;
+            else if (smp < -1.0) clipped = -1.0;
+            else clipped = 1.5 * smp * (1.0 - (smp * smp) / 3.0);
+
+            state.audioBuf[s] = clipped * thresh * postGain;
+        }
+
+        return { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf };
+    },
+    tooltip: 'Fruity Soft Clipper: Saturação analógica suave que arredonda transientes evitando estalos digitais.'
+});
+
+defineModule({
+    id: 'synth_granular_pitch',
+    name: 'Granular Pitch Shifter',
+    category: 'EFFECTS',
+    shape: 'value',
+    inputs: [
+        { id: 'IN', label: 'Áudio In', type: 'audio' },
+        { id: 'SEMITONES', label: 'Transposição (-24..+24)', type: 'val', default: 7 },
+        { id: 'GRAIN_SIZE', label: 'Tamanho Grão (ms)', type: 'val', default: 50 },
+        { id: 'MIX', label: 'Mix (0..1)', type: 'val', default: 0.8 }
+    ],
+    state: () => ({
+        buf: new Float32Array(48000),
+        writePos: 0,
+        phase1: 0,
+        phase2: 0.5,
+        audioBuf: new Float32Array(128)
+    }),
+    process(inputs, state, dsp, numSamples) {
+        const inRes = inputs.IN;
+        const semi = dsp.clamp(inputs.SEMITONES.val || 7, -24, 24);
+        const grainMs = dsp.clamp(inputs.GRAIN_SIZE.val || 50, 10, 120);
+        const mix = dsp.clamp(inputs.MIX.val !== undefined ? inputs.MIX.val : 0.8, 0, 1);
+
+        if (!inRes || !inRes.audio) {
+            state.audioBuf.fill(0);
+            return { type: 'AUDIO', val: 0, audio: state.audioBuf };
+        }
+
+        const grainSamples = Math.floor((grainMs / 1000) * 48000);
+        const ratio = Math.pow(2, semi / 12);
+        const rate = (1 - ratio) / grainSamples;
+
+        for (let s = 0; s < numSamples; s++) {
+            const smp = inRes.audio[s];
+            state.buf[state.writePos] = smp;
+
+            state.phase1 = (state.phase1 + rate + 1) % 1;
+            state.phase2 = (state.phase2 + rate + 1) % 1;
+
+            const offset1 = state.phase1 * grainSamples;
+            const offset2 = state.phase2 * grainSamples;
+
+            const win1 = Math.sin(state.phase1 * Math.PI);
+            const win2 = Math.sin(state.phase2 * Math.PI);
+
+            const rIdx1 = (state.writePos - Math.floor(offset1) + 48000) % 48000;
+            const rIdx2 = (state.writePos - Math.floor(offset2) + 48000) % 48000;
+
+            const outGrain = state.buf[rIdx1] * win1 + state.buf[rIdx2] * win2;
+            state.writePos = (state.writePos + 1) % 48000;
+
+            state.audioBuf[s] = smp * (1 - mix) + outGrain * mix;
+        }
+
+        return { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf };
+    },
+    tooltip: 'Pitch Shifter Granular polifônico em tempo real para transpor vozes e timbres.'
+});
+
+defineModule({
+    id: 'synth_eq7',
+    name: 'Equalizador Paramétrico 7-Band',
+    category: 'FILTERS',
+    shape: 'value',
+    inputs: [
+        { id: 'IN', label: 'Áudio In', type: 'audio' },
+        { id: 'G60', label: '60 Hz (Sub dB)', type: 'val', default: 0 },
+        { id: 'G150', label: '150 Hz (Bass dB)', type: 'val', default: 0 },
+        { id: 'G400', label: '400 Hz (Low-Mid dB)', type: 'val', default: 0 },
+        { id: 'G1K', label: '1 kHz (Mid dB)', type: 'val', default: 0 },
+        { id: 'G2K5', label: '2.5 kHz (High-Mid dB)', type: 'val', default: 0 },
+        { id: 'G6K', label: '6 kHz (Treble dB)', type: 'val', default: 0 },
+        { id: 'G15K', label: '15 kHz (Air dB)', type: 'val', default: 0 }
+    ],
+    state: () => ({
+        bands: [
+            { lp: 0, hp: 0, bp: 0 }, { lp: 0, hp: 0, bp: 0 }, { lp: 0, hp: 0, bp: 0 },
+            { lp: 0, hp: 0, bp: 0 }, { lp: 0, hp: 0, bp: 0 }, { lp: 0, hp: 0, bp: 0 }, { lp: 0, hp: 0, bp: 0 }
+        ],
+        audioBuf: new Float32Array(128)
+    }),
+    process(inputs, state, dsp, numSamples) {
+        const inRes = inputs.IN;
+        if (!inRes || !inRes.audio) {
+            state.audioBuf.fill(0);
+            return { type: 'AUDIO', val: 0, audio: state.audioBuf };
+        }
+
+        const gains = [
+            Math.pow(10, (inputs.G60.val || 0) / 20),
+            Math.pow(10, (inputs.G150.val || 0) / 20),
+            Math.pow(10, (inputs.G400.val || 0) / 20),
+            Math.pow(10, (inputs.G1K.val || 0) / 20),
+            Math.pow(10, (inputs.G2K5.val || 0) / 20),
+            Math.pow(10, (inputs.G6K.val || 0) / 20),
+            Math.pow(10, (inputs.G15K.val || 0) / 20)
+        ];
+        const freqs = [60, 150, 400, 1000, 2500, 6000, 15000];
+
+        for (let s = 0; s < numSamples; s++) {
+            const smp = inRes.audio[s];
+            let out = smp;
+            for (let b = 0; b < 7; b++) {
+                const bp = dsp.svf(smp, freqs[b], 0.5, state.bands[b]).bp;
+                out += bp * (gains[b] - 1);
+            }
+            state.audioBuf[s] = out;
+        }
+
+        return { type: 'AUDIO', val: state.audioBuf[0], audio: state.audioBuf };
+    },
+    tooltip: 'Equalizador Paramétrico de 7 bandas com controle de ganho individual por frequência.'
 });
 
 /* =========================================================================

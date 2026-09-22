@@ -228,6 +228,78 @@ export function registerSynthBlocks(Blockly) {
         }
     };
 
+    Blockly.Blocks['module_io_step_grid'] = {
+        init: function() {
+            this.appendDummyInput()
+                .appendField("matriz de passos [")
+                .appendField(new Blockly.FieldTextInput("Seq"), "NAME")
+                .appendField("] passos:")
+                .appendField(new Blockly.FieldDropdown([
+                    ["8 Passos", "8"],
+                    ["16 Passos", "16"]
+                ]), "STEPS");
+            this.setOutput(true);
+            this.setInputsInline(true);
+            this.setColour(CATEGORIES.IO_PORTS ? CATEGORIES.IO_PORTS.colour : "#059669");
+            this.setTooltip("Cria uma grade visual interativa de passos (8/16 steps) com botões táteis e LED de playhead.");
+        }
+    };
+
+    Blockly.Blocks['module_io_drum_grid'] = {
+        init: function() {
+            this.appendDummyInput()
+                .appendField("drum machine grid [")
+                .appendField(new Blockly.FieldTextInput("Drums"), "NAME")
+                .appendField("] pista:")
+                .appendField(new Blockly.FieldDropdown([
+                    ["Kick (Bumbo)", "0"],
+                    ["Snare (Caixa)", "1"],
+                    ["Hi-Hat (Chimbal)", "2"],
+                    ["Perc (Percussão)", "3"]
+                ]), "TRACK");
+            this.setOutput(true);
+            this.setInputsInline(true);
+            this.setColour(CATEGORIES.IO_PORTS ? CATEGORIES.IO_PORTS.colour : "#059669");
+            this.setTooltip("Cria uma matriz completa de 4 pistas x 16 passos para bateria eletrônica estilo FL Studio.");
+        }
+    };
+
+    Blockly.Blocks['synth_step_matrix'] = {
+        init: function() {
+            this.appendDummyInput()
+                .appendField("Sequenciador Matriz Visual [")
+                .appendField(new Blockly.FieldTextInput("Seq"), "NAME")
+                .appendField("]");
+            this.appendValueInput("CLK")
+                .appendField("Clock In");
+            this.setOutput(true);
+            this.setInputsInline(true);
+            this.setColour(CATEGORIES.CONTROL.colour);
+            this.setTooltip("Avança o sequenciador visual de passos a cada pulso de clock e emite o Gate/CV do passo ativo.");
+        }
+    };
+
+    Blockly.Blocks['synth_drum_matrix'] = {
+        init: function() {
+            this.appendDummyInput()
+                .appendField("Drum Sequencer 16-Passos [")
+                .appendField(new Blockly.FieldTextInput("Drums"), "NAME")
+                .appendField("] saída:")
+                .appendField(new Blockly.FieldDropdown([
+                    ["Kick Gate", "0"],
+                    ["Snare Gate", "1"],
+                    ["Hi-Hat Gate", "2"],
+                    ["Perc Gate", "3"]
+                ]), "TRACK");
+            this.appendValueInput("CLK")
+                .appendField("Clock In");
+            this.setOutput(true);
+            this.setInputsInline(true);
+            this.setColour(CATEGORIES.CONTROL.colour);
+            this.setTooltip("Executa a matriz rítmica de 16 passos disparando gates para a pista selecionada.");
+        }
+    };
+
     // -------------------------------------------------------------------------
     // VISORES GRÁFICOS & DISPLAYS DA FACEPLATE
     // -------------------------------------------------------------------------

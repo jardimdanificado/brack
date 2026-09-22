@@ -1192,6 +1192,1262 @@ export const MODULE_CATALOG = [
   </block>
 </xml>`;
         }
+    },
+    {
+        type: '3xosc',
+        name: '3xOsc Triplo Oscilador',
+        category: 'Geradores',
+        color: '#5F3DC4',
+        width: 220,
+        height: 310,
+        inputs: [
+            { id: 'Pitch CV', name: 'Pitch CV', type: 'VAL' }
+        ],
+        outputs: [
+            { id: 'Out', name: 'Out', type: 'AUDIO' }
+        ],
+        params: [
+            { id: 'Freq', name: 'Freq', type: 'KNOB', min: 20, max: 1000, default: 130.81, value: 130.81, unit: 'Hz' },
+            { id: 'Detune 2', name: 'Detune 2', type: 'KNOB', min: -12, max: 12, default: 0.15, value: 0.15, unit: 'st' },
+            { id: 'Detune 3', name: 'Detune 3', type: 'KNOB', min: -24, max: 24, default: -12, value: -12, unit: 'st' },
+            { id: 'Mix 1', name: 'Mix 1', type: 'KNOB', min: 0, max: 1, default: 0.8, value: 0.8 },
+            { id: 'Mix 2', name: 'Mix 2', type: 'KNOB', min: 0, max: 1, default: 0.5, value: 0.5 },
+            { id: 'Mix 3', name: 'Mix 3', type: 'KNOB', min: 0, max: 1, default: 0.3, value: 0.3 }
+        ],
+        visors: [
+            { type: 'scope' }
+        ],
+        getXml() {
+            return `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="module_def" x="30" y="30">
+    <field name="NAME">3xOsc Triplo Oscilador</field>
+    <field name="WIDTH">220</field>
+    <field name="HEIGHT">310</field>
+    <field name="COLOR">#5F3DC4</field>
+    <field name="CATEGORY">Geradores</field>
+  </block>
+  <block type="module_io_process" x="30" y="160">
+    <next>
+      <block type="module_visor_scope">
+        <value name="SIGNAL">
+          <block type="synth_3xosc">
+            <field name="SHAPE1">saw</field>
+            <field name="SHAPE2">sqr</field>
+            <field name="SHAPE3">sin</field>
+            <value name="FREQ">
+              <block type="module_io_knob">
+                <field name="NAME">Freq</field>
+                <field name="MIN">20</field>
+                <field name="MAX">1000</field>
+                <field name="DEFAULT">130.81</field>
+                <field name="UNIT">Hz</field>
+              </block>
+            </value>
+            <value name="FM">
+              <block type="module_io_input">
+                <field name="TYPE">VAL</field>
+                <field name="PORT">Pitch CV</field>
+              </block>
+            </value>
+            <value name="DETUNE2">
+              <block type="module_io_knob">
+                <field name="NAME">Detune 2</field>
+                <field name="MIN">-12</field>
+                <field name="MAX">12</field>
+                <field name="DEFAULT">0.15</field>
+                <field name="UNIT">st</field>
+              </block>
+            </value>
+            <value name="DETUNE3">
+              <block type="module_io_knob">
+                <field name="NAME">Detune 3</field>
+                <field name="MIN">-24</field>
+                <field name="MAX">24</field>
+                <field name="DEFAULT">-12</field>
+                <field name="UNIT">st</field>
+              </block>
+            </value>
+            <value name="MIX1">
+              <block type="module_io_knob">
+                <field name="NAME">Mix 1</field>
+                <field name="MIN">0</field>
+                <field name="MAX">1</field>
+                <field name="DEFAULT">0.8</field>
+              </block>
+            </value>
+            <value name="MIX2">
+              <block type="module_io_knob">
+                <field name="NAME">Mix 2</field>
+                <field name="MIN">0</field>
+                <field name="MAX">1</field>
+                <field name="DEFAULT">0.5</field>
+              </block>
+            </value>
+            <value name="MIX3">
+              <block type="module_io_knob">
+                <field name="NAME">Mix 3</field>
+                <field name="MIN">0</field>
+                <field name="MAX">1</field>
+                <field name="DEFAULT">0.3</field>
+              </block>
+            </value>
+          </block>
+        </value>
+        <next>
+          <block type="module_io_output">
+            <field name="TYPE">AUDIO</field>
+            <field name="PORT">Out</field>
+            <value name="SIGNAL">
+              <block type="synth_3xosc">
+                <field name="SHAPE1">saw</field>
+                <field name="SHAPE2">sqr</field>
+                <field name="SHAPE3">sin</field>
+                <value name="FREQ">
+                  <block type="module_io_knob">
+                    <field name="NAME">Freq</field>
+                    <field name="MIN">20</field>
+                    <field name="MAX">1000</field>
+                    <field name="DEFAULT">130.81</field>
+                    <field name="UNIT">Hz</field>
+                  </block>
+                </value>
+                <value name="FM">
+                  <block type="module_io_input">
+                    <field name="TYPE">VAL</field>
+                    <field name="PORT">Pitch CV</field>
+                  </block>
+                </value>
+                <value name="DETUNE2">
+                  <block type="module_io_knob">
+                    <field name="NAME">Detune 2</field>
+                    <field name="MIN">-12</field>
+                    <field name="MAX">12</field>
+                    <field name="DEFAULT">0.15</field>
+                    <field name="UNIT">st</field>
+                  </block>
+                </value>
+                <value name="DETUNE3">
+                  <block type="module_io_knob">
+                    <field name="NAME">Detune 3</field>
+                    <field name="MIN">-24</field>
+                    <field name="MAX">24</field>
+                    <field name="DEFAULT">-12</field>
+                    <field name="UNIT">st</field>
+                  </block>
+                </value>
+                <value name="MIX1">
+                  <block type="module_io_knob">
+                    <field name="NAME">Mix 1</field>
+                    <field name="MIN">0</field>
+                    <field name="MAX">1</field>
+                    <field name="DEFAULT">0.8</field>
+                  </block>
+                </value>
+                <value name="MIX2">
+                  <block type="module_io_knob">
+                    <field name="NAME">Mix 2</field>
+                    <field name="MIN">0</field>
+                    <field name="MAX">1</field>
+                    <field name="DEFAULT">0.5</field>
+                  </block>
+                </value>
+                <value name="MIX3">
+                  <block type="module_io_knob">
+                    <field name="NAME">Mix 3</field>
+                    <field name="MIN">0</field>
+                    <field name="MAX">1</field>
+                    <field name="DEFAULT">0.3</field>
+                  </block>
+                </value>
+              </block>
+            </value>
+          </block>
+        </next>
+      </block>
+    </next>
+  </block>
+</xml>`;
+        }
+    },
+    {
+        type: 'gross_beat',
+        name: 'Gross Beat & Glitch',
+        category: 'Efeitos',
+        color: '#1971C2',
+        width: 200,
+        height: 260,
+        inputs: [
+            { id: 'In', name: 'In', type: 'AUDIO' },
+            { id: 'Clock', name: 'Clock', type: 'GATE' }
+        ],
+        outputs: [
+            { id: 'Out', name: 'Out', type: 'AUDIO' }
+        ],
+        params: [
+            { id: 'Mix', name: 'Mix', type: 'KNOB', min: 0, max: 1, default: 1.0, value: 1.0 }
+        ],
+        visors: [
+            { type: 'scope' }
+        ],
+        getXml() {
+            return `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="module_def" x="30" y="30">
+    <field name="NAME">Gross Beat &amp; Glitch</field>
+    <field name="WIDTH">200</field>
+    <field name="HEIGHT">260</field>
+    <field name="COLOR">#1971C2</field>
+    <field name="CATEGORY">Efeitos</field>
+  </block>
+  <block type="module_io_process" x="30" y="160">
+    <next>
+      <block type="module_io_output">
+        <field name="TYPE">AUDIO</field>
+        <field name="PORT">Out</field>
+        <value name="SIGNAL">
+          <block type="synth_grossbeat">
+            <field name="MODE">stutter8</field>
+            <value name="IN">
+              <block type="module_io_input">
+                <field name="TYPE">AUDIO</field>
+                <field name="PORT">In</field>
+              </block>
+            </value>
+            <value name="CLK">
+              <block type="module_io_input">
+                <field name="TYPE">GATE</field>
+                <field name="PORT">Clock</field>
+              </block>
+            </value>
+            <value name="MIX">
+              <block type="module_io_knob">
+                <field name="NAME">Mix</field>
+                <field name="MIN">0</field>
+                <field name="MAX">1</field>
+                <field name="DEFAULT">1.0</field>
+              </block>
+            </value>
+          </block>
+        </value>
+      </block>
+    </next>
+  </block>
+</xml>`;
+        }
+    },
+    {
+        type: 'soundgoodizer',
+        name: 'Soundgoodizer Maximizer',
+        category: 'Efeitos',
+        color: '#E8590C',
+        width: 190,
+        height: 250,
+        inputs: [
+            { id: 'In', name: 'In', type: 'AUDIO' }
+        ],
+        outputs: [
+            { id: 'Out', name: 'Out', type: 'AUDIO' }
+        ],
+        params: [
+            { id: 'Amount', name: 'Amount', type: 'KNOB', min: 0, max: 1, default: 0.65, value: 0.65 }
+        ],
+        visors: [
+            { type: 'vu' }
+        ],
+        getXml() {
+            return `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="module_def" x="30" y="30">
+    <field name="NAME">Soundgoodizer Maximizer</field>
+    <field name="WIDTH">190</field>
+    <field name="HEIGHT">250</field>
+    <field name="COLOR">#E8590C</field>
+    <field name="CATEGORY">Efeitos</field>
+  </block>
+  <block type="module_io_process" x="30" y="160">
+    <next>
+      <block type="module_io_output">
+        <field name="TYPE">AUDIO</field>
+        <field name="PORT">Out</field>
+        <value name="SIGNAL">
+          <block type="synth_soundgoodizer">
+            <field name="PRESET">A</field>
+            <value name="IN">
+              <block type="module_io_input">
+                <field name="TYPE">AUDIO</field>
+                <field name="PORT">In</field>
+              </block>
+            </value>
+            <value name="AMOUNT">
+              <block type="module_io_knob">
+                <field name="NAME">Amount</field>
+                <field name="MIN">0</field>
+                <field name="MAX">1</field>
+                <field name="DEFAULT">0.65</field>
+              </block>
+            </value>
+          </block>
+        </value>
+      </block>
+    </next>
+  </block>
+</xml>`;
+        }
+    },
+    {
+        type: 'drum_machine_16',
+        name: '16-Step Visual Drum Machine',
+        category: 'Geradores',
+        color: '#D9480F',
+        width: 290,
+        height: 330,
+        inputs: [
+            { id: 'Clock', name: 'Clock', type: 'GATE' }
+        ],
+        outputs: [
+            { id: 'Kick', name: 'Kick', type: 'AUDIO' },
+            { id: 'Snare', name: 'Snare', type: 'AUDIO' },
+            { id: 'HiHat', name: 'HiHat', type: 'AUDIO' },
+            { id: 'Perc', name: 'Perc', type: 'AUDIO' }
+        ],
+        params: [
+            {
+                id: 'Drums',
+                name: 'Drums',
+                type: 'DRUM_GRID',
+                tracks: ['Kick', 'Snare', 'Hi-Hat', 'Perc'],
+                steps: 16,
+                matrix: [
+                    [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0],
+                    [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+                    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                    [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0]
+                ]
+            }
+        ],
+        getXml() {
+            return `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="module_def" x="30" y="30">
+    <field name="NAME">16-Step Visual Drum Machine</field>
+    <field name="WIDTH">290</field>
+    <field name="HEIGHT">330</field>
+    <field name="COLOR">#D9480F</field>
+    <field name="CATEGORY">Geradores</field>
+  </block>
+  <block type="module_io_process" x="30" y="160">
+    <next>
+      <block type="module_io_output">
+        <field name="TYPE">AUDIO</field>
+        <field name="PORT">Kick</field>
+        <value name="SIGNAL">
+          <block type="synth_drum_voice">
+            <field name="TYPE">kick</field>
+            <value name="TRIG">
+              <block type="synth_drum_matrix">
+                <field name="NAME">Drums</field>
+                <field name="TRACK">0</field>
+                <value name="CLK">
+                  <block type="module_io_input">
+                    <field name="TYPE">GATE</field>
+                    <field name="PORT">Clock</field>
+                  </block>
+                </value>
+              </block>
+            </value>
+            <value name="TUNE"><block type="math_number"><field name="NUM">55</field></block></value>
+            <value name="DECAY"><block type="math_number"><field name="NUM">0.35</field></block></value>
+            <value name="SNAP"><block type="math_number"><field name="NUM">0.7</field></block></value>
+            <value name="DRIVE"><block type="math_number"><field name="NUM">0.3</field></block></value>
+          </block>
+        </value>
+        <next>
+          <block type="module_io_output">
+            <field name="TYPE">AUDIO</field>
+            <field name="PORT">Snare</field>
+            <value name="SIGNAL">
+              <block type="synth_drum_voice">
+                <field name="TYPE">snare</field>
+                <value name="TRIG">
+                  <block type="synth_drum_matrix">
+                    <field name="NAME">Drums</field>
+                    <field name="TRACK">1</field>
+                    <value name="CLK">
+                      <block type="module_io_input">
+                        <field name="TYPE">GATE</field>
+                        <field name="PORT">Clock</field>
+                      </block>
+                    </value>
+                  </block>
+                </value>
+                <value name="TUNE"><block type="math_number"><field name="NUM">180</field></block></value>
+                <value name="DECAY"><block type="math_number"><field name="NUM">0.25</field></block></value>
+                <value name="SNAP"><block type="math_number"><field name="NUM">0.8</field></block></value>
+                <value name="DRIVE"><block type="math_number"><field name="NUM">0.2</field></block></value>
+              </block>
+            </value>
+            <next>
+              <block type="module_io_output">
+                <field name="TYPE">AUDIO</field>
+                <field name="PORT">HiHat</field>
+                <value name="SIGNAL">
+                  <block type="synth_drum_voice">
+                    <field name="TYPE">hat</field>
+                    <value name="TRIG">
+                      <block type="synth_drum_matrix">
+                        <field name="NAME">Drums</field>
+                        <field name="TRACK">2</field>
+                        <value name="CLK">
+                          <block type="module_io_input">
+                            <field name="TYPE">GATE</field>
+                            <field name="PORT">Clock</field>
+                          </block>
+                        </value>
+                      </block>
+                    </value>
+                    <value name="TUNE"><block type="math_number"><field name="NUM">400</field></block></value>
+                    <value name="DECAY"><block type="math_number"><field name="NUM">0.08</field></block></value>
+                    <value name="SNAP"><block type="math_number"><field name="NUM">0.5</field></block></value>
+                    <value name="DRIVE"><block type="math_number"><field name="NUM">0.1</field></block></value>
+                  </block>
+                </value>
+                <next>
+                  <block type="module_io_output">
+                    <field name="TYPE">AUDIO</field>
+                    <field name="PORT">Perc</field>
+                    <value name="SIGNAL">
+                      <block type="synth_drum_voice">
+                        <field name="TYPE">clap</field>
+                        <value name="TRIG">
+                          <block type="synth_drum_matrix">
+                            <field name="NAME">Drums</field>
+                            <field name="TRACK">3</field>
+                            <value name="CLK">
+                              <block type="module_io_input">
+                                <field name="TYPE">GATE</field>
+                                <field name="PORT">Clock</field>
+                              </block>
+                            </value>
+                          </block>
+                        </value>
+                        <value name="TUNE"><block type="math_number"><field name="NUM">120</field></block></value>
+                        <value name="DECAY"><block type="math_number"><field name="NUM">0.2</field></block></value>
+                        <value name="SNAP"><block type="math_number"><field name="NUM">0.6</field></block></value>
+                        <value name="DRIVE"><block type="math_number"><field name="NUM">0.2</field></block></value>
+                      </block>
+                    </value>
+                  </block>
+                </next>
+              </block>
+            </next>
+          </block>
+        </next>
+      </block>
+    </next>
+  </block>
+</xml>`;
+        }
+    },
+    {
+        type: 'drum_808',
+        name: '808 Drum Voice',
+        category: 'Geradores',
+        color: '#D9480F',
+        width: 190,
+        height: 280,
+        inputs: [
+            { id: 'Trig', name: 'Trig', type: 'GATE' }
+        ],
+        outputs: [
+            { id: 'Out', name: 'Out', type: 'AUDIO' }
+        ],
+        params: [
+            { id: 'Tune', name: 'Tune', type: 'KNOB', min: 20, max: 200, default: 55, value: 55, unit: 'Hz' },
+            { id: 'Decay', name: 'Decay', type: 'KNOB', min: 0.05, max: 2.0, default: 0.45, value: 0.45, unit: 's' },
+            { id: 'Snap', name: 'Snap', type: 'KNOB', min: 0, max: 1, default: 0.7, value: 0.7 },
+            { id: 'Drive', name: 'Drive', type: 'KNOB', min: 0, max: 1, default: 0.35, value: 0.35 }
+        ],
+        visors: [
+            { type: 'scope' }
+        ],
+        getXml() {
+            return `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="module_def" x="30" y="30">
+    <field name="NAME">808 Drum Voice</field>
+    <field name="WIDTH">190</field>
+    <field name="HEIGHT">280</field>
+    <field name="COLOR">#D9480F</field>
+    <field name="CATEGORY">Geradores</field>
+  </block>
+  <block type="module_io_process" x="30" y="160">
+    <next>
+      <block type="module_io_output">
+        <field name="TYPE">AUDIO</field>
+        <field name="PORT">Out</field>
+        <value name="SIGNAL">
+          <block type="synth_drum_voice">
+            <field name="TYPE">kick</field>
+            <value name="TRIG">
+              <block type="module_io_input">
+                <field name="TYPE">GATE</field>
+                <field name="PORT">Trig</field>
+              </block>
+            </value>
+            <value name="TUNE">
+              <block type="module_io_knob">
+                <field name="NAME">Tune</field>
+                <field name="MIN">20</field>
+                <field name="MAX">200</field>
+                <field name="DEFAULT">55</field>
+                <field name="UNIT">Hz</field>
+              </block>
+            </value>
+            <value name="DECAY">
+              <block type="module_io_knob">
+                <field name="NAME">Decay</field>
+                <field name="MIN">0.05</field>
+                <field name="MAX">2.0</field>
+                <field name="DEFAULT">0.45</field>
+                <field name="UNIT">s</field>
+              </block>
+            </value>
+            <value name="SNAP">
+              <block type="module_io_knob">
+                <field name="NAME">Snap</field>
+                <field name="MIN">0</field>
+                <field name="MAX">1</field>
+                <field name="DEFAULT">0.7</field>
+              </block>
+            </value>
+            <value name="DRIVE">
+              <block type="module_io_knob">
+                <field name="NAME">Drive</field>
+                <field name="MIN">0</field>
+                <field name="MAX">1</field>
+                <field name="DEFAULT">0.35</field>
+              </block>
+            </value>
+          </block>
+        </value>
+      </block>
+    </next>
+  </block>
+</xml>`;
+        }
+    },
+    {
+        type: 'chorus_flanger',
+        name: 'Stereo Chorus & Flanger',
+        category: 'Efeitos',
+        color: '#1971C2',
+        width: 190,
+        height: 270,
+        inputs: [
+            { id: 'In', name: 'In', type: 'AUDIO' }
+        ],
+        outputs: [
+            { id: 'Out', name: 'Out', type: 'AUDIO' }
+        ],
+        params: [
+            { id: 'Rate', name: 'Rate', type: 'KNOB', min: 0.1, max: 10, default: 0.8, value: 0.8, unit: 'Hz' },
+            { id: 'Depth', name: 'Depth', type: 'KNOB', min: 0.5, max: 15, default: 3.5, value: 3.5, unit: 'ms' },
+            { id: 'Feedback', name: 'Feedback', type: 'KNOB', min: 0, max: 0.9, default: 0.25, value: 0.25 },
+            { id: 'Mix', name: 'Mix', type: 'KNOB', min: 0, max: 1, default: 0.5, value: 0.5 }
+        ],
+        getXml() {
+            return `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="module_def" x="30" y="30">
+    <field name="NAME">Stereo Chorus &amp; Flanger</field>
+    <field name="WIDTH">190</field>
+    <field name="HEIGHT">270</field>
+    <field name="COLOR">#1971C2</field>
+    <field name="CATEGORY">Efeitos</field>
+  </block>
+  <block type="module_io_process" x="30" y="160">
+    <next>
+      <block type="module_io_output">
+        <field name="TYPE">AUDIO</field>
+        <field name="PORT">Out</field>
+        <value name="SIGNAL">
+          <block type="synth_chorus">
+            <value name="IN">
+              <block type="module_io_input">
+                <field name="TYPE">AUDIO</field>
+                <field name="PORT">In</field>
+              </block>
+            </value>
+            <value name="RATE">
+              <block type="module_io_knob">
+                <field name="NAME">Rate</field>
+                <field name="MIN">0.1</field>
+                <field name="MAX">10</field>
+                <field name="DEFAULT">0.8</field>
+                <field name="UNIT">Hz</field>
+              </block>
+            </value>
+            <value name="DEPTH">
+              <block type="module_io_knob">
+                <field name="NAME">Depth</field>
+                <field name="MIN">0.5</field>
+                <field name="MAX">15</field>
+                <field name="DEFAULT">3.5</field>
+                <field name="UNIT">ms</field>
+              </block>
+            </value>
+            <value name="FEEDBACK">
+              <block type="module_io_knob">
+                <field name="NAME">Feedback</field>
+                <field name="MIN">0</field>
+                <field name="MAX">0.9</field>
+                <field name="DEFAULT">0.25</field>
+              </block>
+            </value>
+            <value name="MIX">
+              <block type="module_io_knob">
+                <field name="NAME">Mix</field>
+                <field name="MIN">0</field>
+                <field name="MAX">1</field>
+                <field name="DEFAULT">0.5</field>
+              </block>
+            </value>
+          </block>
+        </value>
+      </block>
+    </next>
+  </block>
+</xml>`;
+        }
+    },
+    {
+        type: 'phaser8',
+        name: '8-Stage Phaser',
+        category: 'Efeitos',
+        color: '#5F3DC4',
+        width: 190,
+        height: 270,
+        inputs: [
+            { id: 'In', name: 'In', type: 'AUDIO' }
+        ],
+        outputs: [
+            { id: 'Out', name: 'Out', type: 'AUDIO' }
+        ],
+        params: [
+            { id: 'Rate', name: 'Rate', type: 'KNOB', min: 0.05, max: 8, default: 0.5, value: 0.5, unit: 'Hz' },
+            { id: 'Depth', name: 'Depth', type: 'KNOB', min: 0, max: 1, default: 0.75, value: 0.75 },
+            { id: 'Feedback', name: 'Feedback', type: 'KNOB', min: 0, max: 0.9, default: 0.6, value: 0.6 },
+            { id: 'Mix', name: 'Mix', type: 'KNOB', min: 0, max: 1, default: 0.5, value: 0.5 }
+        ],
+        getXml() {
+            return `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="module_def" x="30" y="30">
+    <field name="NAME">8-Stage Phaser</field>
+    <field name="WIDTH">190</field>
+    <field name="HEIGHT">270</field>
+    <field name="COLOR">#5F3DC4</field>
+    <field name="CATEGORY">Efeitos</field>
+  </block>
+  <block type="module_io_process" x="30" y="160">
+    <next>
+      <block type="module_io_output">
+        <field name="TYPE">AUDIO</field>
+        <field name="PORT">Out</field>
+        <value name="SIGNAL">
+          <block type="synth_phaser">
+            <value name="IN">
+              <block type="module_io_input">
+                <field name="TYPE">AUDIO</field>
+                <field name="PORT">In</field>
+              </block>
+            </value>
+            <value name="RATE">
+              <block type="module_io_knob">
+                <field name="NAME">Rate</field>
+                <field name="MIN">0.05</field>
+                <field name="MAX">8</field>
+                <field name="DEFAULT">0.5</field>
+                <field name="UNIT">Hz</field>
+              </block>
+            </value>
+            <value name="DEPTH">
+              <block type="module_io_knob">
+                <field name="NAME">Depth</field>
+                <field name="MIN">0</field>
+                <field name="MAX">1</field>
+                <field name="DEFAULT">0.75</field>
+              </block>
+            </value>
+            <value name="FEEDBACK">
+              <block type="module_io_knob">
+                <field name="NAME">Feedback</field>
+                <field name="MIN">0</field>
+                <field name="MAX">0.9</field>
+                <field name="DEFAULT">0.6</field>
+              </block>
+            </value>
+            <value name="MIX">
+              <block type="module_io_knob">
+                <field name="NAME">Mix</field>
+                <field name="MIN">0</field>
+                <field name="MAX">1</field>
+                <field name="DEFAULT">0.5</field>
+              </block>
+            </value>
+          </block>
+        </value>
+      </block>
+    </next>
+  </block>
+</xml>`;
+        }
+    },
+    {
+        type: 'vocoder_formant',
+        name: 'Vocoder & Formant Filter',
+        category: 'Filtros',
+        color: '#E8590C',
+        width: 190,
+        height: 250,
+        inputs: [
+            { id: 'In', name: 'In', type: 'AUDIO' },
+            { id: 'Morph CV', name: 'Morph CV', type: 'VAL' }
+        ],
+        outputs: [
+            { id: 'Out', name: 'Out', type: 'AUDIO' }
+        ],
+        params: [
+            { id: 'Morph', name: 'Morph', type: 'KNOB', min: 0, max: 1, default: 0.3, value: 0.3 },
+            { id: 'Res', name: 'Res', type: 'KNOB', min: 0.1, max: 0.95, default: 0.85, value: 0.85 }
+        ],
+        getXml() {
+            return `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="module_def" x="30" y="30">
+    <field name="NAME">Vocoder &amp; Formant Filter</field>
+    <field name="WIDTH">190</field>
+    <field name="HEIGHT">250</field>
+    <field name="COLOR">#E8590C</field>
+    <field name="CATEGORY">Filtros</field>
+  </block>
+  <block type="module_io_process" x="30" y="160">
+    <next>
+      <block type="module_io_output">
+        <field name="TYPE">AUDIO</field>
+        <field name="PORT">Out</field>
+        <value name="SIGNAL">
+          <block type="synth_formant">
+            <field name="VOWEL">A</field>
+            <value name="IN">
+              <block type="module_io_input">
+                <field name="TYPE">AUDIO</field>
+                <field name="PORT">In</field>
+              </block>
+            </value>
+            <value name="MORPH">
+              <block type="math_arithmetic">
+                <field name="OP">ADD</field>
+                <value name="A">
+                  <block type="module_io_knob">
+                    <field name="NAME">Morph</field>
+                    <field name="MIN">0</field>
+                    <field name="MAX">1</field>
+                    <field name="DEFAULT">0.3</field>
+                  </block>
+                </value>
+                <value name="B">
+                  <block type="module_io_input">
+                    <field name="TYPE">VAL</field>
+                    <field name="PORT">Morph CV</field>
+                  </block>
+                </value>
+              </block>
+            </value>
+            <value name="RES">
+              <block type="module_io_knob">
+                <field name="NAME">Res</field>
+                <field name="MIN">0.1</field>
+                <field name="MAX">0.95</field>
+                <field name="DEFAULT">0.85</field>
+              </block>
+            </value>
+          </block>
+        </value>
+      </block>
+    </next>
+  </block>
+</xml>`;
+        }
+    },
+    {
+        type: 'bitcrusher',
+        name: 'Bitcrusher & Decimator',
+        category: 'Efeitos',
+        color: '#B45309',
+        width: 190,
+        height: 260,
+        inputs: [
+            { id: 'In', name: 'In', type: 'AUDIO' }
+        ],
+        outputs: [
+            { id: 'Out', name: 'Out', type: 'AUDIO' }
+        ],
+        params: [
+            { id: 'Bits', name: 'Bits', type: 'KNOB', min: 2, max: 16, default: 6, value: 6 },
+            { id: 'Decimate', name: 'Decimate', type: 'KNOB', min: 1, max: 40, default: 4, value: 4 },
+            { id: 'Mix', name: 'Mix', type: 'KNOB', min: 0, max: 1, default: 1.0, value: 1.0 }
+        ],
+        getXml() {
+            return `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="module_def" x="30" y="30">
+    <field name="NAME">Bitcrusher &amp; Decimator</field>
+    <field name="WIDTH">190</field>
+    <field name="HEIGHT">260</field>
+    <field name="COLOR">#B45309</field>
+    <field name="CATEGORY">Efeitos</field>
+  </block>
+  <block type="module_io_process" x="30" y="160">
+    <next>
+      <block type="module_io_output">
+        <field name="TYPE">AUDIO</field>
+        <field name="PORT">Out</field>
+        <value name="SIGNAL">
+          <block type="synth_bitcrush">
+            <value name="IN">
+              <block type="module_io_input">
+                <field name="TYPE">AUDIO</field>
+                <field name="PORT">In</field>
+              </block>
+            </value>
+            <value name="BITS">
+              <block type="module_io_knob">
+                <field name="NAME">Bits</field>
+                <field name="MIN">2</field>
+                <field name="MAX">16</field>
+                <field name="DEFAULT">6</field>
+              </block>
+            </value>
+            <value name="DOWNSAMPLE">
+              <block type="module_io_knob">
+                <field name="NAME">Decimate</field>
+                <field name="MIN">1</field>
+                <field name="MAX">40</field>
+                <field name="DEFAULT">4</field>
+              </block>
+            </value>
+            <value name="MIX">
+              <block type="module_io_knob">
+                <field name="NAME">Mix</field>
+                <field name="MIN">0</field>
+                <field name="MAX">1</field>
+                <field name="DEFAULT">1.0</field>
+              </block>
+            </value>
+          </block>
+        </value>
+      </block>
+    </next>
+  </block>
+</xml>`;
+        }
+    },
+    {
+        type: 'sytrus_fm',
+        name: 'Sytrus 2-Op FM Synth',
+        category: 'Geradores',
+        color: '#087F5B',
+        width: 200,
+        height: 280,
+        inputs: [
+            { id: 'Pitch CV', name: 'Pitch CV', type: 'VAL' }
+        ],
+        outputs: [
+            { id: 'Out', name: 'Out', type: 'AUDIO' }
+        ],
+        params: [
+            { id: 'Freq', name: 'Freq', type: 'KNOB', min: 20, max: 1000, default: 220, value: 220, unit: 'Hz' },
+            { id: 'Ratio', name: 'Ratio', type: 'KNOB', min: 0.5, max: 8, default: 2.0, value: 2.0 },
+            { id: 'FM Amt', name: 'FM Amt', type: 'KNOB', min: 0, max: 5, default: 1.5, value: 1.5 },
+            { id: 'Feedback', name: 'Feedback', type: 'KNOB', min: 0, max: 0.9, default: 0.2, value: 0.2 }
+        ],
+        visors: [
+            { type: 'scope' }
+        ],
+        getXml() {
+            return `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="module_def" x="30" y="30">
+    <field name="NAME">Sytrus 2-Op FM Synth</field>
+    <field name="WIDTH">200</field>
+    <field name="HEIGHT">280</field>
+    <field name="COLOR">#087F5B</field>
+    <field name="CATEGORY">Geradores</field>
+  </block>
+  <block type="module_io_process" x="30" y="160">
+    <next>
+      <block type="module_io_output">
+        <field name="TYPE">AUDIO</field>
+        <field name="PORT">Out</field>
+        <value name="SIGNAL">
+          <block type="synth_fm_op">
+            <value name="FREQ">
+              <block type="module_io_knob">
+                <field name="NAME">Freq</field>
+                <field name="MIN">20</field>
+                <field name="MAX">1000</field>
+                <field name="DEFAULT">220</field>
+                <field name="UNIT">Hz</field>
+              </block>
+            </value>
+            <value name="RATIO">
+              <block type="module_io_knob">
+                <field name="NAME">Ratio</field>
+                <field name="MIN">0.5</field>
+                <field name="MAX">8</field>
+                <field name="DEFAULT">2.0</field>
+              </block>
+            </value>
+            <value name="FM_AMT">
+              <block type="module_io_knob">
+                <field name="NAME">FM Amt</field>
+                <field name="MIN">0</field>
+                <field name="MAX">5</field>
+                <field name="DEFAULT">1.5</field>
+              </block>
+            </value>
+            <value name="FEEDBACK">
+              <block type="module_io_knob">
+                <field name="NAME">Feedback</field>
+                <field name="MIN">0</field>
+                <field name="MAX">0.9</field>
+                <field name="DEFAULT">0.2</field>
+              </block>
+            </value>
+            <value name="CV">
+              <block type="module_io_input">
+                <field name="TYPE">VAL</field>
+                <field name="PORT">Pitch CV</field>
+              </block>
+            </value>
+          </block>
+        </value>
+      </block>
+    </next>
+  </block>
+</xml>`;
+        }
+    },
+    {
+        type: 'stereo_shaper',
+        name: 'Stereo Shaper & Haas Widener',
+        category: 'Efeitos',
+        color: '#1971C2',
+        width: 190,
+        height: 250,
+        inputs: [
+            { id: 'In', name: 'In', type: 'AUDIO' }
+        ],
+        outputs: [
+            { id: 'Out', name: 'Out', type: 'AUDIO' }
+        ],
+        params: [
+            { id: 'Width', name: 'Width', type: 'KNOB', min: 0, max: 2, default: 1.5, value: 1.5 },
+            { id: 'Haas Delay', name: 'Haas Delay', type: 'KNOB', min: 0, max: 20, default: 8.0, value: 8.0, unit: 'ms' }
+        ],
+        getXml() {
+            return `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="module_def" x="30" y="30">
+    <field name="NAME">Stereo Shaper &amp; Haas Widener</field>
+    <field name="WIDTH">190</field>
+    <field name="HEIGHT">250</field>
+    <field name="COLOR">#1971C2</field>
+    <field name="CATEGORY">Efeitos</field>
+  </block>
+  <block type="module_io_process" x="30" y="160">
+    <next>
+      <block type="module_io_output">
+        <field name="TYPE">AUDIO</field>
+        <field name="PORT">Out</field>
+        <value name="SIGNAL">
+          <block type="synth_stereo_shaper">
+            <value name="IN">
+              <block type="module_io_input">
+                <field name="TYPE">AUDIO</field>
+                <field name="PORT">In</field>
+              </block>
+            </value>
+            <value name="WIDTH">
+              <block type="module_io_knob">
+                <field name="NAME">Width</field>
+                <field name="MIN">0</field>
+                <field name="MAX">2</field>
+                <field name="DEFAULT">1.5</field>
+              </block>
+            </value>
+            <value name="HAAS">
+              <block type="module_io_knob">
+                <field name="NAME">Haas Delay</field>
+                <field name="MIN">0</field>
+                <field name="MAX">20</field>
+                <field name="DEFAULT">8.0</field>
+                <field name="UNIT">ms</field>
+              </block>
+            </value>
+          </block>
+        </value>
+      </block>
+    </next>
+  </block>
+</xml>`;
+        }
+    },
+    {
+        type: 'soft_clipper',
+        name: 'Fruity Soft Clipper',
+        category: 'Efeitos',
+        color: '#E8590C',
+        width: 190,
+        height: 250,
+        inputs: [
+            { id: 'In', name: 'In', type: 'AUDIO' }
+        ],
+        outputs: [
+            { id: 'Out', name: 'Out', type: 'AUDIO' }
+        ],
+        params: [
+            { id: 'Threshold', name: 'Threshold', type: 'KNOB', min: 0.1, max: 1.5, default: 0.8, value: 0.8 },
+            { id: 'Post Gain', name: 'Post Gain', type: 'KNOB', min: 0.5, max: 2, default: 1.0, value: 1.0 }
+        ],
+        visors: [
+            { type: 'vu' }
+        ],
+        getXml() {
+            return `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="module_def" x="30" y="30">
+    <field name="NAME">Fruity Soft Clipper</field>
+    <field name="WIDTH">190</field>
+    <field name="HEIGHT">250</field>
+    <field name="COLOR">#E8590C</field>
+    <field name="CATEGORY">Efeitos</field>
+  </block>
+  <block type="module_io_process" x="30" y="160">
+    <next>
+      <block type="module_io_output">
+        <field name="TYPE">AUDIO</field>
+        <field name="PORT">Out</field>
+        <value name="SIGNAL">
+          <block type="synth_soft_clipper">
+            <value name="IN">
+              <block type="module_io_input">
+                <field name="TYPE">AUDIO</field>
+                <field name="PORT">In</field>
+              </block>
+            </value>
+            <value name="THRESHOLD">
+              <block type="module_io_knob">
+                <field name="NAME">Threshold</field>
+                <field name="MIN">0.1</field>
+                <field name="MAX">1.5</field>
+                <field name="DEFAULT">0.8</field>
+              </block>
+            </value>
+            <value name="POST_GAIN">
+              <block type="module_io_knob">
+                <field name="NAME">Post Gain</field>
+                <field name="MIN">0.5</field>
+                <field name="MAX">2</field>
+                <field name="DEFAULT">1.0</field>
+              </block>
+            </value>
+          </block>
+        </value>
+      </block>
+    </next>
+  </block>
+</xml>`;
+        }
+    },
+    {
+        type: 'granular_pitch',
+        name: 'Granular Pitch Shifter',
+        category: 'Efeitos',
+        color: '#5F3DC4',
+        width: 190,
+        height: 260,
+        inputs: [
+            { id: 'In', name: 'In', type: 'AUDIO' }
+        ],
+        outputs: [
+            { id: 'Out', name: 'Out', type: 'AUDIO' }
+        ],
+        params: [
+            { id: 'Semitones', name: 'Semitones', type: 'KNOB', min: -24, max: 24, default: 7, value: 7, unit: 'st' },
+            { id: 'Grain Size', name: 'Grain Size', type: 'KNOB', min: 10, max: 120, default: 50, value: 50, unit: 'ms' },
+            { id: 'Mix', name: 'Mix', type: 'KNOB', min: 0, max: 1, default: 0.8, value: 0.8 }
+        ],
+        getXml() {
+            return `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="module_def" x="30" y="30">
+    <field name="NAME">Granular Pitch Shifter</field>
+    <field name="WIDTH">190</field>
+    <field name="HEIGHT">260</field>
+    <field name="COLOR">#5F3DC4</field>
+    <field name="CATEGORY">Efeitos</field>
+  </block>
+  <block type="module_io_process" x="30" y="160">
+    <next>
+      <block type="module_io_output">
+        <field name="TYPE">AUDIO</field>
+        <field name="PORT">Out</field>
+        <value name="SIGNAL">
+          <block type="synth_granular_pitch">
+            <value name="IN">
+              <block type="module_io_input">
+                <field name="TYPE">AUDIO</field>
+                <field name="PORT">In</field>
+              </block>
+            </value>
+            <value name="SEMITONES">
+              <block type="module_io_knob">
+                <field name="NAME">Semitones</field>
+                <field name="MIN">-24</field>
+                <field name="MAX">24</field>
+                <field name="DEFAULT">7</field>
+                <field name="UNIT">st</field>
+              </block>
+            </value>
+            <value name="GRAIN_SIZE">
+              <block type="module_io_knob">
+                <field name="NAME">Grain Size</field>
+                <field name="MIN">10</field>
+                <field name="MAX">120</field>
+                <field name="DEFAULT">50</field>
+                <field name="UNIT">ms</field>
+              </block>
+            </value>
+            <value name="MIX">
+              <block type="module_io_knob">
+                <field name="NAME">Mix</field>
+                <field name="MIN">0</field>
+                <field name="MAX">1</field>
+                <field name="DEFAULT">0.8</field>
+              </block>
+            </value>
+          </block>
+        </value>
+      </block>
+    </next>
+  </block>
+</xml>`;
+        }
+    },
+    {
+        type: 'parametric_eq7',
+        name: 'Parametric EQ 7-Band',
+        category: 'Filtros',
+        color: '#087F5B',
+        width: 250,
+        height: 290,
+        inputs: [
+            { id: 'In', name: 'In', type: 'AUDIO' }
+        ],
+        outputs: [
+            { id: 'Out', name: 'Out', type: 'AUDIO' }
+        ],
+        params: [
+            { id: '60Hz', name: '60Hz', type: 'KNOB', min: -18, max: 18, default: 0, value: 0, unit: 'dB' },
+            { id: '150Hz', name: '150Hz', type: 'KNOB', min: -18, max: 18, default: 0, value: 0, unit: 'dB' },
+            { id: '400Hz', name: '400Hz', type: 'KNOB', min: -18, max: 18, default: 0, value: 0, unit: 'dB' },
+            { id: '1kHz', name: '1kHz', type: 'KNOB', min: -18, max: 18, default: 0, value: 0, unit: 'dB' },
+            { id: '2.5kHz', name: '2.5kHz', type: 'KNOB', min: -18, max: 18, default: 0, value: 0, unit: 'dB' },
+            { id: '6kHz', name: '6kHz', type: 'KNOB', min: -18, max: 18, default: 0, value: 0, unit: 'dB' },
+            { id: '15kHz', name: '15kHz', type: 'KNOB', min: -18, max: 18, default: 0, value: 0, unit: 'dB' }
+        ],
+        getXml() {
+            return `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="module_def" x="30" y="30">
+    <field name="NAME">Parametric EQ 7-Band</field>
+    <field name="WIDTH">250</field>
+    <field name="HEIGHT">290</field>
+    <field name="COLOR">#087F5B</field>
+    <field name="CATEGORY">Filtros</field>
+  </block>
+  <block type="module_io_process" x="30" y="160">
+    <next>
+      <block type="module_io_output">
+        <field name="TYPE">AUDIO</field>
+        <field name="PORT">Out</field>
+        <value name="SIGNAL">
+          <block type="synth_eq7">
+            <value name="IN">
+              <block type="module_io_input">
+                <field name="TYPE">AUDIO</field>
+                <field name="PORT">In</field>
+              </block>
+            </value>
+            <value name="G60">
+              <block type="module_io_knob">
+                <field name="NAME">60Hz</field>
+                <field name="MIN">-18</field>
+                <field name="MAX">18</field>
+                <field name="DEFAULT">0</field>
+                <field name="UNIT">dB</field>
+              </block>
+            </value>
+            <value name="G150">
+              <block type="module_io_knob">
+                <field name="NAME">150Hz</field>
+                <field name="MIN">-18</field>
+                <field name="MAX">18</field>
+                <field name="DEFAULT">0</field>
+                <field name="UNIT">dB</field>
+              </block>
+            </value>
+            <value name="G400">
+              <block type="module_io_knob">
+                <field name="NAME">400Hz</field>
+                <field name="MIN">-18</field>
+                <field name="MAX">18</field>
+                <field name="DEFAULT">0</field>
+                <field name="UNIT">dB</field>
+              </block>
+            </value>
+            <value name="G1K">
+              <block type="module_io_knob">
+                <field name="NAME">1kHz</field>
+                <field name="MIN">-18</field>
+                <field name="MAX">18</field>
+                <field name="DEFAULT">0</field>
+                <field name="UNIT">dB</field>
+              </block>
+            </value>
+            <value name="G2K5">
+              <block type="module_io_knob">
+                <field name="NAME">2.5kHz</field>
+                <field name="MIN">-18</field>
+                <field name="MAX">18</field>
+                <field name="DEFAULT">0</field>
+                <field name="UNIT">dB</field>
+              </block>
+            </value>
+            <value name="G6K">
+              <block type="module_io_knob">
+                <field name="NAME">6kHz</field>
+                <field name="MIN">-18</field>
+                <field name="MAX">18</field>
+                <field name="DEFAULT">0</field>
+                <field name="UNIT">dB</field>
+              </block>
+            </value>
+            <value name="G15K">
+              <block type="module_io_knob">
+                <field name="NAME">15kHz</field>
+                <field name="MIN">-18</field>
+                <field name="MAX">18</field>
+                <field name="DEFAULT">0</field>
+                <field name="UNIT">dB</field>
+              </block>
+            </value>
+          </block>
+        </value>
+      </block>
+    </next>
+  </block>
+</xml>`;
+        }
     }
 ];
 
