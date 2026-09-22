@@ -369,8 +369,9 @@ function openScratchEditor(moduleInstance) {
                 }
                 Blockly.Xml.domToWorkspace(dom, scratchWorkspace);
                 for (const b of scratchWorkspace.getAllBlocks(false)) {
-                    b.setEnabled(true);
-                    if (typeof b.setDisabledReason === 'function') b.setDisabledReason(false, 'ORPHANED_BLOCK');
+                    if (typeof b.setDisabledReason === 'function') {
+                        b.setDisabledReason(false, 'ORPHANED_BLOCK');
+                    }
                 }
             } catch (err) {
                 console.warn('Error loading module XML into Scratch workspace:', err);
@@ -390,14 +391,10 @@ function closeScratchEditor() {
  * Application Initialization
  * ========================================================================= */
 window.addEventListener('DOMContentLoaded', () => {
-    // 0. Apply saved visual theme immediately
-    const savedTheme = localStorage.getItem('brack_y2k_theme') || 'cyber_titanium';
-    document.documentElement.setAttribute('data-theme', savedTheme);
-
-    // 1. Register All Synth & Module IO Blocks & Disable automatic orphan fading
+    // 1. Register All Synth & Module IO Blocks
     registerSynthBlocks(Blockly);
     if (Blockly.Events && typeof Blockly.Events.disableOrphans === 'function') {
-        Blockly.Events.disableOrphans = function() {}; // Prevent Blockly from dimming/disabling disconnected blocks
+        Blockly.Events.disableOrphans = function() {};
     }
 
     // 2. Initialize Rack Engine & Rack Canvas
@@ -435,8 +432,6 @@ window.addEventListener('DOMContentLoaded', () => {
         grid: { spacing: 25, length: 3, colour: '#1c2823', snap: true },
         zoom: { controls: true, wheel: true, startScale: 0.85, maxScale: 2.0, minScale: 0.4, scaleSpeed: 1.1 },
         trashcan: true,
-        disable: false,
-        sounds: false,
         theme: scratchTheme
     });
 
@@ -469,22 +464,7 @@ window.addEventListener('DOMContentLoaded', () => {
     projectsManager.loadProject(initialProjId);
     updateProjectSelect();
 
-    // 5. Header Action Buttons & Theme Selector
-    const themeSelect = document.getElementById('theme-select');
-    if (themeSelect) {
-        const savedTheme = localStorage.getItem('brack_y2k_theme') || 'cyber_titanium';
-        themeSelect.value = savedTheme;
-        document.documentElement.setAttribute('data-theme', savedTheme);
-
-        themeSelect.addEventListener('change', () => {
-            const theme = themeSelect.value;
-            document.documentElement.setAttribute('data-theme', theme);
-            localStorage.setItem('brack_y2k_theme', theme);
-            if (rackCanvas) rackCanvas.render();
-            showToast(`Tema visual alterado: ${themeSelect.options[themeSelect.selectedIndex].text}`);
-        });
-    }
-
+    // 5. Header Action Buttons
     const btnPlayToggle = document.getElementById('btn-play-toggle');
     async function togglePlayback() {
         if (!isPlaying) {

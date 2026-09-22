@@ -3,409 +3,206 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BRACK // Y2K Modular Synthesizer & DSP Cyberdeck</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Orbitron:wght@600;800;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <title>BRACK // Modular Rack & Scratch DSP</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎛️</text></svg>">
     <style>
-        /* Base Theme (Cyber Titanium / Default) */
-        :root, :root[data-theme="cyber_titanium"] {
-            --bg-chassis: #060a0e;
-            --bg-header: linear-gradient(180deg, #3d4a54 0%, #222c34 45%, #151d23 50%, #202b33 100%);
-            --header-border-top: rgba(255, 255, 255, 0.45);
-            --header-border-bottom: #080c10;
-            --metal-faceplate: linear-gradient(180deg, #3d4a54 0%, #222c34 45%, #151d23 50%, #202b33 100%);
-            --metal-subpanel: linear-gradient(180deg, #18222b 0%, #0d141a 100%);
-            --metal-border: #485460;
-            --subpanel-border: #283743;
-            --screw-rail: linear-gradient(180deg, #2a343d 0%, #172027 100%);
-            --neon-accent: #00f2fe;
-            --neon-secondary: #00ff88;
-            --neon-tertiary: #fed330;
-            --lcd-bg: #020d09;
-            --lcd-text: #00ff88;
-            --lcd-border: rgba(0, 255, 136, 0.4);
-            --lcd-shadow: 0 0 6px #00ff88;
-            --text-main: #f5f6fa;
-            --text-dim: #95a5a6;
-            --cable-audio: #00ff88;
-            --cable-gate: #fed330;
-            --cable-cv: #00f2fe;
-            --btn-gel: radial-gradient(circle at 35% 30%, #48ff98 0%, #00d26a 50%, #008744 100%);
-            --title-gradient: linear-gradient(180deg, #ffffff 0%, #b2bec3 50%, #dfe6e9 51%, #ffffff 100%);
+        :root {
+            --bg: #0c100e;
+            --chalk-board: #151c19;
+            --chalk-white: #f5f6fa;
+            --chalk-yellow: #feca57;
+            --chalk-cyan: #48dbfb;
+            --chalk-pink: #ff6b6b;
+            --chalk-green: #1dd1a1;
+            --chalk-purple: #a29bfe;
+            --chalk-orange: #ff9f43;
+            --editor-bg: #111714;
+            --text-dim: #8395a7;
         }
 
-        /* Winamp 2.91 Classic */
-        :root[data-theme="winamp_classic"] {
-            --bg-chassis: #050608;
-            --bg-header: linear-gradient(180deg, #2c3238 0%, #1b1f23 45%, #101214 50%, #1c2024 100%);
-            --header-border-top: rgba(255, 215, 0, 0.4);
-            --header-border-bottom: #000000;
-            --metal-faceplate: linear-gradient(180deg, #252b30 0%, #181c20 45%, #0e1012 50%, #1a1e22 100%);
-            --metal-subpanel: linear-gradient(180deg, #0f1215 0%, #050607 100%);
-            --metal-border: #3d464d;
-            --subpanel-border: #22292f;
-            --screw-rail: linear-gradient(180deg, #1c2024 0%, #0b0d0e 100%);
-            --neon-accent: #00ff00;
-            --neon-secondary: #ffb700;
-            --neon-tertiary: #ff2a2a;
-            --lcd-bg: #001000;
-            --lcd-text: #00ff00;
-            --lcd-border: rgba(0, 255, 0, 0.6);
-            --lcd-shadow: 0 0 8px #00ff00;
-            --text-main: #00ff41;
-            --text-dim: #608066;
-            --cable-audio: #00ff00;
-            --cable-gate: #ffb700;
-            --cable-cv: #00e5ff;
-            --btn-gel: radial-gradient(circle at 35% 30%, #a6ff00 0%, #52b700 50%, #2b6300 100%);
-            --title-gradient: linear-gradient(180deg, #ffffff 0%, #00ff00 60%, #008f11 100%);
-        }
-
-        /* Frutiger Aero (Liquid Aqua & Lime) */
-        :root[data-theme="frutiger_aero"] {
-            --bg-chassis: #0a1c2a;
-            --bg-header: linear-gradient(180deg, #74b9ff 0%, #0984e3 45%, #0056b3 50%, #00cec9 100%);
-            --header-border-top: rgba(255, 255, 255, 0.85);
-            --header-border-bottom: #012b4d;
-            --metal-faceplate: linear-gradient(180deg, #dff9fb 0%, #c7ecee 40%, #7ed6df 60%, #22a6b3 100%);
-            --metal-subpanel: linear-gradient(180deg, #f0fdf4 0%, #dcfce7 100%);
-            --metal-border: #22a6b3;
-            --subpanel-border: #86efac;
-            --screw-rail: linear-gradient(180deg, #c7ecee 0%, #7ed6df 100%);
-            --neon-accent: #00cec9;
-            --neon-secondary: #2ed573;
-            --neon-tertiary: #ffa502;
-            --lcd-bg: #e0f2fe;
-            --lcd-text: #0369a1;
-            --lcd-border: #38bdf8;
-            --lcd-shadow: 0 0 4px #38bdf8;
-            --text-main: #0f172a;
-            --text-dim: #334155;
-            --cable-audio: #05c46b;
-            --cable-gate: #ff9f1a;
-            --cable-cv: #0fbcf9;
-            --btn-gel: radial-gradient(circle at 35% 30%, #70a1ff 0%, #1e90ff 50%, #0652dd 100%);
-            --title-gradient: linear-gradient(180deg, #ffffff 0%, #e0f2fe 50%, #0284c7 100%);
-        }
-
-        /* Vaporwave 1999 */
-        :root[data-theme="vaporwave_99"] {
-            --bg-chassis: #120924;
-            --bg-header: linear-gradient(180deg, #ff79c6 0%, #bd93f9 45%, #6272a4 50%, #ff79c6 100%);
-            --header-border-top: rgba(255, 255, 255, 0.7);
-            --header-border-bottom: #2b0938;
-            --metal-faceplate: linear-gradient(180deg, #442152 0%, #2c1236 45%, #1b0a22 50%, #381545 100%);
-            --metal-subpanel: linear-gradient(180deg, #220b2e 0%, #110517 100%);
-            --metal-border: #e056fd;
-            --subpanel-border: #be2edd;
-            --screw-rail: linear-gradient(180deg, #381545 0%, #190520 100%);
-            --neon-accent: #ff79c6;
-            --neon-secondary: #00f2fe;
-            --neon-tertiary: #fed330;
-            --lcd-bg: #1c0620;
-            --lcd-text: #ff79c6;
-            --lcd-border: rgba(255, 121, 198, 0.5);
-            --lcd-shadow: 0 0 8px #ff79c6;
-            --text-main: #f1f2f6;
-            --text-dim: #d8b4e2;
-            --cable-audio: #ff79c6;
-            --cable-gate: #fed330;
-            --cable-cv: #00f2fe;
-            --btn-gel: radial-gradient(circle at 35% 30%, #ff9ff3 0%, #f368e0 50%, #833471 100%);
-            --title-gradient: linear-gradient(180deg, #ffffff 0%, #ff9ff3 50%, #00d2d3 100%);
-        }
-
-        /* Atomic Purple (Translucent GameBoy Color) */
-        :root[data-theme="atomic_purple"] {
-            --bg-chassis: #180928;
-            --bg-header: linear-gradient(180deg, #8854d0 0%, #5758bb 45%, #3b3b98 50%, #6f1e51 100%);
-            --header-border-top: rgba(255, 255, 255, 0.6);
-            --header-border-bottom: #0d0417;
-            --metal-faceplate: linear-gradient(180deg, #4b2354dd 0%, #301438cc 50%, #431b4edd 100%);
-            --metal-subpanel: linear-gradient(180deg, #230c2bdd 0%, #110416ee 100%);
-            --metal-border: #a55eea;
-            --subpanel-border: #574b90;
-            --screw-rail: linear-gradient(180deg, #3b1942 0%, #1a0820 100%);
-            --neon-accent: #d980fa;
-            --neon-secondary: #26de81;
-            --neon-tertiary: #fd9644;
-            --lcd-bg: #1f0d26;
-            --lcd-text: #26de81;
-            --lcd-border: rgba(38, 222, 129, 0.5);
-            --lcd-shadow: 0 0 6px #26de81;
-            --text-main: #f5f6fa;
-            --text-dim: #b8a9c9;
-            --cable-audio: #26de81;
-            --cable-gate: #fd9644;
-            --cable-cv: #d980fa;
-            --btn-gel: radial-gradient(circle at 35% 30%, #e056fd 0%, #be2edd 50%, #4834d4 100%);
-            --title-gradient: linear-gradient(180deg, #ffffff 0%, #d980fa 50%, #26de81 100%);
-        }
-
-        /* Matrix Phosphor Terminal */
-        :root[data-theme="matrix_terminal"] {
-            --bg-chassis: #010803;
-            --bg-header: linear-gradient(180deg, #0d381e 0%, #062010 45%, #021207 50%, #0a2e16 100%);
-            --header-border-top: rgba(0, 255, 65, 0.5);
-            --header-border-bottom: #000000;
-            --metal-faceplate: linear-gradient(180deg, #092414 0%, #05180c 45%, #020c06 50%, #071e10 100%);
-            --metal-subpanel: linear-gradient(180deg, #041208 0%, #010603 100%);
-            --metal-border: #00ff41;
-            --subpanel-border: #008f11;
-            --screw-rail: linear-gradient(180deg, #061f0f 0%, #010a04 100%);
-            --neon-accent: #00ff41;
-            --neon-secondary: #a6ff00;
-            --neon-tertiary: #55efc4;
-            --lcd-bg: #010d05;
-            --lcd-text: #00ff41;
-            --lcd-border: #00ff41;
-            --lcd-shadow: 0 0 10px #00ff41;
-            --text-main: #00ff41;
-            --text-dim: #008f11;
-            --cable-audio: #00ff41;
-            --cable-gate: #a6ff00;
-            --cable-cv: #55efc4;
-            --btn-gel: radial-gradient(circle at 35% 30%, #55ff77 0%, #00ff41 50%, #005511 100%);
-            --title-gradient: linear-gradient(180deg, #ffffff 0%, #00ff41 50%, #003b00 100%);
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Chakra Petch', 'Rajdhani', sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; }
 
         html, body {
             width: 100vw;
             height: 100vh;
             overflow: hidden;
-            background: var(--bg-chassis);
-            color: var(--text-main);
+            background: var(--bg);
+            color: var(--chalk-white);
             display: flex;
             flex-direction: column;
             user-select: none;
             -webkit-user-select: none;
         }
 
-        /* Y2K Titanium / Brushed Chrome Header */
         header {
             width: 100%;
-            height: 52px;
-            background: var(--bg-header);
-            border-bottom: 2px solid var(--header-border-bottom, #080c10);
-            border-top: 1px solid var(--header-border-top, rgba(255, 255, 255, 0.45));
-            padding: 0 16px;
+            height: 48px;
+            background: linear-gradient(180deg, #4d97fe 0%, #3884f5 100%);
+            border-bottom: 1px solid #2872dd;
+            padding: 0 14px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-shrink: 0;
             z-index: 100;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.35);
-        }
-
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
         }
 
         h1 {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 20px;
-            letter-spacing: 3px;
+            font-size: 18px;
+            letter-spacing: 1.5px;
             display: flex;
             align-items: center;
             gap: 8px;
-            background: var(--title-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            color: #ffffff;
             font-weight: 900;
-            filter: drop-shadow(0 0 8px var(--neon-accent, #00f2fe));
-            text-transform: uppercase;
-        }
-
-        .brand-badge {
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 10px;
-            color: var(--neon-accent, #00f2fe);
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid var(--neon-accent, #00f2fe);
-            padding: 2px 6px;
-            border-radius: 3px;
-            letter-spacing: 1px;
-            box-shadow: 0 0 8px var(--neon-accent, #00f2fe);
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
         }
 
         .actions {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
         }
 
-        /* Y2K Glossy Gel Play Button */
         .btn-play-toggle {
-            background: var(--btn-gel);
-            color: #0c1810;
-            border: 2px solid rgba(255, 255, 255, 0.7);
-            width: 40px;
-            height: 40px;
+            background: #45c55e;
+            color: #ffffff;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            box-shadow: 0 0 16px var(--neon-secondary, #00ff88), inset 0 2px 4px rgba(255, 255, 255, 0.8), 0 4px 10px rgba(0, 0, 0, 0.7);
-            transition: all 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .btn-play-toggle:hover {
-            transform: scale(1.1);
-            filter: brightness(1.2);
-            box-shadow: 0 0 24px rgba(0, 255, 136, 1), inset 0 2px 6px rgba(255, 255, 255, 0.9);
+            transform: scale(1.08);
+            background: #22c55e;
+            border-color: #ffffff;
         }
 
         .btn-play-toggle.playing {
-            background: radial-gradient(circle at 35% 30%, #ff7675 0%, #d63031 50%, #8b0000 100%);
-            border-color: #ffaaaa;
-            box-shadow: 0 0 20px rgba(255, 56, 56, 0.85), inset 0 2px 4px rgba(255, 255, 255, 0.8);
-            animation: pulse-y2k 1.2s infinite alternate ease-in-out;
+            background: #ef4444;
+            border-color: rgba(255, 255, 255, 0.6);
+            box-shadow: 0 0 14px rgba(239, 68, 68, 0.7);
+            animation: pulse-play 1.3s infinite ease-in-out;
         }
 
-        .btn-play-toggle .icon-play { display: block; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5)); }
-        .btn-play-toggle .icon-stop { display: none; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5)); }
+        .btn-play-toggle.playing:hover {
+            background: #dc2626;
+        }
+
+        .btn-play-toggle .icon-play { display: block; }
+        .btn-play-toggle .icon-stop { display: none; }
         .btn-play-toggle.playing .icon-play { display: none; }
         .btn-play-toggle.playing .icon-stop { display: block; }
 
-        @keyframes pulse-y2k {
-            0% { transform: scale(1); filter: drop-shadow(0 0 10px #ff3838); }
-            100% { transform: scale(1.08); filter: drop-shadow(0 0 22px #ff3838); }
+        @keyframes pulse-play {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
         }
 
-        /* Y2K Beveled Titanium Toolbar */
         .project-toolbar {
             display: flex;
             align-items: center;
-            gap: 6px;
-            background: var(--metal-subpanel);
-            padding: 4px 8px;
+            gap: 5px;
+            background: rgba(0, 0, 0, 0.15);
+            padding: 3px 6px;
             border-radius: 6px;
-            border: 1px solid var(--subpanel-border, #3d4a54);
-            border-top-color: var(--header-border-top, #576574);
-            border-bottom-color: var(--header-border-bottom, #090d10);
-            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6), 0 1px 0 rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
         #project-select {
-            background: var(--lcd-bg, #09131a);
-            color: var(--neon-accent, #00f2fe);
-            border: 1px solid var(--neon-accent, #00f2fe);
-            padding: 6px 10px;
+            background: rgba(255, 255, 255, 0.18);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 5px 8px;
             border-radius: 4px;
-            font-family: 'Share Tech Mono', monospace;
             font-weight: 700;
-            font-size: 12px;
+            font-size: 11px;
             outline: none;
-            max-width: 240px;
+            max-width: 220px;
             cursor: pointer;
-            box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.5), 0 0 6px var(--neon-accent, #00f2fe);
-            text-shadow: 0 0 6px var(--neon-accent, #00f2fe);
         }
 
         #project-select option {
-            background: var(--bg-chassis, #0d141a);
-            color: var(--neon-accent, #00f2fe);
-            font-family: 'Share Tech Mono', monospace;
+            background: #1e2723;
+            color: #ffffff;
         }
 
-        /* Y2K Aqua / Metallic Glass Buttons */
         button, select {
-            background: var(--metal-faceplate);
-            color: var(--text-main, #ffffff);
-            border: 1px solid var(--metal-border, #485460);
-            border-top-color: var(--header-border-top, #8395a7);
-            border-bottom-color: var(--header-border-bottom, #0a0e11);
-            padding: 6px 12px;
+            background: rgba(255, 255, 255, 0.18);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            padding: 5px 10px;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 13px;
+            font-size: 11px;
             font-weight: 700;
-            letter-spacing: 0.6px;
-            text-transform: uppercase;
-            transition: all 0.12s ease;
+            letter-spacing: 0.3px;
+            transition: all 0.15s ease;
             display: inline-flex;
             align-items: center;
-            gap: 5px;
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 2px 4px rgba(0, 0, 0, 0.6);
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+            gap: 4px;
         }
 
         button:hover, select:hover {
-            border-color: var(--neon-accent, #00f2fe);
-            color: var(--neon-accent, #00f2fe);
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 0 10px var(--neon-accent, #00f2fe);
-            transform: translateY(-1px);
-        }
-
-        button:active {
-            background: var(--metal-subpanel);
-            transform: translateY(1px);
-            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.8);
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+            color: #ffffff;
         }
 
         button.btn-primary {
-            background: linear-gradient(180deg, #ffd32a 0%, #ffa801 48%, #e67e22 52%, #f39c12 100%);
-            color: #1e1e1e;
-            border-color: #ffeaa7;
-            border-bottom-color: #b75e07;
-            font-weight: 800;
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 0 10px rgba(255, 168, 1, 0.5);
-            text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
+            background: #ffab19;
+            color: #1e2723;
+            border-color: #f59f00;
         }
 
         button.btn-primary:hover {
-            background: linear-gradient(180deg, #fffa65 0%, #ffd32a 48%, #f39c12 52%, #ffa801 100%);
-            box-shadow: inset 0 1px 0 #ffffff, 0 0 16px rgba(255, 211, 42, 0.8);
+            background: #ffd43b;
             color: #000000;
         }
 
         button.btn-accent {
-            background: linear-gradient(180deg, var(--neon-accent, #00f2fe) 0%, #0984e3 52%, var(--neon-secondary, #00cec9) 100%);
+            background: #10b981;
             color: #ffffff;
-            border-color: rgba(255, 255, 255, 0.6);
-            border-bottom-color: #0652dd;
-            font-weight: 800;
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 0 12px var(--neon-accent, #00f2fe);
-            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+            border-color: #059669;
         }
 
         button.btn-accent:hover {
-            box-shadow: inset 0 1px 0 #ffffff, 0 0 20px var(--neon-accent, #00f2fe);
+            background: #34d399;
         }
 
         button.btn-warn {
-            background: linear-gradient(180deg, #ff9f43 0%, #e67e22 50%, #d35400 100%);
-            border-color: #f39c12;
+            background: rgba(255, 159, 67, 0.25);
+            border-color: #ff9f43;
             color: #ffffff;
         }
 
         button.btn-danger {
-            background: linear-gradient(180deg, #ff7675 0%, #d63031 50%, #c0392b 100%);
-            border-color: #e74c3c;
+            background: rgba(255, 107, 107, 0.25);
+            border-color: #ff6b6b;
             color: #ffffff;
         }
 
         button.btn-sm {
-            padding: 4px 8px;
-            font-size: 11px;
-            font-weight: 700;
+            padding: 3px 6px;
+            font-size: 10px;
         }
 
         /* Main Workspace View Container */
         .workspace-grid {
             flex: 1;
             width: 100vw;
-            height: calc(100vh - 52px - 28px);
+            height: calc(100vh - 48px - 26px);
             display: flex;
             position: relative;
-            background: var(--bg-chassis, #070c10);
+            background: #0c100e;
         }
 
         #rack-container {
@@ -416,22 +213,21 @@
             left: 0;
         }
 
-        /* Y2K Scratch Cyberdeck Drawer */
+        /* Scratch Editor Modal / Drawer */
         .scratch-drawer {
             position: fixed;
-            top: 52px;
+            top: 48px;
             right: 0;
             width: 65vw;
-            min-width: 520px;
-            height: calc(100vh - 52px - 28px);
-            background: var(--bg-chassis, #0a1016);
-            backdrop-filter: blur(16px);
-            border-left: 3px solid var(--neon-accent, #00f2fe);
-            box-shadow: -15px 0 50px rgba(0, 0, 0, 0.9), 0 0 20px var(--neon-accent, #00f2fe);
+            min-width: 500px;
+            height: calc(100vh - 48px - 26px);
+            background: #111714;
+            border-left: 2px solid #283731;
+            box-shadow: -10px 0 40px rgba(0, 0, 0, 0.85);
             display: flex;
             flex-direction: column;
             z-index: 500;
-            transition: transform 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.2);
+            transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             transform: translateX(100%);
         }
 
@@ -440,24 +236,20 @@
         }
 
         .drawer-header {
-            padding: 10px 18px;
-            background: var(--bg-header);
-            border-bottom: 2px solid var(--neon-accent, #00f2fe);
+            padding: 10px 16px;
+            background: #18221e;
+            border-bottom: 1px solid #283731;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
         }
 
         .drawer-header h2 {
-            font-family: 'Orbitron', sans-serif;
             font-size: 14px;
-            color: var(--neon-accent, #00f2fe);
+            color: var(--chalk-yellow);
             display: flex;
             align-items: center;
             gap: 8px;
-            letter-spacing: 1px;
-            text-shadow: 0 0 8px var(--neon-accent, #00f2fe);
         }
 
         .drawer-body {
@@ -465,7 +257,7 @@
             position: relative;
             width: 100%;
             height: 100%;
-            background: var(--bg-chassis, #070c10);
+            background: #0c100e;
         }
 
         #blockly-div {
@@ -476,78 +268,63 @@
             left: 0;
         }
 
-        /* Y2K LCD Screen Footer */
-        .chalk-footer {
-            height: 28px;
-            background: linear-gradient(180deg, #11181f 0%, #070c10 100%);
-            border-top: 1px solid #2f3640;
-            padding: 0 16px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 11px;
-            color: #718093;
-            letter-spacing: 0.5px;
-            flex-shrink: 0;
-            z-index: 100;
-        }
-
-        #status-live {
-            color: #00ff88;
-            background: rgba(0, 255, 136, 0.1);
-            border: 1px solid rgba(0, 255, 136, 0.3);
-            padding: 1px 6px;
-            border-radius: 3px;
-            font-weight: 700;
-        }
-
         /* High-contrast block text for darker block backgrounds */
         .blocklyText, .blocklyHtmlInput, .blocklyDropdownText {
             fill: #ffffff !important;
             font-weight: 700 !important;
-            font-family: 'Share Tech Mono', monospace !important;
         }
 
         .blocklyEditableText > rect {
-            fill: rgba(0, 0, 0, 0.4) !important;
-            stroke: #00f2fe !important;
+            fill: rgba(0, 0, 0, 0.22) !important;
+            stroke: rgba(255, 255, 255, 0.25) !important;
         }
 
         .blocklyToolboxDiv {
-            width: 215px !important;
-            background: linear-gradient(180deg, #18222b 0%, #0d141a 100%) !important;
-            border-right: 2px solid #00f2fe !important;
+            width: 195px !important;
+            background-color: #141c18 !important;
+            border-right: 1px solid #283731 !important;
             overflow-y: auto !important;
-            box-shadow: inset 0 0 15px rgba(0, 242, 254, 0.15) !important;
         }
 
         .blocklyTreeLabel {
             font-size: 12px !important;
             font-weight: 700 !important;
             color: #dcdde1 !important;
-            font-family: 'Chakra Petch', 'Rajdhani', sans-serif !important;
-            letter-spacing: 0.5px !important;
         }
 
         .blocklyFlyoutBackground {
-            fill: #090f14 !important;
-            fill-opacity: 0.98 !important;
+            fill: #111714 !important;
+            fill-opacity: 0.96 !important;
         }
 
         .blocklyMainBackground {
-            fill: #050a0e !important;
+            fill: #0c100e !important;
         }
 
-        /* Y2K Modal Windows */
+        .chalk-footer {
+            width: 100%;
+            height: 26px;
+            padding: 0 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #111714;
+            border-top: 1px solid #202b26;
+            font-size: 11px;
+            color: var(--text-dim);
+            flex-shrink: 0;
+            z-index: 100;
+        }
+
+        /* Modal Gerenciador de Projetos & Modal Adicionar Módulo */
         .modal-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: rgba(3, 7, 10, 0.85);
-            backdrop-filter: blur(8px);
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(4px);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -555,55 +332,52 @@
         }
 
         .modal-dialog {
-            background: linear-gradient(180deg, #1f2a33 0%, #0d1419 100%);
-            border: 2px solid #00f2fe;
-            border-radius: 8px;
+            background: #141c18;
+            border: 2px solid #283731;
+            border-radius: 10px;
             width: 90%;
             max-width: 780px;
             max-height: 85vh;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 25px 70px rgba(0, 0, 0, 0.95), 0 0 25px rgba(0, 242, 254, 0.35);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.95);
             overflow: hidden;
         }
 
         .modal-header {
-            padding: 10px 16px;
-            background: linear-gradient(180deg, #3d4f5c 0%, #1c2730 100%);
-            border-bottom: 2px solid #00f2fe;
+            padding: 12px 16px;
+            background: #18221e;
+            border-bottom: 1px solid #283731;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
         }
 
         .modal-header h2 {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 14px;
-            color: #00f2fe;
+            font-size: 15px;
+            color: var(--chalk-yellow);
             display: flex;
             align-items: center;
             gap: 8px;
-            letter-spacing: 1px;
-            text-shadow: 0 0 8px rgba(0, 242, 254, 0.6);
         }
 
         .modal-close {
-            background: linear-gradient(180deg, #ff7675 0%, #d63031 100%);
-            border: 1px solid #ffaaaa;
-            color: #ffffff;
-            font-size: 12px;
-            font-weight: 900;
-            border-radius: 4px;
+            background: transparent;
+            border: none;
+            color: #8395a7;
+            font-size: 16px;
             cursor: pointer;
-            padding: 2px 8px;
-            box-shadow: 0 0 8px rgba(255, 56, 56, 0.6);
+            padding: 2px 6px;
+        }
+
+        .modal-close:hover {
+            color: var(--chalk-pink);
         }
 
         .modal-search-bar {
-            padding: 10px 16px;
-            background: #090f14;
-            border-bottom: 1px solid #1f2d38;
+            padding: 8px 16px;
+            background: #121815;
+            border-bottom: 1px solid #202b26;
             display: flex;
             gap: 8px;
             align-items: center;
@@ -613,57 +387,51 @@
         .modal-search-bar input {
             flex: 1;
             min-width: 180px;
-            background: #04080b;
-            border: 1px solid #00f2fe;
+            background: #090d0b;
+            border: 1px solid #283731;
             border-radius: 4px;
-            color: #00f2fe;
+            color: var(--chalk-white);
             padding: 6px 10px;
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 12px;
+            font-size: 11px;
             outline: none;
-            box-shadow: inset 0 0 6px rgba(0, 242, 254, 0.2);
         }
 
         .modal-body {
-            padding: 14px 16px;
+            padding: 12px 16px;
             overflow-y: auto;
             flex: 1;
             display: flex;
             flex-direction: column;
             gap: 8px;
-            background: #070c10;
         }
 
         .modules-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 12px;
+            gap: 10px;
         }
 
         .module-pick-card {
-            background: linear-gradient(180deg, #1a252f 0%, #0f161c 100%);
-            border: 1px solid #2d3e4d;
-            border-top-color: #50687a;
+            background: #18221e;
+            border: 1px solid #283731;
             border-radius: 6px;
-            padding: 12px;
+            padding: 10px 12px;
             display: flex;
             flex-direction: column;
             gap: 6px;
             cursor: pointer;
             transition: all 0.15s ease;
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 4px 10px rgba(0, 0, 0, 0.6);
         }
 
         .module-pick-card:hover {
-            border-color: #00f2fe;
+            border-color: #55efc4;
             transform: translateY(-2px);
-            background: linear-gradient(180deg, #243543 0%, #152029 100%);
-            box-shadow: 0 0 15px rgba(0, 242, 254, 0.4);
+            background: #1f2d27;
         }
 
         .project-card {
-            background: linear-gradient(180deg, #18232c 0%, #0e141a 100%);
-            border: 1px solid #2d3e4d;
+            background: #18221e;
+            border: 1px solid #283731;
             border-radius: 6px;
             padding: 10px 14px;
             display: flex;
@@ -671,13 +439,11 @@
             align-items: center;
             gap: 10px;
             transition: all 0.15s ease;
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
         }
 
         .project-card.active {
-            border-color: #00ff88;
-            background: linear-gradient(180deg, #10261e 0%, #081711 100%);
-            box-shadow: 0 0 12px rgba(0, 255, 136, 0.35);
+            border-color: var(--chalk-green);
+            background: #162a22;
         }
 
         .project-info {
@@ -694,7 +460,6 @@
         }
 
         .badge {
-            font-family: 'Share Tech Mono', monospace;
             font-size: 9px;
             font-weight: 700;
             padding: 2px 5px;
@@ -703,89 +468,17 @@
             text-transform: uppercase;
         }
 
-        .badge-example { background: rgba(0, 242, 254, 0.15); color: #00f2fe; border: 1px solid #00f2fe; }
-        .badge-user { background: rgba(254, 211, 42, 0.15); color: #fed330; border: 1px solid #fed330; }
-        .badge-active { background: rgba(0, 255, 136, 0.2); color: #00ff88; border: 1px solid #00ff88; }
+        .badge-example { background: rgba(72, 219, 251, 0.15); color: var(--chalk-cyan); border: 1px solid var(--chalk-cyan); }
+        .badge-user { background: rgba(254, 202, 87, 0.15); color: var(--chalk-yellow); border: 1px solid var(--chalk-yellow); }
+        .badge-active { background: rgba(29, 209, 161, 0.2); color: var(--chalk-green); border: 1px solid var(--chalk-green); }
 
         .modal-footer {
             padding: 10px 16px;
-            background: #0f161c;
-            border-top: 1px solid #25333f;
+            background: #18221e;
+            border-top: 1px solid #283731;
             display: flex;
             justify-content: space-between;
             align-items: center;
-        }
-
-        /* -------------------------------------------------------------
-           Rich Y2K Controls: Sliders, ADSR Curve, WaveDraw, XY & Switches
-           ------------------------------------------------------------- */
-        #theme-select {
-            background: linear-gradient(180deg, #18222b 0%, #0d141a 100%);
-            color: var(--neon-secondary);
-            border: 1px solid var(--neon-secondary);
-            padding: 6px 10px;
-            border-radius: 4px;
-            font-family: 'Share Tech Mono', monospace;
-            font-weight: 700;
-            font-size: 11px;
-            outline: none;
-            cursor: pointer;
-            box-shadow: inset 0 0 8px rgba(0, 255, 136, 0.25), 0 0 6px rgba(0, 255, 136, 0.3);
-            text-shadow: 0 0 6px var(--neon-secondary);
-        }
-
-        #theme-select option {
-            background: #0d141a;
-            color: var(--neon-secondary);
-            font-family: 'Share Tech Mono', monospace;
-        }
-
-        /* Sliders / Faders */
-        .rack-slider-track {
-            background: linear-gradient(90deg, #070c10 0%, #1a252f 50%, #070c10 100%);
-            border: 1px solid #2d3e4d;
-            border-radius: 3px;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.9);
-            position: relative;
-        }
-
-        .rack-slider-thumb {
-            background: linear-gradient(180deg, #8395a7 0%, #485460 45%, #2d3436 55%, #1e272e 100%);
-            border: 1px solid #c8d6e5;
-            border-top: 1px solid #ffffff;
-            border-bottom: 2px solid #000000;
-            border-radius: 3px;
-            box-shadow: 0 3px 6px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.7);
-            cursor: ns-resize;
-        }
-
-        /* Interactive Canvas Panels (ADSR Curve, Wave Draw, XY Pad) */
-        .rack-interactive-canvas {
-            background: #020d09;
-            border: 1px solid var(--lcd-border);
-            border-radius: 4px;
-            box-shadow: inset 0 0 8px rgba(0,0,0,0.9), 0 0 6px var(--lcd-border);
-            cursor: crosshair;
-        }
-
-        /* 3D Rocker / Toggle Switches */
-        .rack-toggle-switch {
-            background: linear-gradient(180deg, #2d3436 0%, #1e272e 100%);
-            border: 2px solid #485460;
-            border-radius: 12px;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.8);
-            cursor: pointer;
-            position: relative;
-            transition: all 0.15s ease;
-        }
-
-        .rack-toggle-lever {
-            background: radial-gradient(circle at 35% 35%, #ffffff 0%, #b2bec3 45%, #636e72 70%, #2d3436 100%);
-            border: 1px solid #1e272e;
-            border-radius: 50%;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.9), inset 0 1px 1px #ffffff;
-            position: absolute;
-            transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
         /* Toast Feedback */
@@ -831,14 +524,6 @@
 
             <!-- Project Selector & Actions Toolbar -->
             <div class="project-toolbar">
-                <select id="theme-select" title="Tema Visual Y2K">
-                    <option value="cyber_titanium">⚡ Cyber Titanium 2000</option>
-                    <option value="winamp_classic">📻 Winamp 2.91 Classic</option>
-                    <option value="frutiger_aero">🌊 Frutiger Aero Aqua</option>
-                    <option value="vaporwave_99">🌆 Vaporwave 1999</option>
-                    <option value="atomic_purple">🎮 Atomic Purple GBC</option>
-                    <option value="matrix_terminal">📟 Matrix Phosphor CRT</option>
-                </select>
                 <select id="project-select" title="Carregar Patch do Rack"></select>
                 <button id="btn-add-module" class="btn-accent" title="Adicionar novo módulo da biblioteca ao rack">+ Módulo</button>
                 <button id="btn-save-project" title="Salvar alterações no patch atual">Salvar</button>
