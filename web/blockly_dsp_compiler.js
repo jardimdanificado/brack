@@ -24,6 +24,13 @@ export class BlocklySynthEngine {
         this.variables = new Map();
         this.lists = new Map();
         this.outBlock = null;
+
+        // Module Box IO & Knob mapping for Rack Engine
+        this.inputSignals = new Map();
+        this.outputSignals = new Map();
+        this.knobValues = new Map();
+        this.moduleOutputBlocks = [];
+        this.moduleProcessBlocks = [];
     }
 
     setWorkspace(workspace) {
@@ -52,10 +59,19 @@ export class BlocklySynthEngine {
         this.sendBlocksByChannel.clear();
         this.broadcastListeners.clear();
         this.hatBlocks = [];
+        this.moduleOutputBlocks = [];
+        this.moduleProcessBlocks = [];
 
         for (const block of allBlocks) {
             if (!this.blockStates.has(block.id)) {
                 this.blockStates.set(block.id, this.initBlockState(block.type));
+            }
+
+            if (block.type === 'module_io_output') {
+                this.moduleOutputBlocks.push(block);
+            }
+            if (block.type === 'module_io_process') {
+                this.moduleProcessBlocks.push(block);
             }
 
             if (block.type.startsWith('event_')) {
@@ -165,11 +181,57 @@ export class BlocklySynthEngine {
             return unified.process(inputs, state, dsp, numSamples);
         }
 
-        // 2. Specialized Block Logic (Routing, Lists, Sequencer, Logic, Events)
+        // 2. Specialized Block Logic (Routing, Lists, Sequencer, Logic, Events, Module IO)
         switch (block.type) {
+            // Module Box IO & Knob
+            case 'module_io_input': {
+                const portName = block.getFieldValue('PORT') || 'In';
+                const sig = this.inputSignals.get(portName);
+                if (sig) {
+                    return sig;
+                }
+                const silentBuf = new Float32Array(numSamples);
+                return { type: 'AUDIO', val: 0, audio: silentBuf };
+            }
+
+            case 'module_io_output': {
+                const portName = block.getFieldValue('PORT') || 'Out';
+                const sigRes = this.getAudioSource(block, 'SIGNAL', new Set(visited)) || this.getParamVal(block, 'SIGNAL', 0, new Set(visited));
+                if (sigRes) {
+                    this.outputSignals.set(portName, sigRes);
+                }
+                const next = block.getNextBlock ? block.getNextBlock() : null;
+                if (next) this.evalBlock(next, visited);
+                return sigRes || { type: 'VAL', val: 0, audio: null };
+            }
+
+            case 'module_io_knob': {
+                const knobName = block.getFieldValue('NAME') || 'Cutoff';
+                if (this.knobValues && this.knobValues.has(knobName)) {
+                    const val = this.knobValues.get(knobName);
+                    return { type: 'VAL', val: Number(val), audio: null };
+                }
+                const defVal = Number(block.getFieldValue('DEFAULT')) || 0;
+                return { type: 'VAL', val: defVal, audio: null };
+            }
+
+            case 'module_io_process': {
+                const nextBlock = block.getNextBlock ? block.getNextBlock() : null;
+                if (nextBlock) {
+                    return this.evalBlock(nextBlock, visited);
+                }
+                return { type: 'VAL', val: 0, audio: null };
+            }
+
             // Free-Text Broadcast Send Block
             case 'synth_send': {
-                const src = this.getAudioSource(block, 'IN', new Set(visited));
+                const ch = block.getFieldValue('CHANNEL') || 'bus_a';
+                const src = this.getAudioSource(block, 'IN', new Set(visited)) || this.getParamVal(block, 'IN', 0, new Set(visited));
+                if (src) {
+                    this.busCache.set(ch, src);
+                }
+                const next = block.getNextBlock ? block.getNextBlock() : null;
+                if (next) this.evalBlock(next, visited);
                 return src || { type: 'VAL', val: 0, audio: null };
             }
 
@@ -730,5 +792,75 @@ export class BlocklySynthEngine {
             outL[offset + s] = leftAudio ? dsp.tanh(leftAudio[s] * vol) : 0;
             outR[offset + s] = rightAudio ? dsp.tanh(rightAudio[s] * vol) : 0;
         }
+    }
+
+    /**
+     * Process a single module in isolation for the Rack Engine
+     */
+    processModule(inputSignals = new Map(), knobValues = new Map(), numSamples = 128) {
+        this.inputSignals = inputSignals;
+        this.knobValues = knobValues;
+        this.outputSignals = new Map();
+        this.busCache.clear();
+
+        const visited = new Set();
+
+        // 1. Run process hat blocks
+        for (const hat of this.moduleProcessBlocks) {
+            const next = hat.getNextBlock ? hat.getNextBlock() : null;
+            if (next) this.evalBlock(next, visited);
+        }
+
+        // 2. Run any unattached output blocks
+        for (const outBlock of this.moduleOutputBlocks) {
+            if (!visited.has(outBlock.id)) {
+                this.evalBlock(outBlock, visited);
+            }
+        }
+
+        return this.outputSignals;
+    }
+
+    /**
+     * Inspect workspace blocks and extract all declared inputs, outputs and knobs
+     */
+    static extractInterface(workspace) {
+        if (!workspace) return { inputs: [], outputs: [], params: [] };
+        const blocks = workspace.getAllBlocks(false);
+        const inputs = [];
+        const outputs = [];
+        const params = [];
+        const seenIn = new Set();
+        const seenOut = new Set();
+        const seenParam = new Set();
+
+        for (const block of blocks) {
+            if (block.type === 'module_io_input') {
+                const name = block.getFieldValue('PORT') || 'In';
+                const type = block.getFieldValue('TYPE') || 'AUDIO';
+                if (!seenIn.has(name)) {
+                    seenIn.add(name);
+                    inputs.push({ id: name, name, type });
+                }
+            } else if (block.type === 'module_io_output') {
+                const name = block.getFieldValue('PORT') || 'Out';
+                const type = block.getFieldValue('TYPE') || 'AUDIO';
+                if (!seenOut.has(name)) {
+                    seenOut.add(name);
+                    outputs.push({ id: name, name, type });
+                }
+            } else if (block.type === 'module_io_knob') {
+                const name = block.getFieldValue('NAME') || 'Cutoff';
+                const min = Number(block.getFieldValue('MIN')) || 0;
+                const max = Number(block.getFieldValue('MAX')) || 1;
+                const def = Number(block.getFieldValue('DEFAULT')) || 0.5;
+                if (!seenParam.has(name)) {
+                    seenParam.add(name);
+                    params.push({ id: name, name, min, max, default: def, value: def });
+                }
+            }
+        }
+
+        return { inputs, outputs, params };
     }
 }

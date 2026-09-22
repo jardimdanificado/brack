@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BRACK // Modular Synth & Live DSP</title>
+    <title>BRACK // Modular Rack & Scratch DSP</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎛️</text></svg>">
     <style>
         :root {
             --bg: #0c100e;
@@ -43,7 +44,7 @@
             justify-content: space-between;
             align-items: center;
             flex-shrink: 0;
-            z-index: 10;
+            z-index: 100;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
         }
 
@@ -96,21 +97,10 @@
             background: #dc2626;
         }
 
-        .btn-play-toggle .icon-play {
-            display: block;
-        }
-
-        .btn-play-toggle .icon-stop {
-            display: none;
-        }
-
-        .btn-play-toggle.playing .icon-play {
-            display: none;
-        }
-
-        .btn-play-toggle.playing .icon-stop {
-            display: block;
-        }
+        .btn-play-toggle .icon-play { display: block; }
+        .btn-play-toggle .icon-stop { display: none; }
+        .btn-play-toggle.playing .icon-play { display: none; }
+        .btn-play-toggle.playing .icon-stop { display: block; }
 
         @keyframes pulse-play {
             0%, 100% { transform: scale(1); }
@@ -178,6 +168,16 @@
             color: #000000;
         }
 
+        button.btn-accent {
+            background: #10b981;
+            color: #ffffff;
+            border-color: #059669;
+        }
+
+        button.btn-accent:hover {
+            background: #34d399;
+        }
+
         button.btn-warn {
             background: rgba(255, 159, 67, 0.25);
             border-color: #ff9f43;
@@ -195,35 +195,7 @@
             font-size: 10px;
         }
 
-        .zoom-info {
-            font-size: 11px;
-            color: #ffffff;
-            background: rgba(0, 0, 0, 0.2);
-            padding: 4px 8px;
-            border-radius: 4px;
-            border: 1px solid rgba(255, 255, 255, 0.25);
-            min-width: 80px;
-            text-align: center;
-            font-weight: 700;
-        }
-
-        /* High-contrast block text for darker block backgrounds */
-        .blocklyText, .blocklyHtmlInput {
-            fill: #ffffff !important;
-            font-weight: 700 !important;
-        }
-
-        .blocklyDropdownText {
-            fill: #ffffff !important;
-            font-weight: 700 !important;
-        }
-
-        .blocklyEditableText > rect {
-            fill: rgba(0, 0, 0, 0.22) !important;
-            stroke: rgba(255, 255, 255, 0.25) !important;
-        }
-
-        /* Workspace Grid Fullscreen */
+        /* Main Workspace View Container */
         .workspace-grid {
             flex: 1;
             width: 100vw;
@@ -233,12 +205,59 @@
             background: #0c100e;
         }
 
-        .board-container {
+        #rack-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        /* Scratch Editor Modal / Drawer */
+        .scratch-drawer {
+            position: fixed;
+            top: 48px;
+            right: 0;
+            width: 65vw;
+            min-width: 500px;
+            height: calc(100vh - 48px - 26px);
+            background: #111714;
+            border-left: 2px solid #283731;
+            box-shadow: -10px 0 40px rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            z-index: 500;
+            transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform: translateX(100%);
+        }
+
+        .scratch-drawer.open {
+            transform: translateX(0);
+        }
+
+        .drawer-header {
+            padding: 10px 16px;
+            background: #18221e;
+            border-bottom: 1px solid #283731;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .drawer-header h2 {
+            font-size: 14px;
+            color: var(--chalk-yellow);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .drawer-body {
+            flex: 1;
+            position: relative;
             width: 100%;
             height: 100%;
             background: #0c100e;
-            position: relative;
-            overflow: hidden;
         }
 
         #blockly-div {
@@ -249,66 +268,25 @@
             left: 0;
         }
 
-        /* Fixed Width Stable Toolbox Sidebar */
+        /* High-contrast block text for darker block backgrounds */
+        .blocklyText, .blocklyHtmlInput, .blocklyDropdownText {
+            fill: #ffffff !important;
+            font-weight: 700 !important;
+        }
+
+        .blocklyEditableText > rect {
+            fill: rgba(0, 0, 0, 0.22) !important;
+            stroke: rgba(255, 255, 255, 0.25) !important;
+        }
+
         .blocklyToolboxDiv {
-            width: 210px !important;
-            min-width: 210px !important;
-            max-width: 210px !important;
+            width: 195px !important;
             background-color: #141c18 !important;
             border-right: 1px solid #283731 !important;
-            box-sizing: border-box !important;
             overflow-y: auto !important;
-            overflow-x: hidden !important;
-            transition: transform 0.2s ease, opacity 0.2s ease;
-        }
-
-        /* Hide Toolbox State */
-        .toolbox-hidden .blocklyToolboxDiv {
-            display: none !important;
-        }
-
-        .toolbox-hidden .blocklyFlyout {
-            display: none !important;
-        }
-
-        @media (max-width: 768px) {
-            header {
-                height: auto;
-                padding: 6px 8px;
-                flex-direction: column;
-                align-items: stretch;
-                gap: 6px;
-            }
-            .actions {
-                flex-wrap: wrap;
-                gap: 6px;
-            }
-            .project-toolbar {
-                flex-wrap: wrap;
-                width: 100%;
-                gap: 4px;
-            }
-            #project-select {
-                flex: 1;
-                min-width: 120px;
-                max-width: 100%;
-            }
-            .blocklyToolboxDiv {
-                width: 175px !important;
-                min-width: 175px !important;
-                max-width: 175px !important;
-            }
-        }
-
-        .blocklyTreeRow {
-            padding: 5px 8px !important;
-            margin: 2px 4px !important;
-            border-radius: 4px !important;
-            height: auto !important;
         }
 
         .blocklyTreeLabel {
-            font-family: inherit !important;
             font-size: 12px !important;
             font-weight: 700 !important;
             color: #dcdde1 !important;
@@ -323,11 +301,6 @@
             fill: #0c100e !important;
         }
 
-        .blocklySelected > .blocklyPath {
-            stroke: #feca57 !important;
-            stroke-width: 3px !important;
-        }
-
         .chalk-footer {
             width: 100%;
             height: 26px;
@@ -340,10 +313,10 @@
             font-size: 11px;
             color: var(--text-dim);
             flex-shrink: 0;
-            z-index: 10;
+            z-index: 100;
         }
 
-        /* Modal Gerenciador de Projetos */
+        /* Modal Gerenciador de Projetos & Modal Adicionar Módulo */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -423,10 +396,6 @@
             outline: none;
         }
 
-        .modal-search-bar input:focus {
-            border-color: var(--chalk-green);
-        }
-
         .modal-body {
             padding: 12px 16px;
             overflow-y: auto;
@@ -434,6 +403,30 @@
             display: flex;
             flex-direction: column;
             gap: 8px;
+        }
+
+        .modules-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 10px;
+        }
+
+        .module-pick-card {
+            background: #18221e;
+            border: 1px solid #283731;
+            border-radius: 6px;
+            padding: 10px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .module-pick-card:hover {
+            border-color: #55efc4;
+            transform: translateY(-2px);
+            background: #1f2d27;
         }
 
         .project-card {
@@ -446,11 +439,6 @@
             align-items: center;
             gap: 10px;
             transition: all 0.15s ease;
-        }
-
-        .project-card:hover {
-            border-color: #3b5247;
-            background: #1c2723;
         }
 
         .project-card.active {
@@ -471,12 +459,6 @@
             gap: 8px;
         }
 
-        .project-name {
-            font-size: 13px;
-            font-weight: 700;
-            color: var(--chalk-white);
-        }
-
         .badge {
             font-size: 9px;
             font-weight: 700;
@@ -486,41 +468,9 @@
             text-transform: uppercase;
         }
 
-        .badge-example {
-            background: rgba(72, 219, 251, 0.15);
-            color: var(--chalk-cyan);
-            border: 1px solid var(--chalk-cyan);
-        }
-
-        .badge-user {
-            background: rgba(254, 202, 87, 0.15);
-            color: var(--chalk-yellow);
-            border: 1px solid var(--chalk-yellow);
-        }
-
-        .badge-active {
-            background: rgba(29, 209, 161, 0.2);
-            color: var(--chalk-green);
-            border: 1px solid var(--chalk-green);
-        }
-
-        .project-desc {
-            font-size: 11px;
-            color: var(--text-dim);
-            line-height: 1.3;
-        }
-
-        .project-date {
-            font-size: 10px;
-            color: #576574;
-        }
-
-        .project-actions {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            flex-wrap: wrap;
-        }
+        .badge-example { background: rgba(72, 219, 251, 0.15); color: var(--chalk-cyan); border: 1px solid var(--chalk-cyan); }
+        .badge-user { background: rgba(254, 202, 87, 0.15); color: var(--chalk-yellow); border: 1px solid var(--chalk-yellow); }
+        .badge-active { background: rgba(29, 209, 161, 0.2); color: var(--chalk-green); border: 1px solid var(--chalk-green); }
 
         .modal-footer {
             padding: 10px 16px;
@@ -529,11 +479,6 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-        }
-
-        .modal-tip {
-            font-size: 11px;
-            color: var(--text-dim);
         }
 
         /* Toast Feedback */
@@ -557,19 +502,9 @@
             transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        .toast.show {
-            transform: translateY(0);
-            opacity: 1;
-        }
-
-        .toast.toast-warn {
-            background: var(--chalk-yellow);
-        }
-
-        .toast.toast-error {
-            background: var(--chalk-pink);
-            color: #fff;
-        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.toast-warn { background: var(--chalk-yellow); }
+        .toast.toast-error { background: var(--chalk-pink); color: #fff; }
     </style>
     <script src="vendor/blockly.min.js"></script>
 </head>
@@ -589,54 +524,80 @@
 
             <!-- Project Selector & Actions Toolbar -->
             <div class="project-toolbar">
-                <select id="project-select" title="Carregar Exemplo ou Projeto Salvo"></select>
-                <button id="btn-toggle-toolbox" class="btn-primary" title="Mostrar/Ocultar Barra Lateral de Blocos (B)">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/>
-                    </svg>
-                    <span>Blocos</span>
-                </button>
-                <button id="btn-save-project" title="Salvar alterações no projeto">Salvar</button>
-                <button id="btn-save-as-project" title="Salvar como novo projeto">Salvar Como</button>
-                <button id="btn-new-project" title="Criar projeto em branco">Novo</button>
-                <button id="btn-manage-projects" title="Gerenciador de Projetos e Exemplos">Projetos</button>
+                <select id="project-select" title="Carregar Patch do Rack"></select>
+                <button id="btn-add-module" class="btn-accent" title="Adicionar novo módulo da biblioteca ao rack">+ Módulo</button>
+                <button id="btn-save-project" title="Salvar alterações no patch atual">Salvar</button>
+                <button id="btn-save-as-project" title="Salvar como novo patch">Salvar Como</button>
+                <button id="btn-new-project" title="Criar rack em branco">Novo</button>
+                <button id="btn-manage-projects" title="Gerenciador de Patches e Exemplos">Patches</button>
                 <button id="btn-export-project" title="Exportar para arquivo .json">Exportar</button>
                 <button id="btn-import-project" title="Importar arquivo .json">Importar</button>
-                <button id="btn-clear-workspace" title="Limpar todos os blocos">Limpar</button>
+                <button id="btn-clear-rack" title="Limpar todos os módulos do rack">Limpar</button>
                 <input type="file" id="file-input-project" accept=".json,.brack.json" style="display: none;" />
             </div>
         </div>
     </header>
 
+    <!-- Main Rack Canvas -->
     <div class="workspace-grid" id="workspace-grid">
-        <div class="board-container">
+        <div id="rack-container"></div>
+    </div>
+
+    <!-- Scratch Module Code Editor Drawer -->
+    <div class="scratch-drawer" id="scratch-drawer">
+        <div class="drawer-header">
+            <h2 id="drawer-module-title">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>
+                <span>Editando Código Scratch: Módulo</span>
+            </h2>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <span style="font-size: 11px; color: var(--chalk-green); font-weight: 700;">● Sincronizado ao Vivo</span>
+                <button id="btn-close-drawer" class="btn-primary" title="Voltar ao Rack (ESC)">Voltar ao Rack</button>
+            </div>
+        </div>
+        <div class="drawer-body">
             <div id="blockly-div"></div>
         </div>
     </div>
 
     <div class="chalk-footer">
-        <div><b>BRACK Modular:</b> Conecte blocos em pilhas de áudio | DSP 48kHz em tempo real | Atalhos de teclado A-K</div>
-        <div>Pronto para tocar</div>
+        <div><b>BRACK Rack Modular:</b> Conecte cabos de patch entre módulos | Duplo clique na caixa para editar no Scratch | Arraste knobs para modular</div>
+        <div id="status-live">DSP 48kHz Ativo</div>
+    </div>
+
+    <!-- Modal Adicionar Módulo -->
+    <div class="modal-overlay" id="add-module-modal" style="display: none;">
+        <div class="modal-dialog" style="max-width: 650px;">
+            <div class="modal-header">
+                <h2>Biblioteca de Módulos</h2>
+                <button class="modal-close" id="btn-close-add-modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="modules-grid" id="modules-catalog-grid"></div>
+            </div>
+            <div class="modal-footer">
+                <div style="font-size: 11px; color: var(--text-dim);">Clique em um módulo para adicioná-lo ao rack. Todos possuem código Scratch editável!</div>
+                <button id="btn-cancel-add-modal">Cancelar</button>
+            </div>
+        </div>
     </div>
 
     <!-- Modal Gerenciador de Projetos e Exemplos -->
     <div class="modal-overlay" id="projects-modal" style="display: none;">
         <div class="modal-dialog">
             <div class="modal-header">
-                <h2>Gerenciador de Projetos & Exemplos</h2>
+                <h2>Gerenciador de Patches & Exemplos de Rack</h2>
                 <button class="modal-close" id="btn-modal-close" title="Fechar">✕</button>
             </div>
             <div class="modal-search-bar">
-                <input type="text" id="modal-search-input" placeholder="Filtrar projetos ou exemplos..." />
-                <button id="btn-modal-new-proj" class="btn-sm">Novo Projeto</button>
+                <input type="text" id="modal-search-input" placeholder="Filtrar patches ou exemplos..." />
+                <button id="btn-modal-new-proj" class="btn-sm">Novo Patch</button>
                 <button id="btn-modal-import-proj" class="btn-sm">Importar JSON</button>
                 <button id="btn-modal-reset-examples" class="btn-sm btn-warn" title="Restaura todos os exemplos originais de fábrica">Restaurar Exemplos</button>
             </div>
-            <div class="modal-body" id="modal-projects-list">
-                <!-- Project cards injected here -->
-            </div>
+            <div class="modal-body" id="modal-projects-list"></div>
             <div class="modal-footer">
-                <div class="modal-tip">Todos os exemplos começam salvos e prontos para tocar e modificar.</div>
+                <div class="modal-tip">Seus patches salvam a posição das caixas, knobs, cabos e o código Scratch de todos os módulos.</div>
                 <button id="btn-modal-done" class="btn-primary">Fechar</button>
             </div>
         </div>
@@ -647,6 +608,16 @@
 
     <!-- Blockly Toolbox Definition -->
     <xml id="toolbox" style="display: none">
+        <category name="Portas & Controles (Caixa)" colour="#059669">
+            <block type="module_io_input"></block>
+            <block type="module_io_output"></block>
+            <block type="module_io_knob"></block>
+            <block type="module_io_process"></block>
+        </category>
+        <category name="Barramentos (Buses)" colour="#C2255C">
+            <block type="synth_send"></block>
+            <block type="synth_recv"></block>
+        </category>
         <category name="Variáveis & Listas" colour="#FF661A">
             <block type="synth_var_set"></block>
             <block type="synth_var_change"></block>
@@ -663,10 +634,6 @@
             <block type="synth_list_length"></block>
             <block type="synth_list_contains"></block>
             <block type="synth_list_find"></block>
-        </category>
-        <category name="Barramentos de Áudio" colour="#FF6680">
-            <block type="synth_send"></block>
-            <block type="synth_recv"></block>
         </category>
         <category name="Controle & Lógica" colour="#FFAB19">
             <block type="control_if_else"></block>

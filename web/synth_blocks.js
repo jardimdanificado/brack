@@ -9,6 +9,76 @@ import { registerAllBlocksToBlockly, CATEGORIES, GREEN_FLAG_ICON } from './synth
 
 export function registerSynthBlocks(Blockly) {
     // -------------------------------------------------------------------------
+    // 0. PORTAS & CONTROLES (INTERFACE DA CAIXA EXTERNA)
+    // -------------------------------------------------------------------------
+    Blockly.Blocks['module_io_input'] = {
+        init: function() {
+            this.appendDummyInput()
+                .appendField("receber entrada")
+                .appendField(new Blockly.FieldDropdown([
+                    ["Áudio (Buffer)", "AUDIO"],
+                    ["CV / Voltagem", "VAL"],
+                    ["Gate / Trigger", "GATE"]
+                ]), "TYPE")
+                .appendField("[")
+                .appendField(new Blockly.FieldTextInput("In"), "PORT")
+                .appendField("]");
+            this.setOutput(true);
+            this.setInputsInline(true);
+            this.setColour(CATEGORIES.IO_PORTS ? CATEGORIES.IO_PORTS.colour : "#059669");
+            this.setTooltip("Cria um conector jack de entrada na caixa do módulo e lê seu sinal.");
+        }
+    };
+
+    Blockly.Blocks['module_io_output'] = {
+        init: function() {
+            this.appendValueInput("SIGNAL")
+                .appendField("enviar saída")
+                .appendField(new Blockly.FieldDropdown([
+                    ["Áudio (Buffer)", "AUDIO"],
+                    ["CV / Voltagem", "VAL"],
+                    ["Gate / Trigger", "GATE"]
+                ]), "TYPE")
+                .appendField("[")
+                .appendField(new Blockly.FieldTextInput("Out"), "PORT")
+                .appendField("] sinal:");
+            this.setPreviousStatement(true);
+            this.setNextStatement(true);
+            this.setInputsInline(true);
+            this.setColour(CATEGORIES.IO_PORTS ? CATEGORIES.IO_PORTS.colour : "#059669");
+            this.setTooltip("Cria um conector jack de saída na caixa do módulo e transmite o sinal conectado.");
+        }
+    };
+
+    Blockly.Blocks['module_io_knob'] = {
+        init: function() {
+            this.appendDummyInput()
+                .appendField("knob [")
+                .appendField(new Blockly.FieldTextInput("Cutoff"), "NAME")
+                .appendField("] min:")
+                .appendField(new Blockly.FieldNumber(20), "MIN")
+                .appendField("max:")
+                .appendField(new Blockly.FieldNumber(20000), "MAX")
+                .appendField("padrao:")
+                .appendField(new Blockly.FieldNumber(440), "DEFAULT");
+            this.setOutput(true);
+            this.setInputsInline(true);
+            this.setColour(CATEGORIES.IO_PORTS ? CATEGORIES.IO_PORTS.colour : "#059669");
+            this.setTooltip("Cria um potenciômetro (knob giratório) na faceplate da caixa e lê seu valor ajustado.");
+        }
+    };
+
+    Blockly.Blocks['module_io_process'] = {
+        init: function() {
+            this.appendDummyInput()
+                .appendField("a cada bloco de áudio (128 amostras)");
+            this.setNextStatement(true);
+            this.setColour(CATEGORIES.IO_PORTS ? CATEGORIES.IO_PORTS.colour : "#059669");
+            this.setTooltip("Executa a lógica interna do módulo continuamente a 48kHz.");
+        }
+    };
+
+    // -------------------------------------------------------------------------
     // 1. VARIÁVEIS & LISTAS
     // -------------------------------------------------------------------------
     Blockly.Blocks['synth_var_set'] = {
@@ -231,33 +301,31 @@ export function registerSynthBlocks(Blockly) {
     };
 
     // -------------------------------------------------------------------------
-    // 2. BARRAMENTOS DE ÁUDIO LIVRES
+    // 2. BARRAMENTOS DE ÁUDIO LOCAIS (BUSES)
     // -------------------------------------------------------------------------
     Blockly.Blocks['synth_send'] = {
         init: function() {
-            this.appendDummyInput()
-                .appendField("Transmitir para [")
-                .appendField(new Blockly.FieldTextInput("meu_sinal"), "CHANNEL")
-                .appendField("]");
             this.appendValueInput("IN")
-                .appendField("Sinal (ou fluxo acima)");
+                .appendField("transmitir para barramento [")
+                .appendField(new Blockly.FieldTextInput("bus_a"), "CHANNEL")
+                .appendField("] sinal:");
             this.setPreviousStatement(true);
             this.setNextStatement(true);
-            this.setInputsInline(false);
-            this.setColour(CATEGORIES.ROUTING.colour);
-            this.setTooltip("Transmite o sinal para um barramento livre nomeado (1-para-muitos).");
+            this.setInputsInline(true);
+            this.setColour(CATEGORIES.ROUTING ? CATEGORIES.ROUTING.colour : "#C2255C");
+            this.setTooltip("Transmite o sinal para um barramento local nomeado (1-para-muitos).");
         }
     };
 
     Blockly.Blocks['synth_recv'] = {
         init: function() {
             this.appendDummyInput()
-                .appendField("Barramento [")
-                .appendField(new Blockly.FieldTextInput("meu_sinal"), "CHANNEL")
+                .appendField("barramento [")
+                .appendField(new Blockly.FieldTextInput("bus_a"), "CHANNEL")
                 .appendField("]");
             this.setOutput(true);
-            this.setColour(CATEGORIES.ROUTING.colour);
-            this.setTooltip("Pílula de recepção. Lê o sinal do barramento nomeado.");
+            this.setColour(CATEGORIES.ROUTING ? CATEGORIES.ROUTING.colour : "#C2255C");
+            this.setTooltip("Pílula de recepção local: lê o sinal do barramento nomeado.");
         }
     };
 
@@ -382,7 +450,7 @@ export function registerSynthBlocks(Blockly) {
                 .appendField("]");
             this.appendValueInput("CLK")
                 .appendField("Clock Trigger (CV)");
-            this.setOutput(true, "VAL");
+            this.setOutput(true);
             this.setInputsInline(true);
             this.setColour(CATEGORIES.CONTROL.colour);
             this.setTooltip("Percorre a lista de números/notas passo a passo a cada pulso de clock, emitindo voltagem Pitch CV.");

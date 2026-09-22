@@ -1,28 +1,30 @@
 /**
  * =========================================================================
- * BRACK Modular Synth Engine (web/app.js)
- * Fullscreen Canvas, Clean Typography, 48kHz Real-Time DSP,
- * and Persistent Project / Example Management
+ * BRACK Modular Rack & Scratch DSP Studio (web/app.js)
+ * Live 48kHz Audio Engine, Modular Patch Canvas, and In-Place Scratch Editor
  * =========================================================================
  */
 
 import { registerSynthBlocks } from './synth_blocks.js';
-import { BlocklySynthEngine } from './blockly_dsp_compiler.js';
+import { RackEngine } from './rack_engine.js';
+import { RackCanvas } from './rack_canvas.js';
 import { ProjectsManager } from './projects_manager.js';
+import { MODULE_CATALOG } from './modules_catalog.js';
 
 let audioCtx = null;
 let scriptNode = null;
 let isPlaying = false;
-let synthEngine = null;
-let workspace = null;
+let rackEngine = null;
+let rackCanvas = null;
 let projectsManager = null;
+let scratchWorkspace = null;
+let currentEditingModule = null;
 
 const BLOCK_SIZE = 128;
 
 /* =========================================================================
  * Toast Feedback Notification Helper
  * ========================================================================= */
-
 let toastTimer = null;
 function showToast(message, type = 'success') {
     const toast = document.getElementById('toast-notification');
@@ -44,20 +46,31 @@ function showToast(message, type = 'success') {
 /* =========================================================================
  * Real-Time Audio Synthesis Processing Loop
  * ========================================================================= */
+let dummySource = null;
 
 async function startAudio() {
     if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 48000 });
         const bufferSize = 512;
-        scriptNode = audioCtx.createScriptProcessor(bufferSize, 0, 2);
+        scriptNode = audioCtx.createScriptProcessor(bufferSize, 1, 2);
+
+        // Dummy silent source connected to input to keep ScriptProcessor clock ticking continuously
+        try {
+            dummySource = audioCtx.createConstantSource ? audioCtx.createConstantSource() : audioCtx.createBufferSource();
+            if (dummySource.offset) dummySource.offset.value = 0;
+            dummySource.connect(scriptNode);
+            if (dummySource.start) dummySource.start();
+        } catch (e) {
+            console.warn('Silent dummy source fallback:', e);
+        }
 
         scriptNode.onaudioprocess = (e) => {
             const outL = e.outputBuffer.getChannelData(0);
             const outR = e.outputBuffer.getChannelData(1);
 
             for (let offset = 0; offset < bufferSize; offset += BLOCK_SIZE) {
-                if (synthEngine && isPlaying) {
-                    synthEngine.processBlock(outL, outR, offset, BLOCK_SIZE);
+                if (rackEngine && isPlaying) {
+                    rackEngine.processBlock(outL, outR, offset, BLOCK_SIZE);
                 } else {
                     for (let s = 0; s < BLOCK_SIZE; s++) {
                         outL[offset + s] = 0;
@@ -78,7 +91,6 @@ async function startAudio() {
 /* =========================================================================
  * UI Sync Helpers: Select Dropdown & Projects Manager Modal
  * ========================================================================= */
-
 function updateProjectSelect() {
     const select = document.getElementById('project-select');
     if (!select || !projectsManager) return;
@@ -89,10 +101,10 @@ function updateProjectSelect() {
     select.innerHTML = '';
 
     const examplesGroup = document.createElement('optgroup');
-    examplesGroup.label = 'Exemplos Prontos';
+    examplesGroup.label = 'Patches de Exemplo';
 
     const userGroup = document.createElement('optgroup');
-    userGroup.label = 'Meus Projetos';
+    userGroup.label = 'Meus Patches';
 
     let hasUserProjects = false;
 
@@ -134,7 +146,7 @@ function renderModalProjectsList(filterQuery = '') {
     if (filtered.length === 0) {
         listContainer.innerHTML = `
             <div style="text-align: center; color: var(--text-dim); padding: 40px 10px;">
-                Nenhum projeto ou exemplo encontrado para "<b>${filterQuery}</b>".
+                Nenhum patch encontrado para "<b>${filterQuery}</b>".
             </div>
         `;
         return;
@@ -152,12 +164,14 @@ function renderModalProjectsList(filterQuery = '') {
         titleRow.className = 'project-title-row';
 
         const nameSpan = document.createElement('span');
-        nameSpan.className = 'project-name';
+        nameSpan.style.fontSize = '13px';
+        nameSpan.style.fontWeight = '700';
+        nameSpan.style.color = '#ffffff';
         nameSpan.textContent = proj.name;
 
         const badge = document.createElement('span');
         badge.className = `badge ${proj.isExample ? 'badge-example' : 'badge-user'}`;
-        badge.textContent = proj.isExample ? 'Exemplo' : 'Projeto';
+        badge.textContent = proj.isExample ? 'Exemplo' : 'Patch';
 
         titleRow.appendChild(nameSpan);
         titleRow.appendChild(badge);
@@ -170,39 +184,32 @@ function renderModalProjectsList(filterQuery = '') {
         }
 
         const desc = document.createElement('div');
-        desc.className = 'project-desc';
-        desc.textContent = proj.description || (proj.isExample ? 'Preset original de fábrica' : 'Projeto salvo pelo usuário');
-
-        const dateEl = document.createElement('div');
-        dateEl.className = 'project-date';
-        const dateStr = proj.updatedAt ? new Date(proj.updatedAt).toLocaleString('pt-BR') : 'Original';
-        dateEl.textContent = `Atualizado: ${dateStr}`;
+        desc.style.fontSize = '11px';
+        desc.style.color = 'var(--text-dim)';
+        desc.style.lineHeight = '1.3';
+        desc.textContent = proj.description || (proj.isExample ? 'Preset modular original' : 'Patch criado pelo usuário');
 
         info.appendChild(titleRow);
         info.appendChild(desc);
-        info.appendChild(dateEl);
 
         const actions = document.createElement('div');
-        actions.className = 'project-actions';
+        actions.style.display = 'flex';
+        actions.style.gap = '5px';
 
-        // Load Button
         const btnLoad = document.createElement('button');
         btnLoad.className = 'btn-sm btn-primary';
         btnLoad.textContent = 'Abrir';
-        btnLoad.title = 'Carregar este projeto na área de trabalho';
         btnLoad.addEventListener('click', () => {
             projectsManager.loadProject(proj.id);
             updateProjectSelect();
             renderModalProjectsList(filterQuery);
             closeProjectsModal();
-            showToast(`Projeto aberto: ${proj.name}`);
+            showToast(`Patch carregado: ${proj.name}`);
         });
 
-        // Duplicate Button
         const btnDup = document.createElement('button');
         btnDup.className = 'btn-sm';
         btnDup.textContent = 'Duplicar';
-        btnDup.title = 'Criar uma cópia deste projeto';
         btnDup.addEventListener('click', () => {
             const copy = projectsManager.duplicateProject(proj.id);
             if (copy) {
@@ -212,11 +219,9 @@ function renderModalProjectsList(filterQuery = '') {
             }
         });
 
-        // Export Button
         const btnExport = document.createElement('button');
         btnExport.className = 'btn-sm';
         btnExport.textContent = 'Exportar';
-        btnExport.title = 'Baixar arquivo .json';
         btnExport.addEventListener('click', () => {
             projectsManager.exportProjectJson(proj.id);
             showToast(`Exportando: ${proj.name}`);
@@ -226,13 +231,12 @@ function renderModalProjectsList(filterQuery = '') {
         actions.appendChild(btnDup);
         actions.appendChild(btnExport);
 
-        // Rename & Delete for user projects
         if (!proj.isExample) {
             const btnRename = document.createElement('button');
             btnRename.className = 'btn-sm';
             btnRename.textContent = 'Renomear';
             btnRename.addEventListener('click', () => {
-                const newName = prompt('Novo nome para o projeto:', proj.name);
+                const newName = prompt('Novo nome para o patch:', proj.name);
                 if (newName && newName.trim() && newName !== proj.name) {
                     projectsManager.renameProject(proj.id, newName.trim());
                     updateProjectSelect();
@@ -245,11 +249,11 @@ function renderModalProjectsList(filterQuery = '') {
             btnDel.className = 'btn-sm btn-danger';
             btnDel.textContent = 'Excluir';
             btnDel.addEventListener('click', () => {
-                if (confirm(`Tem certeza que deseja excluir o projeto "${proj.name}"?`)) {
+                if (confirm(`Tem certeza que deseja excluir o patch "${proj.name}"?`)) {
                     projectsManager.deleteProject(proj.id);
                     updateProjectSelect();
                     renderModalProjectsList(filterQuery);
-                    showToast(`Projeto excluído: ${proj.name}`, 'warn');
+                    showToast(`Patch excluído: ${proj.name}`, 'warn');
                 }
             });
 
@@ -267,7 +271,6 @@ function openProjectsModal() {
     const modal = document.getElementById('projects-modal');
     const searchInput = document.getElementById('modal-search-input');
     if (!modal) return;
-
     if (searchInput) searchInput.value = '';
     renderModalProjectsList('');
     modal.style.display = 'flex';
@@ -279,68 +282,129 @@ function closeProjectsModal() {
 }
 
 /* =========================================================================
+ * Add Module Modal Helper
+ * ========================================================================= */
+function renderAddModuleModal() {
+    const grid = document.getElementById('modules-catalog-grid');
+    if (!grid) return;
+
+    grid.innerHTML = '';
+
+    for (const spec of MODULE_CATALOG) {
+        const card = document.createElement('div');
+        card.className = 'module-pick-card';
+        card.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <b style="color: ${spec.color || '#55efc4'}; font-size: 13px;">${spec.name}</b>
+                <span class="badge" style="background: rgba(255,255,255,0.1); font-size: 8px;">${spec.category}</span>
+            </div>
+            <div style="font-size: 10px; color: var(--text-dim);">
+                In: ${spec.inputs.map(i => i.name).join(', ') || 'Nenhum'} | Out: ${spec.outputs.map(o => o.name).join(', ') || 'Nenhum'}
+            </div>
+            <div style="font-size: 10px; color: #8395a7;">
+                Knobs: ${spec.params.map(p => p.name).join(', ') || 'Nenhum'}
+            </div>
+        `;
+
+        card.addEventListener('click', () => {
+            const worldCenter = rackCanvas.screenToWorld(window.innerWidth / 2, window.innerHeight / 2);
+            const newMod = rackEngine.addModule(spec.type, worldCenter.x - 95, worldCenter.y - 125);
+            rackCanvas.render();
+            closeAddModuleModal();
+            showToast(`Módulo adicionado: ${newMod.name}`);
+        });
+
+        grid.appendChild(card);
+    }
+}
+
+function openAddModuleModal() {
+    const modal = document.getElementById('add-module-modal');
+    if (modal) {
+        renderAddModuleModal();
+        modal.style.display = 'flex';
+    }
+}
+
+function closeAddModuleModal() {
+    const modal = document.getElementById('add-module-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+/* =========================================================================
+ * Scratch Module Editor In-Place Drawer Controller
+ * ========================================================================= */
+function openScratchEditor(moduleInstance) {
+    if (!moduleInstance) return;
+    currentEditingModule = moduleInstance;
+
+    const drawer = document.getElementById('scratch-drawer');
+    const titleEl = document.getElementById('drawer-module-title');
+
+    if (titleEl) {
+        titleEl.innerHTML = `
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>
+            <span>Editando Código Scratch: <b style="color: #ffffff;">${moduleInstance.name}</b></span>
+        `;
+    }
+
+    if (drawer) {
+        drawer.classList.add('open');
+    }
+
+    // Load module's XML into scratchWorkspace
+    if (scratchWorkspace) {
+        scratchWorkspace.clear();
+        if (moduleInstance.xml) {
+            try {
+                let dom = null;
+                if (Blockly.utils && Blockly.utils.xml && typeof Blockly.utils.xml.textToDom === 'function') {
+                    dom = Blockly.utils.xml.textToDom(moduleInstance.xml);
+                } else if (Blockly.Xml && typeof Blockly.Xml.textToDom === 'function') {
+                    dom = Blockly.Xml.textToDom(moduleInstance.xml);
+                } else {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(moduleInstance.xml, 'text/xml');
+                    dom = doc.documentElement;
+                }
+                Blockly.Xml.domToWorkspace(dom, scratchWorkspace);
+            } catch (err) {
+                console.warn('Error loading module XML into Scratch workspace:', err);
+            }
+        }
+        setTimeout(() => Blockly.svgResize(scratchWorkspace), 50);
+    }
+}
+
+function closeScratchEditor() {
+    const drawer = document.getElementById('scratch-drawer');
+    if (drawer) drawer.classList.remove('open');
+    currentEditingModule = null;
+}
+
+/* =========================================================================
  * Application Initialization
  * ========================================================================= */
-
 window.addEventListener('DOMContentLoaded', () => {
-    // 1. Register Synth Blocks
+    // 1. Register All Synth & Module IO Blocks
     registerSynthBlocks(Blockly);
 
-    // 2. Lock Flyout Scale to Fixed Crisp Size (Blocks in selection palette never scale with canvas zoom)
-    const FIXED_FLYOUT_SCALE = 0.85;
+    // 2. Initialize Rack Engine & Rack Canvas
+    const rackContainer = document.getElementById('rack-container');
+    rackEngine = new RackEngine(48000);
 
-    if (Blockly.Flyout) {
-        Blockly.Flyout.prototype.getFlyoutScale = function() {
-            return FIXED_FLYOUT_SCALE;
-        };
-    }
+    rackCanvas = new RackCanvas(rackContainer, rackEngine, {
+        onEditModule: (mod) => openScratchEditor(mod),
+        onModuleChange: () => {
+            // Re-render rack cables & sync if needed
+        }
+    });
 
-    if (Blockly.VerticalFlyout) {
-        Blockly.VerticalFlyout.prototype.getFlyoutScale = function() {
-            return FIXED_FLYOUT_SCALE;
-        };
-
-        Blockly.VerticalFlyout.prototype.layout_ = function(a, b) {
-            this.workspace_.scale = FIXED_FLYOUT_SCALE;
-            let c = this.MARGIN;
-            const d = this.RTL ? c : c + this.tabWidth_;
-            for (let h = 0, k; (k = a[h]); h++) {
-                if ("block" === k.type) {
-                    const e = k.block;
-                    if (!e) continue;
-                    const f = e.getDescendants(false);
-                    for (let m = 0, n; (n = f[m]); m++) n.isInFlyout = true;
-                    const svgRoot = e.getSvgRoot();
-                    const l = e.getHeightWidth();
-                    const g = e.outputConnection ? d - this.tabWidth_ : d;
-                    e.moveBy(g, c);
-                    const rect = this.createRect_(e, this.RTL ? g - l.width : g, c, l, h);
-                    this.addBlockListeners_(svgRoot, e, rect);
-                    c += l.height + b[h];
-                } else if ("button" === k.type) {
-                    const e = k.button;
-                    this.initFlyoutButton_(e, d, c);
-                    c += e.height + b[h];
-                }
-            }
-        };
-    }
-
-    if (Blockly.HorizontalFlyout) {
-        Blockly.HorizontalFlyout.prototype.getFlyoutScale = function() {
-            return FIXED_FLYOUT_SCALE;
-        };
-    }
-
-    // 3. Define Clean Dark Theme for Blockly
-    const scratchTheme = Blockly.Theme.defineTheme('scratchTheme', {
+    // 3. Initialize Blockly Scratch Editor Workspace inside Drawer
+    const scratchTheme = Blockly.Theme.defineTheme('scratchDarkTheme', {
         base: Blockly.Themes.Classic,
         blockStyles: {
-            hat_blocks: {
-                colourPrimary: "#FFAB19",
-                colourSecondary: "#E69900",
-                colourTertiary: "#CC8800"
-            }
+            hat_blocks: { colourPrimary: "#FFAB19", colourSecondary: "#E69900", colourTertiary: "#CC8800" }
         },
         componentStyles: {
             workspaceBackgroundColour: '#0c100e',
@@ -355,129 +419,70 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 4. Inject Blockly Workspace (Fullscreen)
-    workspace = Blockly.inject('blockly-div', {
+    scratchWorkspace = Blockly.inject('blockly-div', {
         toolbox: document.getElementById('toolbox'),
-        grid: {
-            spacing: 25,
-            length: 3,
-            colour: '#1c2823',
-            snap: true
-        },
-        zoom: {
-            controls: true,
-            wheel: true,
-            startScale: 0.85,
-            maxScale: 2.0,
-            minScale: 0.4,
-            scaleSpeed: 1.1
-        },
+        grid: { spacing: 25, length: 3, colour: '#1c2823', snap: true },
+        zoom: { controls: true, wheel: true, startScale: 0.85, maxScale: 2.0, minScale: 0.4, scaleSpeed: 1.1 },
         trashcan: true,
         theme: scratchTheme
     });
 
-    // 4. Handle Fullscreen Responsive Canvas Resizing
-    window.addEventListener('resize', () => {
-        if (workspace) {
-            Blockly.svgResize(workspace);
+    // Sincronização em tempo real: qualquer mudança no Scratch atualiza a caixa e o DSP do módulo no Rack
+    scratchWorkspace.addChangeListener((e) => {
+        if (e.isUiEvent || !currentEditingModule) return;
+
+        const xmlDom = Blockly.Xml.workspaceToDom(scratchWorkspace);
+        let xmlText = '';
+        if (Blockly.utils && Blockly.utils.xml && typeof Blockly.utils.xml.domToText === 'function') {
+            xmlText = Blockly.utils.xml.domToText(xmlDom);
+        } else if (Blockly.Xml && typeof Blockly.Xml.domToText === 'function') {
+            xmlText = Blockly.Xml.domToText(xmlDom);
+        } else {
+            const serializer = new XMLSerializer();
+            xmlText = serializer.serializeToString(xmlDom);
         }
+
+        // Update module instance XML & re-extract ports & knobs
+        rackEngine.syncModuleWithXml(currentEditingModule, xmlText);
+        rackCanvas.render();
     });
-    setTimeout(() => {
-        if (workspace) Blockly.svgResize(workspace);
-    }, 100);
 
-    // 5. Initialize Real-Time DSP Engine
-    synthEngine = new BlocklySynthEngine(48000);
-    synthEngine.setWorkspace(workspace);
+    // 4. Initialize Projects Manager
+    projectsManager = new ProjectsManager(rackEngine, rackCanvas);
 
-    // 6. Initialize Projects & Examples Manager
-    projectsManager = new ProjectsManager(workspace, synthEngine);
-
-    // Load active or default preset
+    // Load active preset (e.g. Acid 303 Lab)
     const initialProjId = projectsManager.getActiveProjectId();
     projectsManager.loadProject(initialProjId);
     updateProjectSelect();
 
-    // Re-compile audio graph on block changes
-    workspace.addChangeListener((e) => {
-        if (e.isUiEvent) return;
-        synthEngine.compile();
-    });
-
-    // 7. Header Controls (Unified Play / Stop Toggle)
+    // 5. Header Action Buttons
     const btnPlayToggle = document.getElementById('btn-play-toggle');
-
     async function togglePlayback() {
         if (!isPlaying) {
-            await startAudio();
             isPlaying = true;
+            await startAudio();
             if (btnPlayToggle) {
                 btnPlayToggle.classList.add('playing');
-                btnPlayToggle.title = 'Parar Síntese';
+                btnPlayToggle.title = 'Parar Síntese (Espaço)';
             }
         } else {
             isPlaying = false;
             if (btnPlayToggle) {
                 btnPlayToggle.classList.remove('playing');
-                btnPlayToggle.title = 'Iniciar Síntese';
+                btnPlayToggle.title = 'Iniciar Síntese (Espaço)';
             }
         }
     }
 
-    if (btnPlayToggle) {
-        btnPlayToggle.addEventListener('click', togglePlayback);
-    }
+    if (btnPlayToggle) btnPlayToggle.addEventListener('click', togglePlayback);
 
-    // 7.5 Toolbox Toggle Controller (Header Bar Toggle & Shortcut)
-    let isToolboxVisible = true;
-    const blocklyDiv = document.getElementById('blockly-div');
-    const btnToggleToolbox = document.getElementById('btn-toggle-toolbox');
+    document.getElementById('btn-add-module').addEventListener('click', openAddModuleModal);
+    document.getElementById('btn-close-add-modal').addEventListener('click', closeAddModuleModal);
+    document.getElementById('btn-cancel-add-modal').addEventListener('click', closeAddModuleModal);
 
-    function toggleToolbox(forceState) {
-        if (forceState !== undefined) {
-            isToolboxVisible = forceState;
-        } else {
-            isToolboxVisible = !isToolboxVisible;
-        }
+    document.getElementById('btn-close-drawer').addEventListener('click', closeScratchEditor);
 
-        if (blocklyDiv) {
-            if (isToolboxVisible) {
-                blocklyDiv.classList.remove('toolbox-hidden');
-            } else {
-                blocklyDiv.classList.add('toolbox-hidden');
-                try {
-                    if (workspace && workspace.getFlyout()) {
-                        workspace.getFlyout().hide();
-                    }
-                    if (workspace && workspace.getToolbox() && typeof workspace.getToolbox().clearSelection === 'function') {
-                        workspace.getToolbox().clearSelection();
-                    }
-                } catch (err) {}
-            }
-        }
-
-        if (btnToggleToolbox) {
-            if (isToolboxVisible) {
-                btnToggleToolbox.classList.add('btn-primary');
-                btnToggleToolbox.classList.remove('btn-warn');
-                btnToggleToolbox.title = 'Ocultar Barra Lateral de Blocos (B)';
-            } else {
-                btnToggleToolbox.classList.remove('btn-primary');
-                btnToggleToolbox.classList.add('btn-warn');
-                btnToggleToolbox.title = 'Mostrar Barra Lateral de Blocos (B)';
-            }
-        }
-
-        if (workspace) {
-            Blockly.svgResize(workspace);
-        }
-    }
-
-    if (btnToggleToolbox) {
-        btnToggleToolbox.addEventListener('click', () => toggleToolbox());
-    }
-
-    // 8. Project Toolbar Event Handlers
+    // Project Toolbar Event Handlers
     const projectSelect = document.getElementById('project-select');
     const btnSaveProject = document.getElementById('btn-save-project');
     const btnSaveAsProject = document.getElementById('btn-save-as-project');
@@ -486,7 +491,7 @@ window.addEventListener('DOMContentLoaded', () => {
     const btnExportProject = document.getElementById('btn-export-project');
     const btnImportProject = document.getElementById('btn-import-project');
     const fileInputProject = document.getElementById('file-input-project');
-    const btnClearWorkspace = document.getElementById('btn-clear-workspace');
+    const btnClearRack = document.getElementById('btn-clear-rack');
 
     projectSelect.addEventListener('change', (e) => {
         const id = e.target.value;
@@ -502,16 +507,16 @@ window.addEventListener('DOMContentLoaded', () => {
         const current = projectsManager.getProject(currentId);
 
         if (current && current.isExample) {
-            const name = prompt(`Você está editando um exemplo de fábrica.\nDigite o nome para salvar sua cópia personalizada:`, `${current.name} (Minha Cópia)`);
+            const name = prompt(`Você está editando um patch de exemplo.\nDigite o nome para salvar sua cópia personalizada:`, `${current.name} (Minha Cópia)`);
             if (name && name.trim()) {
                 const saved = projectsManager.saveAsNewProject(name.trim());
                 updateProjectSelect();
-                showToast(`Salvo como novo projeto: ${saved.name}`);
+                showToast(`Salvo como novo patch: ${saved.name}`);
             }
         } else {
             const saved = projectsManager.saveCurrentProject();
             updateProjectSelect();
-            showToast(`Projeto salvo: ${saved ? saved.name : ''}`);
+            showToast(`Patch salvo: ${saved ? saved.name : ''}`);
         }
     });
 
@@ -520,21 +525,22 @@ window.addEventListener('DOMContentLoaded', () => {
         const current = projectsManager.getProject(currentId);
         const defaultName = current ? `${current.name} (Cópia)` : 'Novo Patch';
 
-        const name = prompt('Nome para o novo projeto:', defaultName);
+        const name = prompt('Nome para o novo patch:', defaultName);
         if (name && name.trim()) {
             const saved = projectsManager.saveAsNewProject(name.trim());
             updateProjectSelect();
-            showToast(`Projeto salvo: ${saved.name}`);
+            showToast(`Patch salvo: ${saved.name}`);
         }
     });
 
     btnNewProject.addEventListener('click', () => {
-        if (confirm('Deseja criar um novo projeto em branco?')) {
-            workspace.clear();
-            const newProj = projectsManager.saveAsNewProject('Novo Projeto ' + (projectsManager.getAllProjects().length + 1));
+        if (confirm('Deseja criar um rack novo em branco?')) {
+            rackEngine.clear();
+            rackEngine.addModule('master_out', 600, 100, 'Master Output');
+            rackCanvas.render();
+            const newProj = projectsManager.saveAsNewProject('Novo Patch ' + (projectsManager.getAllProjects().length + 1));
             updateProjectSelect();
-            synthEngine.compile();
-            showToast(`Novo projeto criado: ${newProj.name}`);
+            showToast(`Novo rack criado: ${newProj.name}`);
         }
     });
 
@@ -561,7 +567,7 @@ window.addEventListener('DOMContentLoaded', () => {
             try {
                 const imported = projectsManager.importProjectJson(evt.target.result);
                 updateProjectSelect();
-                showToast(`Projeto importado: ${imported.name}`);
+                showToast(`Patch importado: ${imported.name}`);
             } catch (err) {
                 alert('Erro ao importar arquivo: ' + err.message);
             }
@@ -569,15 +575,15 @@ window.addEventListener('DOMContentLoaded', () => {
         reader.readAsText(file);
     });
 
-    btnClearWorkspace.addEventListener('click', () => {
-        if (confirm('Limpar todos os blocos da área de trabalho?')) {
-            workspace.clear();
-            synthEngine.compile();
-            showToast('Área de trabalho limpa', 'warn');
+    btnClearRack.addEventListener('click', () => {
+        if (confirm('Limpar todos os módulos do rack?')) {
+            rackEngine.clear();
+            rackCanvas.render();
+            showToast('Rack limpo', 'warn');
         }
     });
 
-    // 9. Modal Event Handlers
+    // Modal Event Handlers
     document.getElementById('btn-modal-close').addEventListener('click', closeProjectsModal);
     document.getElementById('btn-modal-done').addEventListener('click', closeProjectsModal);
 
@@ -591,15 +597,16 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('btn-modal-new-proj').addEventListener('click', () => {
-        const name = prompt('Nome para o novo projeto:', 'Novo Patch');
+        const name = prompt('Nome para o novo patch:', 'Novo Patch');
         if (name && name.trim()) {
-            workspace.clear();
+            rackEngine.clear();
+            rackEngine.addModule('master_out', 600, 100, 'Master Output');
+            rackCanvas.render();
             const p = projectsManager.saveAsNewProject(name.trim());
             updateProjectSelect();
             renderModalProjectsList('');
-            synthEngine.compile();
             closeProjectsModal();
-            showToast(`Projeto criado: ${p.name}`);
+            showToast(`Patch criado: ${p.name}`);
         }
     });
 
@@ -609,7 +616,7 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('btn-modal-reset-examples').addEventListener('click', () => {
-        if (confirm('Deseja restaurar todos os 6 exemplos originais de fábrica? (Seus projetos pessoais não serão apagados)')) {
+        if (confirm('Deseja restaurar todos os patches originais de fábrica?')) {
             projectsManager.resetFactoryExamples();
             updateProjectSelect();
             renderModalProjectsList('');
@@ -617,134 +624,19 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Keyboard Event Listener for `event_whenkeypressed` & Shortcuts
+    // Keyboard Shortcuts
     window.addEventListener('keydown', (e) => {
         if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
-        if (e.code === 'KeyB' && !e.ctrlKey && !e.metaKey && !e.altKey) {
-            e.preventDefault();
-            toggleToolbox();
-            return;
-        }
         if (e.code === 'Space' && !e.ctrlKey && !e.metaKey && !e.altKey) {
             e.preventDefault();
             togglePlayback();
             return;
         }
-        if (synthEngine) synthEngine.onKeyDown(e.code);
-    });
-
-    window.addEventListener('keyup', (e) => {
-        if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
-        if (synthEngine) synthEngine.onKeyUp(e.code);
-    });
-
-    // 10. Live Oscilloscope Display Render Loop
-    function renderLiveOscilloscopes() {
-        if (workspace && synthEngine) {
-            const scopeBlocks = workspace.getAllBlocks(false).filter(b => b.type === 'synth_scope');
-
-            for (const block of scopeBlocks) {
-                const fieldImg = block.getField('SCOPE_IMG');
-                if (!fieldImg) continue;
-                const fieldSvgRoot = fieldImg.getSvgRoot();
-                if (!fieldSvgRoot) continue;
-                const parentGroup = fieldSvgRoot.parentNode;
-                if (!parentGroup) continue;
-
-                fieldSvgRoot.style.display = 'none';
-
-                let posX = 16;
-                let posY = 64;
-                try {
-                    const bbox = fieldSvgRoot.getBBox ? fieldSvgRoot.getBBox() : null;
-                    if (bbox && bbox.y > 10) {
-                        posX = bbox.x;
-                        posY = bbox.y;
-                    }
-                } catch (e) {
-                    // getBBox fallback
-                }
-
-                let scopeGroup = parentGroup.querySelector('.blockly-scope-display');
-                if (!scopeGroup) {
-                    scopeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-                    scopeGroup.setAttribute('class', 'blockly-scope-display');
-                    scopeGroup.setAttribute('transform', `translate(${posX}, ${posY})`);
-
-                    const bgRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-                    bgRect.setAttribute('x', '0');
-                    bgRect.setAttribute('y', '0');
-                    bgRect.setAttribute('width', '180');
-                    bgRect.setAttribute('height', '60');
-                    bgRect.setAttribute('rx', '4');
-                    bgRect.setAttribute('fill', '#060a08');
-                    bgRect.setAttribute('stroke', '#1f3329');
-                    bgRect.setAttribute('stroke-width', '1.5');
-
-                    const centerLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                    centerLine.setAttribute('x1', '0');
-                    centerLine.setAttribute('y1', '30');
-                    centerLine.setAttribute('x2', '180');
-                    centerLine.setAttribute('y2', '30');
-                    centerLine.setAttribute('stroke', '#121f18');
-                    centerLine.setAttribute('stroke-dasharray', '3,3');
-
-                    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                    path.setAttribute('class', 'scope-waveform');
-                    path.setAttribute('d', 'M 0 30 L 180 30');
-                    path.setAttribute('stroke', '#55efc4');
-                    path.setAttribute('stroke-width', '2');
-                    path.setAttribute('fill', 'none');
-                    path.setAttribute('stroke-linecap', 'round');
-                    path.setAttribute('stroke-linejoin', 'round');
-
-                    scopeGroup.appendChild(bgRect);
-                    scopeGroup.appendChild(centerLine);
-                    scopeGroup.appendChild(path);
-                    parentGroup.appendChild(scopeGroup);
-                } else {
-                    scopeGroup.setAttribute('transform', `translate(${posX}, ${posY})`);
-                }
-
-                const state = synthEngine.blockStates.get(block.id);
-                const pathEl = scopeGroup.querySelector('.scope-waveform');
-                if (!pathEl) continue;
-
-                if (isPlaying && state && state.history) {
-                    const hist = state.history;
-                    const head = state.histHead;
-                    const len = 512;
-
-                    let start = (head - 256 + len) % len;
-                    for (let i = 0; i < 96; i++) {
-                        const idx1 = (head - 256 + i + len) % len;
-                        const idx2 = (idx1 + 1) % len;
-                        if (hist[idx1] <= 0 && hist[idx2] > 0) {
-                            start = idx2;
-                            break;
-                        }
-                    }
-
-                    const width = 180;
-                    const midY = 30;
-                    const samplesToShow = 256;
-                    const points = [];
-
-                    for (let x = 0; x < width; x += 2) {
-                        const idx = (start + Math.floor(x * (samplesToShow / width))) % len;
-                        const smp = Math.max(-1.1, Math.min(1.1, hist[idx] || 0));
-                        const y = midY - smp * (midY - 4);
-                        points.push(`${x},${y.toFixed(1)}`);
-                    }
-
-                    pathEl.setAttribute('d', 'M ' + points.join(' L '));
-                } else {
-                    pathEl.setAttribute('d', 'M 0 30 L 180 30');
-                }
-            }
+        if (e.code === 'Escape') {
+            closeScratchEditor();
+            closeAddModuleModal();
+            closeProjectsModal();
+            return;
         }
-        requestAnimationFrame(renderLiveOscilloscopes);
-    }
-
-    renderLiveOscilloscopes();
+    });
 });
