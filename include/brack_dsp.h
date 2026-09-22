@@ -59,9 +59,8 @@ static inline float b_sin_norm(float phase) {
 static inline float b_exp2(float x) {
     if (x < -126.0f) return 0.0f;
     if (x > 126.0f) x = 126.0f;
-    float clip = (x < -126.0f) ? -126.0f : x;
-    int32_t i = (int32_t)(clip);
-    float f = clip - (float)i;
+    int32_t i = (int32_t)x;
+    float f = x - (float)i;
     float p = 1.0f + f * (0.693017f + f * (0.241404f + f * 0.052032f));
     union { int32_t i; float f; } u;
     u.i = (i + 127) << 23;
@@ -125,7 +124,7 @@ static inline void b_svf_init(b_svf_t *f) {
 
 static inline void b_svf_process(b_svf_t *f, float in, float cutoff_hz, float res, float sr, float *out_lp, float *out_hp, float *out_bp) {
     float omega = (cutoff_hz * B_PI) / sr;
-    float freq = 2.0f * b_sin_norm(omega * 0.5f);
+    float freq = 2.0f * b_sin_norm(cutoff_hz / (2.0f * sr));
     float q = 1.0f - b_clamp(res, 0.0f, 0.98f) * 0.95f;
 
     float hp = in - f->s0 - q * f->s1;

@@ -194,6 +194,9 @@ B_EXPORT void     brack_slot_destroy(int32_t slot_id);
 B_EXPORT void*    brack_slot_get_in_links_ptr(int32_t slot_id);
 B_EXPORT uint32_t brack_slot_get_in_links_count(int32_t slot_id);
 B_EXPORT void*    brack_slot_get_out_links_ptr(int32_t slot_id);
+B_EXPORT void*    brack_slot_get_out_val_ptr(int32_t slot_id);
+B_EXPORT void     brack_slot_set_out_val(int32_t slot_id, uint32_t out_idx, float val);
+B_EXPORT void     brack_slot_set_out_midi_count(int32_t slot_id, uint32_t out_idx, uint32_t count);
 
 // Patch Links Matrix
 B_EXPORT int32_t  brack_link_connect(uint16_t src_slot, uint8_t src_out_idx, uint16_t dst_slot, uint8_t link_type, float gain);

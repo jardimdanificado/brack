@@ -87,13 +87,23 @@ B_EXPORT void b_module_process(
     // Output 0: MIDI events
     out_links[0].type = BRACK_LINK_MIDI;
     if (clock_trigger && out_links[0].midi_events) {
-        brack_midi_event_t *ev = &out_links[0].midi_events[0];
-        ev->status = 0x90; // Note On
-        ev->data1 = midi_note;
-        ev->data2 = 100; // Velocity
-        ev->channel = 0;
-        ev->frame_offset = 0;
-        out_links[0].midi_count = 1;
+        uint8_t prev_step = (uint8_t)((g_seq.step + 7) % 8); /* step already advanced */
+        uint8_t prev_note = (uint8_t)(60 + (int)g_seq.params[prev_step]);
+        /* Note Off for previous step */
+        brack_midi_event_t *off = &out_links[0].midi_events[0];
+        off->status = 0x80; /* Note Off */
+        off->data1  = prev_note;
+        off->data2  = 0;
+        off->channel = 0;
+        off->frame_offset = 0;
+        /* Note On for new step */
+        brack_midi_event_t *on = &out_links[0].midi_events[1];
+        on->status = 0x90; /* Note On */
+        on->data1  = midi_note;
+        on->data2  = 100; /* Velocity */
+        on->channel = 0;
+        on->frame_offset = 0;
+        out_links[0].midi_count = 2;
     } else {
         out_links[0].midi_count = 0;
     }

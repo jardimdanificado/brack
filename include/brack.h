@@ -104,9 +104,8 @@ static inline float b_sin_norm(float phase) {
 static inline float b_exp2(float x) {
     if (x < -126.0f) return 0.0f;
     if (x > 126.0f) x = 126.0f;
-    float clip = (x < -126.0f) ? -126.0f : x;
-    int32_t i = (int32_t)(clip);
-    float f = clip - (float)i;
+    int32_t i = (int32_t)x;
+    float f = x - (float)i;
     float p = 1.0f + f * (0.693017f + f * (0.241404f + f * 0.052032f));
     union { int32_t i; float f; } u;
     u.i = (i + 127) << 23;

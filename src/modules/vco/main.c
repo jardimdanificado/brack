@@ -42,11 +42,11 @@ B_EXPORT void b_module_init(float sample_rate) {
 }
 
 B_EXPORT void b_module_set_param(uint32_t param_id, float value) {
-    if (param_id < 8) g_vco.params[param_id] = value;
+    if (param_id < 7) g_vco.params[param_id] = value;
 }
 
 B_EXPORT float b_module_get_param(uint32_t param_id) {
-    return (param_id < 8) ? g_vco.params[param_id] : 0.0f;
+    return (param_id < 7) ? g_vco.params[param_id] : 0.0f;
 }
 
 B_EXPORT void b_module_process(
@@ -114,7 +114,7 @@ B_EXPORT void b_module_process(
         sqr -= b_polyblep(phase_pw, dt);
 
         // Sine
-        float sin = b_sin_norm(phase);
+        float sine = b_sin_norm(phase);
 
         // Triangle
         tri_integrator += (sqr * 4.0f * dt) - (tri_integrator * 0.001f);
@@ -124,7 +124,7 @@ B_EXPORT void b_module_process(
             if (wave_sel < 0.5f) out_buf[s] = saw;
             else if (wave_sel < 1.5f) out_buf[s] = sqr;
             else if (wave_sel < 2.5f) out_buf[s] = tri;
-            else out_buf[s] = sin;
+            else out_buf[s] = sine;
         }
 
         phase += dt;

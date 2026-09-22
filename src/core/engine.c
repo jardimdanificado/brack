@@ -169,6 +169,25 @@ B_EXPORT void* brack_slot_get_out_links_ptr(int32_t slot_id) {
     return 0;
 }
 
+B_EXPORT void* brack_slot_get_out_val_ptr(int32_t slot_id) {
+    if (slot_id >= 0 && slot_id < BRACK_MAX_SLOTS) {
+        return &g_engine.slots[slot_id].out_val[0];
+    }
+    return 0;
+}
+
+B_EXPORT void brack_slot_set_out_val(int32_t slot_id, uint32_t out_idx, float val) {
+    if (slot_id >= 0 && slot_id < BRACK_MAX_SLOTS && out_idx < BRACK_MAX_OUT_LINKS) {
+        g_engine.slots[slot_id].out_val[out_idx] = val;
+    }
+}
+
+B_EXPORT void brack_slot_set_out_midi_count(int32_t slot_id, uint32_t out_idx, uint32_t count) {
+    if (slot_id >= 0 && slot_id < BRACK_MAX_SLOTS && out_idx < BRACK_MAX_OUT_LINKS) {
+        g_engine.slots[slot_id].out_midi_count[out_idx] = count;
+    }
+}
+
 B_EXPORT int32_t brack_link_connect(uint16_t src_slot, uint8_t src_out_idx, uint16_t dst_slot, uint8_t link_type, float gain) {
     if (src_slot >= BRACK_MAX_SLOTS || dst_slot >= BRACK_MAX_SLOTS) return -1;
     if (src_out_idx >= BRACK_MAX_OUT_LINKS) return -1;

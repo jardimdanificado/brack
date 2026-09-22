@@ -24,8 +24,8 @@ B_EXPORT const char* b_module_descriptor(void) {
             "{\"id\":3,\"name\":\"Release\",\"min\":0.001,\"max\":10.0,\"default\":0.30}"
         "],"
         "\"outputs\":["
-            "{\"type\":\"VAL\",\"name\":\"ENV\"},"
-            "{\"type\":\"AUDIO\",\"name\":\"CV\"}"
+            "{\"type\":\"VAL\",\"name\":\"CV\"},"
+            "{\"type\":\"AUDIO\",\"name\":\"ENV\"}"
         "]"
     "}";
 }
@@ -100,7 +100,7 @@ B_EXPORT void b_module_process(
     for (uint32_t s = 0; s < num_samples; s++) {
         switch (stage) {
             case ADSR_ATTACK:
-                level += a_rate * (1.2f - level);
+                level += a_rate * (1.0f - level);
                 if (level >= 1.0f) {
                     level = 1.0f;
                     stage = ADSR_DECAY;

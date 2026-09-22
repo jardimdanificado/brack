@@ -72,7 +72,8 @@ B_EXPORT void b_module_process(
     g_clock.phase = phase;
     g_clock.tick_count = tick_count;
 
-    // Output 0: VAL pulse
+    // Output 0: VAL gate — 50% duty cycle (HIGH first half of 16th-note period)
+    // phase < 0.5 gives ~56.8ms gate per note @ 132 BPM, enough for ADSR to complete attack+decay
     out_links[0].type = BRACK_LINK_VAL;
     out_links[0].val = (phase < 0.5f) ? 1.0f : 0.0f;
 

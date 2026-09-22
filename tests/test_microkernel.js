@@ -148,7 +148,7 @@ async function main() {
         // Initialize out_links pointers inside module memory
         const u32 = new Uint32Array(m.exports.memory.buffer);
         for (let o = 0; o < 16; o++) {
-            const outEntryOffset = (m.outLinksPtr + o * 24) >> 2;
+            const outEntryOffset = (m.outLinksPtr + o * 20) >> 2;
             u32[outEntryOffset + 1] = m.audioBufPtr + o * BLOCK_SIZE * 4; // audio ptr
             u32[outEntryOffset + 2] = m.midiBufPtr + o * 64 * 8;         // midi ptr
         }
@@ -176,7 +176,7 @@ async function main() {
 
             // Copy in_links from core into module
             for (let i = 0; i < inCount; i++) {
-                // brack_in_link_t structure layout (32 bytes):
+                // brack_in_link_t structure layout (28 bytes / 7 u32s):
                 // offset 0 (u8): type
                 // offset 2 (u16): src_slot
                 // offset 4 (u16): src_out_idx
@@ -185,8 +185,8 @@ async function main() {
                 // offset 16 (u32): midi ptr
                 // offset 20 (u32): midi_count
                 // offset 24 (f32): val
-                const coreLinkBase = (inLinksPtrCore >> 2) + (i * 8);
-                const modLinkBase  = (m.inLinksPtr >> 2) + (i * 8);
+                const coreLinkBase = (inLinksPtrCore >> 2) + (i * 7);
+                const modLinkBase  = (m.inLinksPtr >> 2) + (i * 7);
 
                 const type = coreU32[coreLinkBase] & 0xFF;
                 modU32[modLinkBase] = coreU32[coreLinkBase]; // type, src_slot, src_out_idx
@@ -228,12 +228,19 @@ async function main() {
             const coreOutLinksPtr = core.brack_slot_get_out_links_ptr(m.slot);
 
             for (let o = 0; o < outCount; o++) {
-                const modOutBase = (m.outLinksPtr >> 2) + (o * 6);
-                const coreOutBase = (coreOutLinksPtr >> 2) + (o * 6);
+                // brack_out_link_t layout (20 bytes / 5 u32s):
+                // offset 0 (u8): type
+                // offset 4 (ptr): audio
+                // offset 8 (ptr): midi_events
+                // offset 12 (u32): midi_count
+                // offset 16 (f32): val
+                const modOutBase  = (m.outLinksPtr >> 2) + (o * 5);
+                const coreOutBase = (coreOutLinksPtr >> 2) + (o * 5);
 
                 const type = modU32[modOutBase] & 0xFF;
                 coreU32[coreOutBase] = type;
-                coreF32[coreOutBase + 4] = modF32[modOutBase + 4]; // val
+                const val = modF32[modOutBase + 4];
+                coreF32[coreOutBase + 4] = val; // update out_links[o].val
                 const midiCount = modU32[modOutBase + 3];
                 coreU32[coreOutBase + 3] = midiCount;
 
@@ -247,6 +254,9 @@ async function main() {
                             coreF32[dstIdx + s] = modF32[srcIdx + s];
                         }
                     }
+                } else if (type === LINK_VAL) {
+                    // Also update slot->out_val[o] which route_slot_outputs reads
+                    core.brack_slot_set_out_val(m.slot, o, val);
                 } else if (type === LINK_MIDI && midiCount > 0) {
                     const modMidiPtr = modU32[modOutBase + 2];
                     const coreMidiPtr = coreU32[coreOutBase + 2];
@@ -257,6 +267,8 @@ async function main() {
                             coreU32[dstIdx + s] = modU32[srcIdx + s];
                         }
                     }
+                    // Also update slot->out_midi_count[o] which route_slot_outputs reads
+                    core.brack_slot_set_out_midi_count(m.slot, o, midiCount);
                 }
             }
 
